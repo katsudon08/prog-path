@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { MazeData } from "@/lib/types";
+import { Canvas } from "@react-three/fiber"
 
 interface RobotState {
     x: number;
