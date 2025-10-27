@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Orbitron, Michroma } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "../../components/navbar";
 
 const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" });
 const michroma = Michroma({
