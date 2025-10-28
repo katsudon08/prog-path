@@ -26,7 +26,7 @@ export default function RootLayout({
     return (
         <html lang="ja">
             <body
-                className={`${orbitron.variable} ${michroma.variable} font-sans antialiased`}
+                className={`${orbitron.variable} ${michroma.variable} font-sans antialiased pt-16`}
             >
                 <Navbar />
                 {children}
