@@ -312,7 +312,7 @@ export function ARExecutionScreen() {
 
     if (!maze) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-background">
+            <div className="flex min-h-screen items-center justify-center bg-background pt-16">
                 <Card className="border-neon-blue/30 bg-space-dark/50 p-8">
                     <p className="text-neon-cyan">迷路を読み込んでいます...</p>
                 </Card>
@@ -321,7 +321,7 @@ export function ARExecutionScreen() {
     }
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background pt-16">
             <div className="container mx-auto px-4 py-8">
                 <div className="mb-6 flex items-center justify-between">
                     <Button
