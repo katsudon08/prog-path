@@ -122,7 +122,7 @@ function ARController({
 
         // --- Source Initialization ---
         arToolkitSourceRef.current = new THREEx.ArToolkitSource({
-            sourceType: "webcam",
+            sourceType: "video",
             sourceElement: video, // Pass the non-null video element
         });
 
@@ -159,7 +159,7 @@ function ARController({
                 markerRoot,
                 {
                     type: "pattern",
-                    patternUrl: `/data/patt.${markerInfo.name}`,
+                    patternUrl: `/data/${markerInfo.name}.patt`,
                     changeMatrixMode: "cameraTransformMatrix",
                 }
             );
@@ -183,14 +183,7 @@ function ARController({
             console.log("Cleaning up AR.js resources...");
             window.removeEventListener("resize", resizeEverything);
 
-            // videoRef.current might be null here if component unmounts quickly
-            const currentVideo = videoRef.current;
-            if (currentVideo && currentVideo.srcObject) {
-                const stream = currentVideo.srcObject as MediaStream;
-                stream.getTracks().forEach((track) => track.stop());
-                currentVideo.srcObject = null;
-                console.log("Camera stream stopped.");
-            }
+            // ストリームの停止は親コンポーネント（MazeView3D）が担当
 
             Object.values(markerRootsRef.current).forEach((group) => {
                 if (group.userData.controls?.dispose) {
@@ -448,6 +441,47 @@ export function MazeView3D({
     // Ref type matches useRef initialization (null possible)
     const videoElementRef = useRef<HTMLVideoElement | null>(null);
 
+    // Webカメラの初期化とストリーム管理 ---
+    // ARController ではなく、ここで video のストリームを管理する
+    useEffect(() => {
+        const video = videoElementRef.current;
+        if (!video) return;
+
+        let stream: MediaStream | null = null;
+
+        const startWebcam = async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        facingMode: "environment", // 背面カメラを優先
+                    },
+                });
+                video.srcObject = stream;
+                video.play().catch((err) => {
+                    console.error("Video play failed:", err);
+                });
+                console.log("Webcam stream started");
+            } catch (err) {
+                console.error("Failed to get webcam stream:", err);
+                alert(`カメラの起動に失敗: ${err}`);
+            }
+        };
+
+        startWebcam();
+
+        return () => {
+            // --- クリーンアップ: ストリームを停止 ---
+            if (stream) {
+                stream.getTracks().forEach((track) => track.stop());
+                console.log("Webcam stream stopped.");
+            }
+            if (video && video.srcObject) {
+                video.srcObject = null;
+            }
+        };
+    }, []); // マウント時に1回だけ実行
+
     return (
         <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-neon-cyan/30 bg-transparent">
             {/* Video element for AR feed */}
@@ -545,16 +579,11 @@ export function MazeView3D({
                     </Html>
                 )}
 
-                {/* Optional OrbitControls (commented out) */}
                 <OrbitControls
                     enableZoom={true} // Disable zoom
                     enablePan={true} // Disable panning
                     enableRotate={true} // Enable rotation only
-                    // Set the target to the center of the content group's position offset
                     target={new THREE.Vector3(0, 0.7, -1.8)}
-                    // Optional: Make controls activate only with a key press (e.g., Alt)
-                    // mouseButtons={{ LEFT: THREE.MOUSE.ROTATE, MIDDLE: undefined, RIGHT: undefined }} // Only left click rotates
-                    // makeDefault // Makes these controls the default, might interfere less?
                 />
             </Canvas>
         </div>
