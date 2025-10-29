@@ -1,10 +1,22 @@
 "use client";
 
-import React, { useEffect, useRef, useState, Suspense, useCallback } from "react";
+import React, {
+    useEffect,
+    useRef,
+    useState,
+    Suspense,
+    useCallback,
+} from "react";
 // Removed RootState from import, RootState is implicitly typed by useThree
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 // Removed OrbitControls from import as it's commented out
-import { useGLTF, Html, useAnimations, Preload, OrbitControls } from "@react-three/drei";
+import {
+    useGLTF,
+    Html,
+    useAnimations,
+    Preload,
+    OrbitControls,
+} from "@react-three/drei";
 import * as THREE from "three";
 import type { MazeData, RobotState, TileType, Command } from "@/lib/types";
 
@@ -24,7 +36,7 @@ interface MazeView3DProps {
 // Updated videoRef prop type to accept null
 function ARController({
     onMarkerDetected,
-    videoRef // Ref to the video element managed by MazeView3D
+    videoRef, // Ref to the video element managed by MazeView3D
 }: {
     onMarkerDetected: (command: Command) => void;
     videoRef: React.RefObject<HTMLVideoElement | null>; // Accept null
@@ -37,32 +49,33 @@ function ARController({
     const [arJsReady, setArJsReady] = useState(false);
 
     const markers: { name: string; command: Command }[] = [
-        { name: "forward", command: { type: "forward" } },  // public/data/forward.patt
-        { name: "turnRight", command: { type: "turnRight" } },  // public/data/turnRight.patt
-        { name: "turnLeft", command: { type: "turnLeft" } },  // public/data/turnLeft.patt
-        { name: "ifHole", command: { type: "ifHole" } },    // public/data/ifHole.patt
-        { name: "loop", command: { type: "loop" } },      // public/data/loop.patt
+        { name: "forward", command: { type: "forward" } }, // public/data/forward.patt
+        { name: "turnRight", command: { type: "turnRight" } }, // public/data/turnRight.patt
+        { name: "turnLeft", command: { type: "turnLeft" } }, // public/data/turnLeft.patt
+        { name: "ifHole", command: { type: "ifHole" } }, // public/data/ifHole.patt
+        { name: "loop", command: { type: "loop" } }, // public/data/loop.patt
     ];
 
     // Check for THREEx availability
     useEffect(() => {
         let checkInterval: NodeJS.Timeout | null = null;
         const checkForTHREEx = () => {
-            if (typeof window !== 'undefined' && (window as any).THREEx) {
+            if (typeof window !== "undefined" && (window as any).THREEx) {
                 console.log("THREEx found!");
                 setArJsReady(true);
                 if (checkInterval) clearInterval(checkInterval);
             } else {
-                 if (!checkInterval) {
+                if (!checkInterval) {
                     console.log("Checking for THREEx...");
                     checkInterval = setInterval(checkForTHREEx, 300);
-                 }
+                }
             }
         };
         checkForTHREEx();
-        return () => { if (checkInterval) clearInterval(checkInterval); };
+        return () => {
+            if (checkInterval) clearInterval(checkInterval);
+        };
     }, []); // Run only once
-
 
     // Resize handler using useCallback
     const resizeEverything = useCallback(() => {
@@ -79,16 +92,22 @@ function ARController({
         if (video.videoWidth > 0 && video.videoHeight > 0) {
             context.arController.canvas.width = video.videoWidth;
             context.arController.canvas.height = video.videoHeight;
-            console.log(`AR Context resized to: ${video.videoWidth}x${video.videoHeight}`);
+            console.log(
+                `AR Context resized to: ${video.videoWidth}x${video.videoHeight}`
+            );
 
-             if (context.arController.cameraPara) {
+            if (context.arController.cameraPara) {
                 camera.projectionMatrix.copy(context.getProjectionMatrix());
                 console.log("Camera projection matrix updated.");
-             } else {
-                 console.warn("Camera parameters not ready yet for projection matrix update.");
-             }
+            } else {
+                console.warn(
+                    "Camera parameters not ready yet for projection matrix update."
+                );
+            }
         } else {
-            console.warn("Video dimensions not available for context resize yet.");
+            console.warn(
+                "Video dimensions not available for context resize yet."
+            );
         }
     }, [gl.domElement, camera, videoRef]);
 
@@ -103,71 +122,84 @@ function ARController({
 
         // --- Source Initialization ---
         arToolkitSourceRef.current = new THREEx.ArToolkitSource({
-            sourceType: 'webcam',
+            sourceType: "webcam",
             sourceElement: video, // Pass the non-null video element
         });
 
-        arToolkitSourceRef.current.init(() => {
-            console.log("AR Source Initialized");
-            setTimeout(resizeEverything, 100);
-        }, (error: any) => {
-             console.error("AR Source Init Error:", error);
-             alert(`カメラの起動に失敗: ${error.message || error}`);
-        });
+        arToolkitSourceRef.current.init(
+            () => {
+                console.log("AR Source Initialized");
+                setTimeout(resizeEverything, 100);
+            },
+            (error: any) => {
+                console.error("AR Source Init Error:", error);
+                alert(`カメラの起動に失敗: ${error.message || error}`);
+            }
+        );
 
         // --- Context Initialization ---
         arToolkitContextRef.current = new THREEx.ArToolkitContext({
-            cameraParametersUrl: '/data/camera_para.dat',
-            detectionMode: 'mono',
+            cameraParametersUrl: "/data/camera_para.dat",
+            detectionMode: "mono",
         });
         arToolkitContextRef.current.init(() => {
             console.log("AR Context Initialized");
-            if (arToolkitContextRef.current) { resizeEverything(); }
+            if (arToolkitContextRef.current) {
+                resizeEverything();
+            }
         });
 
         // --- Marker Controls Setup ---
-        markers.forEach(markerInfo => {
+        markers.forEach((markerInfo) => {
             const markerRoot = new THREE.Group();
             scene.add(markerRoot);
             markerRootsRef.current[markerInfo.name] = markerRoot;
             const markerControls = new THREEx.ArMarkerControls(
-                arToolkitContextRef.current, markerRoot, {
-                    type: 'pattern', patternUrl: `/data/patt.${markerInfo.name}`, changeMatrixMode: 'cameraTransformMatrix',
-             });
-             let lastVisible = false;
-             markerRoot.userData.command = markerInfo.command;
-             markerRoot.userData.updateVisibility = (isVisible: boolean) => {
-                 if (isVisible && !lastVisible) { onMarkerDetected(markerRoot.userData.command); }
-                 lastVisible = isVisible;
-             };
-             markerRoot.userData.controls = markerControls;
+                arToolkitContextRef.current,
+                markerRoot,
+                {
+                    type: "pattern",
+                    patternUrl: `/data/patt.${markerInfo.name}`,
+                    changeMatrixMode: "cameraTransformMatrix",
+                }
+            );
+            let lastVisible = false;
+            markerRoot.userData.command = markerInfo.command;
+            markerRoot.userData.updateVisibility = (isVisible: boolean) => {
+                if (isVisible && !lastVisible) {
+                    onMarkerDetected(markerRoot.userData.command);
+                }
+                lastVisible = isVisible;
+            };
+            markerRoot.userData.controls = markerControls;
         });
 
         setIsInitialized(true);
         console.log("AR.js initialization sequence complete.");
-        window.addEventListener('resize', resizeEverything);
-
+        window.addEventListener("resize", resizeEverything);
 
         // --- Cleanup Function ---
         return () => {
             console.log("Cleaning up AR.js resources...");
-            window.removeEventListener('resize', resizeEverything);
+            window.removeEventListener("resize", resizeEverything);
 
             // videoRef.current might be null here if component unmounts quickly
             const currentVideo = videoRef.current;
             if (currentVideo && currentVideo.srcObject) {
                 const stream = currentVideo.srcObject as MediaStream;
-                stream.getTracks().forEach(track => track.stop());
+                stream.getTracks().forEach((track) => track.stop());
                 currentVideo.srcObject = null;
                 console.log("Camera stream stopped.");
             }
 
-             Object.values(markerRootsRef.current).forEach(group => {
-                 if (group.userData.controls?.dispose) { group.userData.controls.dispose(); }
-                 scene.remove(group);
-             });
-             markerRootsRef.current = {};
-             console.log("Marker controls disposed and groups removed.");
+            Object.values(markerRootsRef.current).forEach((group) => {
+                if (group.userData.controls?.dispose) {
+                    group.userData.controls.dispose();
+                }
+                scene.remove(group);
+            });
+            markerRootsRef.current = {};
+            console.log("Marker controls disposed and groups removed.");
 
             arToolkitContextRef.current = null;
             arToolkitSourceRef.current = null;
@@ -175,21 +207,36 @@ function ARController({
             setArJsReady(false);
             console.log("AR.js cleanup complete.");
         };
-    }, [arJsReady, camera, gl.domElement, scene, onMarkerDetected, resizeEverything, videoRef, isInitialized]);
-
+    }, [
+        arJsReady,
+        camera,
+        gl.domElement,
+        scene,
+        onMarkerDetected,
+        resizeEverything,
+        videoRef,
+        isInitialized,
+    ]);
 
     // --- AR.js Update Loop ---
     useFrame(() => {
         // Add null check for videoRef.current
-        if (!isInitialized || !arToolkitSourceRef.current?.ready || !arToolkitContextRef.current || !videoRef.current) {
+        if (
+            !isInitialized ||
+            !arToolkitSourceRef.current?.ready ||
+            !arToolkitContextRef.current ||
+            !videoRef.current
+        ) {
             return;
         }
         try {
             // videoRef.current is guaranteed non-null here
             arToolkitContextRef.current.update(videoRef.current);
 
-            Object.values(markerRootsRef.current).forEach(markerRoot => {
-                if (markerRoot) { markerRoot.userData.updateVisibility?.(markerRoot.visible); }
+            Object.values(markerRootsRef.current).forEach((markerRoot) => {
+                if (markerRoot) {
+                    markerRoot.userData.updateVisibility?.(markerRoot.visible);
+                }
             });
         } catch (error) {
             console.error("Error during AR.js update:", error);
@@ -200,34 +247,108 @@ function ARController({
     return null;
 }
 
-
 // --- 3D Maze Map Component --- (No changes)
-function MazeMap({ grid, mazeSize }: { grid: TileType[][], mazeSize: number }) {
+function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
     const tileSize = 0.5;
     const wallHeight = 0.5;
-    const gridOffset = - (mazeSize * tileSize) / 2 + tileSize / 2;
+    const gridOffset = -(mazeSize * tileSize) / 2 + tileSize / 2;
     return (
         <group>
             {grid.map((row, y) =>
                 row.map((tile, x) => {
-                    const position: [number, number, number] = [ x * tileSize + gridOffset, 0, y * tileSize + gridOffset ];
+                    const position: [number, number, number] = [
+                        x * tileSize + gridOffset,
+                        0,
+                        y * tileSize + gridOffset,
+                    ];
                     switch (tile) {
                         case "wall":
-                            return ( <mesh key={`${x}-${y}`} castShadow receiveShadow position={[position[0], wallHeight / 2, position[2]]}> <boxGeometry args={[tileSize, wallHeight, tileSize]} /> <meshStandardMaterial color="#4a90e2" opacity={0.85} transparent /> </mesh> );
+                            return (
+                                <mesh
+                                    key={`${x}-${y}`}
+                                    castShadow
+                                    receiveShadow
+                                    position={[
+                                        position[0],
+                                        wallHeight / 2,
+                                        position[2],
+                                    ]}
+                                >
+                                    {" "}
+                                    <boxGeometry
+                                        args={[tileSize, wallHeight, tileSize]}
+                                    />{" "}
+                                    <meshStandardMaterial
+                                        color="#4a90e2"
+                                        opacity={0.85}
+                                        transparent
+                                    />{" "}
+                                </mesh>
+                            );
                         case "hole":
-                            return ( <mesh key={`${x}-${y}`} receiveShadow position={[position[0], -0.01, position[2]]} rotation={[-Math.PI / 2, 0, 0]}> <planeGeometry args={[tileSize * 0.9, tileSize * 0.9]} /> <meshStandardMaterial color="#8b5cf6" transparent opacity={0.6} side={THREE.DoubleSide}/> </mesh> );
-                        case "start": case "goal": case "floor":
-                            return ( <mesh key={`${x}-${y}`} receiveShadow position={position} rotation={[-Math.PI / 2, 0, 0]}> <planeGeometry args={[tileSize, tileSize]} /> <meshStandardMaterial color={ tile === 'start' ? '#4ade80' : tile === 'goal' ? '#ef4444' : '#1a2540'} opacity={0.75} transparent side={THREE.DoubleSide} /> </mesh> );
-                        default: return null;
+                            return (
+                                <mesh
+                                    key={`${x}-${y}`}
+                                    receiveShadow
+                                    position={[position[0], -0.01, position[2]]}
+                                    rotation={[-Math.PI / 2, 0, 0]}
+                                >
+                                    {" "}
+                                    <planeGeometry
+                                        args={[tileSize * 0.9, tileSize * 0.9]}
+                                    />{" "}
+                                    <meshStandardMaterial
+                                        color="#8b5cf6"
+                                        transparent
+                                        opacity={0.6}
+                                        side={THREE.DoubleSide}
+                                    />{" "}
+                                </mesh>
+                            );
+                        case "start":
+                        case "goal":
+                        case "floor":
+                            return (
+                                <mesh
+                                    key={`${x}-${y}`}
+                                    receiveShadow
+                                    position={position}
+                                    rotation={[-Math.PI / 2, 0, 0]}
+                                >
+                                    {" "}
+                                    <planeGeometry
+                                        args={[tileSize, tileSize]}
+                                    />{" "}
+                                    <meshStandardMaterial
+                                        color={
+                                            tile === "start"
+                                                ? "#4ade80"
+                                                : tile === "goal"
+                                                ? "#ef4444"
+                                                : "#1a2540"
+                                        }
+                                        opacity={0.75}
+                                        transparent
+                                        side={THREE.DoubleSide}
+                                    />{" "}
+                                </mesh>
+                            );
+                        default:
+                            return null;
                     }
                 })
             )}
         </group>
-     );
+    );
 }
 
 // --- Robot Model Component --- (No changes)
-function RobotModel({ robotState, mazeSize, currentCommandIndex, flattenedCommands }: {
+function RobotModel({
+    robotState,
+    mazeSize,
+    currentCommandIndex,
+    flattenedCommands,
+}: {
     robotState: RobotState;
     mazeSize: number;
     currentCommandIndex: number;
@@ -237,32 +358,71 @@ function RobotModel({ robotState, mazeSize, currentCommandIndex, flattenedComman
     const { actions, names, mixer } = useAnimations(animations, scene);
     const modelRef = useRef<THREE.Group>(null!);
     const tileSize = 0.5;
-    const gridOffset = - (mazeSize * tileSize) / 2 + tileSize / 2;
-    const targetPosition = React.useMemo(() => new THREE.Vector3(
-        robotState.x * tileSize + gridOffset, 0.05, robotState.y * tileSize + gridOffset
-    ), [robotState.x, robotState.y, tileSize, gridOffset]);
-    const targetQuaternion = React.useMemo(() => new THREE.Quaternion().setFromEuler(
-        new THREE.Euler(0, Math.atan2(robotState.direction[0], robotState.direction[1]), 0)
-    ), [robotState.direction]);
+    const gridOffset = -(mazeSize * tileSize) / 2 + tileSize / 2;
+    const targetPosition = React.useMemo(
+        () =>
+            new THREE.Vector3(
+                robotState.x * tileSize + gridOffset,
+                0.05,
+                robotState.y * tileSize + gridOffset
+            ),
+        [robotState.x, robotState.y, tileSize, gridOffset]
+    );
+    const targetQuaternion = React.useMemo(
+        () =>
+            new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(
+                    0,
+                    Math.atan2(
+                        robotState.direction[0],
+                        robotState.direction[1]
+                    ),
+                    0
+                )
+            ),
+        [robotState.direction]
+    );
 
     useEffect(() => {
-        if (currentCommandIndex < 0 || currentCommandIndex >= flattenedCommands.length) {
-             names.forEach(name => actions[name]?.fadeOut(0.2)); return;
+        if (
+            currentCommandIndex < 0 ||
+            currentCommandIndex >= flattenedCommands.length
+        ) {
+            names.forEach((name) => actions[name]?.fadeOut(0.2));
+            return;
         }
         const command = flattenedCommands[currentCommandIndex];
         let actionName: string | undefined;
         switch (command.type) {
-            case "forward": actionName = "Walk"; break; case "turnRight": actionName = "TurnRight"; break;
-            case "turnLeft": actionName = "TurnLeft"; break; case "ifHole": actionName = "Action"; break;
-            default: actionName = undefined;
+            case "forward":
+                actionName = "Walk";
+                break;
+            case "turnRight":
+                actionName = "TurnRight";
+                break;
+            case "turnLeft":
+                actionName = "TurnLeft";
+                break;
+            case "ifHole":
+                actionName = "Action";
+                break;
+            default:
+                actionName = undefined;
         }
         const activeAction = actionName ? actions[actionName] : null;
         if (activeAction) {
-            names.forEach(name => { if (name !== actionName && actions[name]?.isRunning()) { actions[name]?.fadeOut(0.2); } });
-            activeAction.reset().setLoop(THREE.LoopOnce, 1).clampWhenFinished = true;
+            names.forEach((name) => {
+                if (name !== actionName && actions[name]?.isRunning()) {
+                    actions[name]?.fadeOut(0.2);
+                }
+            });
+            activeAction.reset().setLoop(THREE.LoopOnce, 1).clampWhenFinished =
+                true;
             activeAction.fadeIn(0.2).play();
         } else {
-             names.forEach(name => { if(actions[name]?.isRunning()) actions[name]?.fadeOut(0.2) });
+            names.forEach((name) => {
+                if (actions[name]?.isRunning()) actions[name]?.fadeOut(0.2);
+            });
         }
     }, [currentCommandIndex, flattenedCommands, actions, names]);
 
@@ -273,12 +433,18 @@ function RobotModel({ robotState, mazeSize, currentCommandIndex, flattenedComman
         }
         if (mixer) mixer.update(delta);
     });
-    return ( <primitive ref={modelRef} object={scene} scale={0.12} castShadow /> );
+    return <primitive ref={modelRef} object={scene} scale={0.12} castShadow />;
 }
 
-
 // --- Main MazeView3D Component ---
-export function MazeView3D({ maze, robotState, onMarkerDetected, detectedCommandName, currentCommandIndex, flattenedCommands }: MazeView3DProps) {
+export function MazeView3D({
+    maze,
+    robotState,
+    onMarkerDetected,
+    detectedCommandName,
+    currentCommandIndex,
+    flattenedCommands,
+}: MazeView3DProps) {
     // Ref type matches useRef initialization (null possible)
     const videoElementRef = useRef<HTMLVideoElement | null>(null);
 
@@ -291,8 +457,13 @@ export function MazeView3D({ maze, robotState, onMarkerDetected, detectedCommand
                 playsInline
                 webkit-playsinline="true"
                 style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    objectFit: 'cover', zIndex: -1, // Behind canvas
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    zIndex: -1, // Behind canvas
                     // transform: 'scaleX(-1)' // Optional flip
                 }}
                 muted
@@ -301,24 +472,46 @@ export function MazeView3D({ maze, robotState, onMarkerDetected, detectedCommand
             <Canvas
                 gl={{ alpha: true, antialias: true }}
                 camera={{ position: [0, 0, 0], fov: 70 }}
-                style={{ background: 'transparent', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                style={{
+                    background: "transparent",
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                }}
                 shadows
             >
                 {/* Lighting */}
                 <ambientLight intensity={1.0} />
                 <directionalLight
-                    position={[2, 8, 4]} intensity={1.5} castShadow
-                    shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-far={20}
-                    shadow-camera-left={-5} shadow-camera-right={5} shadow-camera-top={5} shadow-camera-bottom={-5}
-                 />
+                    position={[2, 8, 4]}
+                    intensity={1.5}
+                    castShadow
+                    shadow-mapSize-width={1024}
+                    shadow-mapSize-height={1024}
+                    shadow-camera-far={20}
+                    shadow-camera-left={-5}
+                    shadow-camera-right={5}
+                    shadow-camera-top={5}
+                    shadow-camera-bottom={-5}
+                />
                 {/* Ground plane for shadows */}
-                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
-                  <planeGeometry args={[10, 10]} /> <shadowMaterial opacity={0.3} />
+                <mesh
+                    rotation={[-Math.PI / 2, 0, 0]}
+                    position={[0, -0.02, 0]}
+                    receiveShadow
+                >
+                    <planeGeometry args={[10, 10]} />{" "}
+                    <shadowMaterial opacity={0.3} />
                 </mesh>
 
                 {/* AR Controller (Pass videoRef) */}
                 {/* Type matches RefObject<HTMLVideoElement | null> */}
-                <ARController onMarkerDetected={onMarkerDetected} videoRef={videoElementRef} />
+                <ARController
+                    onMarkerDetected={onMarkerDetected}
+                    videoRef={videoElementRef}
+                />
 
                 {/* Parent Group for positioning/rotation */}
                 <group
@@ -329,8 +522,10 @@ export function MazeView3D({ maze, robotState, onMarkerDetected, detectedCommand
                         {/* Remove rotation from children */}
                         <MazeMap grid={maze.grid} mazeSize={maze.size} />
                         <RobotModel
-                            robotState={robotState} mazeSize={maze.size}
-                            currentCommandIndex={currentCommandIndex} flattenedCommands={flattenedCommands}
+                            robotState={robotState}
+                            mazeSize={maze.size}
+                            currentCommandIndex={currentCommandIndex}
+                            flattenedCommands={flattenedCommands}
                         />
                         <Preload all />
                     </Suspense>
@@ -338,8 +533,13 @@ export function MazeView3D({ maze, robotState, onMarkerDetected, detectedCommand
 
                 {/* Detected Command Name Display */}
                 {detectedCommandName && (
-                    <Html center position={[0, 0.7 + 0.6, -1.5]}> {/* Adjusted Y */}
-                        <div className="select-none rounded bg-black/60 px-3 py-1 text-xl font-bold text-neon-cyan shadow-lg backdrop-blur-sm" style={{ textShadow: "0 0 8px #0ff" }} >
+                    <Html center position={[0, 0.7 + 0.6, -1.5]}>
+                        {" "}
+                        {/* Adjusted Y */}
+                        <div
+                            className="select-none rounded bg-black/60 px-3 py-1 text-xl font-bold text-neon-cyan shadow-lg backdrop-blur-sm"
+                            style={{ textShadow: "0 0 8px #0ff" }}
+                        >
                             {detectedCommandName.toUpperCase()}
                         </div>
                     </Html>
@@ -360,4 +560,3 @@ export function MazeView3D({ maze, robotState, onMarkerDetected, detectedCommand
         </div>
     );
 }
-
