@@ -37,13 +37,16 @@ interface MazeView3DProps {
 function ARController({
     onMarkerDetected,
     videoRef, // Ref to the video element managed by MazeView3D
+    isStreamReady, // 親からストリーム準備完了フラグを受け取る
 }: {
     onMarkerDetected: (command: Command) => void;
     videoRef: React.RefObject<HTMLVideoElement | null>; // Accept null
+    isStreamReady: boolean; // 型定義を追加
 }) {
     const { camera, gl, scene } = useThree();
     const markerRootsRef = useRef<{ [key: string]: THREE.Group }>({});
     const arToolkitContextRef = useRef<any>(null);
+    const videoTextureRef = useRef<THREE.VideoTexture | null>(null);
     const arToolkitSourceRef = useRef<any>(null);
     const [isInitialized, setIsInitialized] = useState(false);
     const [arJsReady, setArJsReady] = useState(false);
@@ -113,12 +116,30 @@ function ARController({
 
     // AR.js Initialization Effect
     useEffect(() => {
-        // Wait for ready flag AND video element ref
-        if (!arJsReady || isInitialized || !videoRef.current) return;
+        // Wait for ready flag AND video element ref AND isStreamReady flag
+        if (
+            !arJsReady ||
+            isInitialized ||
+            !videoRef.current ||
+            !isStreamReady // 
+        ) {
+            return;
+        }
 
-        console.log("AR.js is ready and video ref exists, initializing...");
+        console.log(
+            "AR.js is ready AND video stream is ready, initializing..."
+        );
         const THREEx = (window as any).THREEx;
         const video = videoRef.current; // videoRef.current is guaranteed non-null here
+
+        // isStreamReady が true のため、ビデオは再生中。
+        // レースコンディションなしでテクスチャを即時作成できる。
+        console.log("Video is playing, creating VideoTexture.");
+        const texture = new THREE.VideoTexture(video);
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        videoTextureRef.current = texture; // ref に保存
+        scene.background = texture; // シーンの背景に設定
 
         // --- Source Initialization ---
         arToolkitSourceRef.current = new THREEx.ArToolkitSource({
@@ -133,7 +154,6 @@ function ARController({
             },
             (error: any) => {
                 console.error("AR Source Init Error:", error);
-                alert(`カメラの起動に失敗: ${error.message || error}`);
             }
         );
 
@@ -159,7 +179,7 @@ function ARController({
                 markerRoot,
                 {
                     type: "pattern",
-                    patternUrl: `/data/${markerInfo.name}.patt`,
+                    patternUrl: `/data/${markerInfo.name}.patt`, // 修正: patt.${markerInfo.name} -> ${markerInfo.name}.patt
                     changeMatrixMode: "cameraTransformMatrix",
                 }
             );
@@ -183,7 +203,14 @@ function ARController({
             console.log("Cleaning up AR.js resources...");
             window.removeEventListener("resize", resizeEverything);
 
-            // ストリームの停止は親コンポーネント（MazeView3D）が担当
+            // シーン背景とテクスチャのクリーンアップ ---
+            if (scene) {
+                scene.background = null;
+            }
+            if (videoTextureRef.current) {
+                videoTextureRef.current.dispose();
+                videoTextureRef.current = null;
+            }
 
             Object.values(markerRootsRef.current).forEach((group) => {
                 if (group.userData.controls?.dispose) {
@@ -209,6 +236,7 @@ function ARController({
         resizeEverything,
         videoRef,
         isInitialized,
+        isStreamReady, // 依存配列に追加
     ]);
 
     // --- AR.js Update Loop ---
@@ -223,6 +251,12 @@ function ARController({
             return;
         }
         try {
+            // テクスチャの更新
+            // VideoTexture を使っている場合、毎フレーム更新が必要
+            if (videoTextureRef.current) {
+                videoTextureRef.current.needsUpdate = true;
+            }
+
             // videoRef.current is guaranteed non-null here
             arToolkitContextRef.current.update(videoRef.current);
 
@@ -440,6 +474,8 @@ export function MazeView3D({
 }: MazeView3DProps) {
     // Ref type matches useRef initialization (null possible)
     const videoElementRef = useRef<HTMLVideoElement | null>(null);
+    // ビデオストリームの準備完了状態を管理
+    const [isStreamReady, setIsStreamReady] = useState(false);
 
     // Webカメラの初期化とストリーム管理 ---
     // ARController ではなく、ここで video のストリームを管理する
@@ -458,13 +494,21 @@ export function MazeView3D({
                     },
                 });
                 video.srcObject = stream;
-                video.play().catch((err) => {
-                    console.error("Video play failed:", err);
-                });
-                console.log("Webcam stream started");
+
+                // 'playing' イベントを監視
+                video.onplaying = () => {
+                    console.log("Video stream is now playing.");
+                    setIsStreamReady(true); // 準備完了フラグを立てる
+                };
+
+                // video.play() は autoPlay 属性に任せる
+                console.log("Webcam stream attached. autoPlay will start it.");
             } catch (err) {
                 console.error("Failed to get webcam stream:", err);
-                alert(`カメラの起動に失敗: ${err}`);
+                // err が Error オブジェクトの場合、message プロパティを使用
+                const errorMessage =
+                    err instanceof Error ? err.message : String(err);
+                alert(`カメラの起動に失敗: ${errorMessage}`);
             }
         };
 
@@ -478,7 +522,9 @@ export function MazeView3D({
             }
             if (video && video.srcObject) {
                 video.srcObject = null;
+                video.onplaying = null; // イベントハンドラもクリア
             }
+            setIsStreamReady(false); // 状態をリセット
         };
     }, []); // マウント時に1回だけ実行
 
@@ -488,6 +534,7 @@ export function MazeView3D({
             <video
                 id="arjs-video"
                 ref={videoElementRef}
+                autoPlay
                 playsInline
                 webkit-playsinline="true"
                 style={{
@@ -498,7 +545,7 @@ export function MazeView3D({
                     height: "100%",
                     objectFit: "cover",
                     zIndex: -1, // Behind canvas
-                    // transform: 'scaleX(-1)' // Optional flip
+                    transform: "scaleX(-1)", // Optional flip
                 }}
                 muted
             />
@@ -545,6 +592,7 @@ export function MazeView3D({
                 <ARController
                     onMarkerDetected={onMarkerDetected}
                     videoRef={videoElementRef}
+                    isStreamReady={isStreamReady} // state を渡す
                 />
 
                 {/* Parent Group for positioning/rotation */}
@@ -579,6 +627,7 @@ export function MazeView3D({
                     </Html>
                 )}
 
+                {/* Optional OrbitControls (commented out) */}
                 <OrbitControls
                     enableZoom={true} // Disable zoom
                     enablePan={true} // Disable panning
