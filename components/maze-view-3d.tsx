@@ -544,8 +544,7 @@ export function MazeView3D({
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                    zIndex: -1, // Behind canvas
-                    transform: "scaleX(-1)", // Optional flip
+                    transform: "scaleX(-1)",
                 }}
                 muted
             />
