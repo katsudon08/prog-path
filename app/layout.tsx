@@ -27,15 +27,10 @@ export default function RootLayout({
     return (
         <html lang="ja">
             <Head>
-                {/* AR.js (three.js版) のスクリプトをCDNから読み込む */}
-                {/* 注意: raw.githack.com は開発用です。
-                  本番環境では、AR.jsリポジトリからビルド済みの ar.js をダウンロードし、
-                  publicフォルダに配置して /ar.js のように参照することを推奨します。
-                  camera_para.dat やマーカーファイル (.patt) も同様に public/data/ などに配置します。
-                 */}
-                <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
-                {/* NFTマーカーを使用する場合はこちらも追加 */}
-                {/* <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar-nft.js"></script> */}
+                {/* AR.js のために three.js (r128) を読み込む */}
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.128.0/three.min.js"></script>
+                {/* AR.js (THREEx を含む) を読み込む */}
+                <script src="https://cdn.jsdelivr.net/gh/ar-js-org/AR.js@3.4.5/three.js/build/ar-threex.js"></script>
             </Head>
             <body
                 className={`${orbitron.variable} ${michroma.variable} font-sans antialiased`}

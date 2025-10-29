@@ -37,8 +37,11 @@ function ARController({
     const [arJsReady, setArJsReady] = useState(false);
 
     const markers: { name: string; command: Command }[] = [
-        { name: "hiro", command: { type: "forward" } },
-        { name: "kanji", command: { type: "turnRight" } },
+        { name: "forward", command: { type: "forward" } },  // public/data/forward.patt
+        { name: "turnRight", command: { type: "turnRight" } },  // public/data/turnRight.patt
+        { name: "turnLeft", command: { type: "turnLeft" } },  // public/data/turnLeft.patt
+        { name: "ifHole", command: { type: "ifHole" } },    // public/data/ifHole.patt
+        { name: "loop", command: { type: "loop" } },      // public/data/loop.patt
     ];
 
     // Check for THREEx availability
