@@ -7,9 +7,7 @@ import React, {
     Suspense,
     useCallback,
 } from "react";
-// Removed RootState from import, RootState is implicitly typed by useThree
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-// Removed OrbitControls from import as it's commented out
 import {
     useGLTF,
     Html,
@@ -33,15 +31,14 @@ interface MazeView3DProps {
 }
 
 // --- AR Controller Component ---
-// Updated videoRef prop type to accept null
 function ARController({
     onMarkerDetected,
-    videoRef, // Ref to the video element managed by MazeView3D
-    isStreamReady, // 親からストリーム準備完了フラグを受け取る
+    videoRef,
+    isStreamReady,
 }: {
     onMarkerDetected: (command: Command) => void;
-    videoRef: React.RefObject<HTMLVideoElement | null>; // Accept null
-    isStreamReady: boolean; // 型定義を追加
+    videoRef: React.RefObject<HTMLVideoElement | null>;
+    isStreamReady: boolean;
 }) {
     const { camera, gl, scene } = useThree();
     const markerRootsRef = useRef<{ [key: string]: THREE.Group }>({});
@@ -50,13 +47,14 @@ function ARController({
     const arToolkitSourceRef = useRef<any>(null);
     const [isInitialized, setIsInitialized] = useState(false);
     const [arJsReady, setArJsReady] = useState(false);
+    const frameCountRef = useRef(0);
 
     const markers: { name: string; command: Command }[] = [
-        { name: "forward", command: { type: "forward" } }, // public/data/forward.patt
-        { name: "turnRight", command: { type: "turnRight" } }, // public/data/turnRight.patt
-        { name: "turnLeft", command: { type: "turnLeft" } }, // public/data/turnLeft.patt
-        { name: "ifHole", command: { type: "ifHole" } }, // public/data/ifHole.patt
-        { name: "loop", command: { type: "loop" } }, // public/data/loop.patt
+        { name: "forward", command: { type: "forward" } },
+        { name: "turnRight", command: { type: "turnRight" } },
+        { name: "turnLeft", command: { type: "turnLeft" } },
+        { name: "ifHole", command: { type: "ifHole" } },
+        { name: "loop", command: { type: "loop" } },
     ];
 
     // Check for THREEx availability
@@ -64,12 +62,12 @@ function ARController({
         let checkInterval: NodeJS.Timeout | null = null;
         const checkForTHREEx = () => {
             if (typeof window !== "undefined" && (window as any).THREEx) {
-                console.log("THREEx found!");
+                console.log("✅ THREEx found!");
                 setArJsReady(true);
                 if (checkInterval) clearInterval(checkInterval);
             } else {
                 if (!checkInterval) {
-                    console.log("Checking for THREEx...");
+                    console.log("⏳ Checking for THREEx...");
                     checkInterval = setInterval(checkForTHREEx, 300);
                 }
             }
@@ -78,93 +76,99 @@ function ARController({
         return () => {
             if (checkInterval) clearInterval(checkInterval);
         };
-    }, []); // Run only once
+    }, []);
 
     // Resize handler using useCallback
     const resizeEverything = useCallback(() => {
-        const video = videoRef.current; // Might be null initially
+        const video = videoRef.current;
         const source = arToolkitSourceRef.current;
         const context = arToolkitContextRef.current;
 
-        // Add null check for video
         if (!video || !source || !context || !gl.domElement) return;
 
-        console.log("Resizing AR components...");
-        source.onResizeElement?.(gl.domElement);
-
+        console.log("📐 Resizing AR components...");
+        
+        source.copyElementSizeTo(gl.domElement);
+        
         if (video.videoWidth > 0 && video.videoHeight > 0) {
-            context.arController.canvas.width = video.videoWidth;
-            context.arController.canvas.height = video.videoHeight;
+            source.copyElementSizeTo(context.arController.canvas);
+            
             console.log(
-                `AR Context resized to: ${video.videoWidth}x${video.videoHeight}`
+                `📐 AR Context resized to: ${video.videoWidth}x${video.videoHeight}`
             );
 
             if (context.arController.cameraPara) {
                 camera.projectionMatrix.copy(context.getProjectionMatrix());
-                console.log("Camera projection matrix updated.");
+                console.log("📷 Camera projection matrix updated.");
             } else {
                 console.warn(
-                    "Camera parameters not ready yet for projection matrix update."
+                    "⚠️ Camera parameters not ready yet for projection matrix update."
                 );
             }
         } else {
             console.warn(
-                "Video dimensions not available for context resize yet."
+                "⚠️ Video dimensions not available for context resize yet."
             );
         }
     }, [gl.domElement, camera, videoRef]);
 
     // AR.js Initialization Effect
     useEffect(() => {
-        // Wait for ready flag AND video element ref AND isStreamReady flag
         if (
             !arJsReady ||
             isInitialized ||
             !videoRef.current ||
-            !isStreamReady // 
+            !isStreamReady
         ) {
+            if (!arJsReady) console.log("⏳ Waiting for AR.js...");
+            if (!videoRef.current) console.log("⏳ Waiting for video element...");
+            if (!isStreamReady) console.log("⏳ Waiting for stream ready...");
             return;
         }
 
         console.log(
-            "AR.js is ready AND video stream is ready, initializing..."
+            "🚀 AR.js is ready AND video stream is ready, initializing..."
         );
         const THREEx = (window as any).THREEx;
-        const video = videoRef.current; // videoRef.current is guaranteed non-null here
+        const video = videoRef.current;
 
-        // isStreamReady が true のため、ビデオは再生中。
-        // レースコンディションなしでテクスチャを即時作成できる。
-        console.log("Video is playing, creating VideoTexture.");
+        console.log("🎥 Video is playing, creating VideoTexture.");
         const texture = new THREE.VideoTexture(video);
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
-        videoTextureRef.current = texture; // ref に保存
-        scene.background = texture; // シーンの背景に設定
+        videoTextureRef.current = texture;
+        scene.background = texture;
 
         // --- Source Initialization ---
         arToolkitSourceRef.current = new THREEx.ArToolkitSource({
             sourceType: "video",
-            sourceElement: video, // Pass the non-null video element
+            sourceElement: video,
         });
 
         arToolkitSourceRef.current.init(
             () => {
-                console.log("AR Source Initialized");
+                console.log("✅ AR Source Initialized");
                 setTimeout(resizeEverything, 100);
             },
             (error: any) => {
-                console.error("AR Source Init Error:", error);
+                console.error("❌ AR Source Init Error:", error);
             }
         );
 
         // --- Context Initialization ---
         arToolkitContextRef.current = new THREEx.ArToolkitContext({
-            cameraParametersUrl: "/data/camera_para.dat",
+            cameraParametersUrl: "https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat",
             detectionMode: "mono",
+            maxDetectionRate: 60,
+            canvasWidth: 640,
+            canvasHeight: 480,
         });
         arToolkitContextRef.current.init(() => {
-            console.log("AR Context Initialized");
+            console.log("✅ AR Context Initialized");
             if (arToolkitContextRef.current) {
+                camera.projectionMatrix.copy(
+                    arToolkitContextRef.current.getProjectionMatrix()
+                );
                 resizeEverything();
             }
         });
@@ -174,20 +178,28 @@ function ARController({
             const markerRoot = new THREE.Group();
             scene.add(markerRoot);
             markerRootsRef.current[markerInfo.name] = markerRoot;
+            
             const markerControls = new THREEx.ArMarkerControls(
                 arToolkitContextRef.current,
                 markerRoot,
                 {
                     type: "pattern",
-                    patternUrl: `/data/${markerInfo.name}.patt`, // 修正: patt.${markerInfo.name} -> ${markerInfo.name}.patt
+                    patternUrl: `/data/${markerInfo.name}.patt`,
                     changeMatrixMode: "cameraTransformMatrix",
                 }
             );
+            
+            console.log(`🎯 Marker registered: ${markerInfo.name} (path: /data/${markerInfo.name}.patt)`);
+            
             let lastVisible = false;
             markerRoot.userData.command = markerInfo.command;
+            markerRoot.userData.lastDetectionTime = 0;
             markerRoot.userData.updateVisibility = (isVisible: boolean) => {
-                if (isVisible && !lastVisible) {
+                const now = Date.now();
+                if (isVisible && !lastVisible && now - markerRoot.userData.lastDetectionTime > 500) {
+                    console.log(`🎯✅ Marker detected: ${markerInfo.name}`, markerInfo.command);
                     onMarkerDetected(markerRoot.userData.command);
+                    markerRoot.userData.lastDetectionTime = now;
                 }
                 lastVisible = isVisible;
             };
@@ -195,15 +207,14 @@ function ARController({
         });
 
         setIsInitialized(true);
-        console.log("AR.js initialization sequence complete.");
+        console.log("✅ AR.js initialization sequence complete.");
         window.addEventListener("resize", resizeEverything);
 
         // --- Cleanup Function ---
         return () => {
-            console.log("Cleaning up AR.js resources...");
+            console.log("🧹 Cleaning up AR.js resources...");
             window.removeEventListener("resize", resizeEverything);
 
-            // シーン背景とテクスチャのクリーンアップ ---
             if (scene) {
                 scene.background = null;
             }
@@ -219,13 +230,13 @@ function ARController({
                 scene.remove(group);
             });
             markerRootsRef.current = {};
-            console.log("Marker controls disposed and groups removed.");
+            console.log("🧹 Marker controls disposed and groups removed.");
 
             arToolkitContextRef.current = null;
             arToolkitSourceRef.current = null;
             setIsInitialized(false);
             setArJsReady(false);
-            console.log("AR.js cleanup complete.");
+            console.log("✅ AR.js cleanup complete.");
         };
     }, [
         arJsReady,
@@ -236,12 +247,11 @@ function ARController({
         resizeEverything,
         videoRef,
         isInitialized,
-        isStreamReady, // 依存配列に追加
+        isStreamReady,
     ]);
 
     // --- AR.js Update Loop ---
     useFrame(() => {
-        // Add null check for videoRef.current
         if (
             !isInitialized ||
             !arToolkitSourceRef.current?.ready ||
@@ -251,14 +261,23 @@ function ARController({
             return;
         }
         try {
-            // テクスチャの更新
-            // VideoTexture を使っている場合、毎フレーム更新が必要
             if (videoTextureRef.current) {
                 videoTextureRef.current.needsUpdate = true;
             }
 
-            // videoRef.current is guaranteed non-null here
             arToolkitContextRef.current.update(videoRef.current);
+
+            // 100フレームごとにマーカーの状態をログ出力
+            frameCountRef.current++;
+            if (frameCountRef.current % 100 === 0) {
+                const visibleMarkers = Object.entries(markerRootsRef.current)
+                    .filter(([_, root]) => root.visible)
+                    .map(([name]) => name);
+                
+                if (visibleMarkers.length > 0) {
+                    console.log(`👁️ Visible markers:`, visibleMarkers);
+                }
+            }
 
             Object.values(markerRootsRef.current).forEach((markerRoot) => {
                 if (markerRoot) {
@@ -266,7 +285,7 @@ function ARController({
                 }
             });
         } catch (error) {
-            console.error("Error during AR.js update:", error);
+            console.error("❌ Error during AR.js update:", error);
             setIsInitialized(false);
         }
     });
@@ -274,7 +293,7 @@ function ARController({
     return null;
 }
 
-// --- 3D Maze Map Component --- (No changes)
+// --- 3D Maze Map Component ---
 function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
     const tileSize = 0.5;
     const wallHeight = 0.5;
@@ -301,15 +320,14 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                         position[2],
                                     ]}
                                 >
-                                    {" "}
                                     <boxGeometry
                                         args={[tileSize, wallHeight, tileSize]}
-                                    />{" "}
+                                    />
                                     <meshStandardMaterial
                                         color="#4a90e2"
                                         opacity={0.85}
                                         transparent
-                                    />{" "}
+                                    />
                                 </mesh>
                             );
                         case "hole":
@@ -320,16 +338,15 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                     position={[position[0], -0.01, position[2]]}
                                     rotation={[-Math.PI / 2, 0, 0]}
                                 >
-                                    {" "}
                                     <planeGeometry
                                         args={[tileSize * 0.9, tileSize * 0.9]}
-                                    />{" "}
+                                    />
                                     <meshStandardMaterial
                                         color="#8b5cf6"
                                         transparent
                                         opacity={0.6}
                                         side={THREE.DoubleSide}
-                                    />{" "}
+                                    />
                                 </mesh>
                             );
                         case "start":
@@ -342,10 +359,9 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                     position={position}
                                     rotation={[-Math.PI / 2, 0, 0]}
                                 >
-                                    {" "}
                                     <planeGeometry
                                         args={[tileSize, tileSize]}
-                                    />{" "}
+                                    />
                                     <meshStandardMaterial
                                         color={
                                             tile === "start"
@@ -357,7 +373,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                         opacity={0.75}
                                         transparent
                                         side={THREE.DoubleSide}
-                                    />{" "}
+                                    />
                                 </mesh>
                             );
                         default:
@@ -369,7 +385,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
     );
 }
 
-// --- Robot Model Component --- (No changes)
+// --- Robot Model Component ---
 function RobotModel({
     robotState,
     mazeSize,
@@ -472,13 +488,24 @@ export function MazeView3D({
     currentCommandIndex,
     flattenedCommands,
 }: MazeView3DProps) {
-    // Ref type matches useRef initialization (null possible)
     const videoElementRef = useRef<HTMLVideoElement | null>(null);
-    // ビデオストリームの準備完了状態を管理
     const [isStreamReady, setIsStreamReady] = useState(false);
+    const [debugInfo, setDebugInfo] = useState<string>("");
 
-    // Webカメラの初期化とストリーム管理 ---
-    // ARController ではなく、ここで video のストリームを管理する
+    // デバッグ情報の更新
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const video = videoElementRef.current;
+            if (video && video.videoWidth > 0) {
+                setDebugInfo(`Video: ${video.videoWidth}x${video.videoHeight} | Ready: ${isStreamReady}`);
+            } else {
+                setDebugInfo(`Video: Not ready | Ready: ${isStreamReady}`);
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [isStreamReady]);
+
+    // Webカメラの初期化とストリーム管理
     useEffect(() => {
         const video = videoElementRef.current;
         if (!video) return;
@@ -487,25 +514,34 @@ export function MazeView3D({
 
         const startWebcam = async () => {
             try {
+                console.log("📹 Starting webcam...");
                 stream = await navigator.mediaDevices.getUserMedia({
                     audio: false,
                     video: {
-                        facingMode: "environment", // 背面カメラを優先
+                        facingMode: "environment",
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
                     },
                 });
                 video.srcObject = stream;
+                console.log("✅ Webcam stream attached.");
 
-                // 'playing' イベントを監視
-                video.onplaying = () => {
-                    console.log("Video stream is now playing.");
-                    setIsStreamReady(true); // 準備完了フラグを立てる
+                video.onloadedmetadata = () => {
+                    console.log("✅ Video metadata loaded.");
+                    video.play().then(() => {
+                        console.log("✅ Video playback started.");
+                    }).catch(err => {
+                        console.error("❌ Video play failed:", err);
+                    });
                 };
 
-                // video.play() は autoPlay 属性に任せる
-                console.log("Webcam stream attached. autoPlay will start it.");
+                video.onplaying = () => {
+                    console.log("✅ Video stream is now playing.");
+                    setIsStreamReady(true);
+                };
+
             } catch (err) {
-                console.error("Failed to get webcam stream:", err);
-                // err が Error オブジェクトの場合、message プロパティを使用
+                console.error("❌ Failed to get webcam stream:", err);
                 const errorMessage =
                     err instanceof Error ? err.message : String(err);
                 alert(`カメラの起動に失敗: ${errorMessage}`);
@@ -515,21 +551,25 @@ export function MazeView3D({
         startWebcam();
 
         return () => {
-            // --- クリーンアップ: ストリームを停止 ---
             if (stream) {
                 stream.getTracks().forEach((track) => track.stop());
-                console.log("Webcam stream stopped.");
+                console.log("🛑 Webcam stream stopped.");
             }
             if (video && video.srcObject) {
                 video.srcObject = null;
-                video.onplaying = null; // イベントハンドラもクリア
+                video.onplaying = null;
             }
-            setIsStreamReady(false); // 状態をリセット
+            setIsStreamReady(false);
         };
-    }, []); // マウント時に1回だけ実行
+    }, []);
 
     return (
         <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-neon-cyan/30 bg-transparent">
+            {/* Debug Info */}
+            <div className="absolute top-2 left-2 z-10 bg-black/70 px-2 py-1 text-xs text-white rounded">
+                {debugInfo}
+            </div>
+            
             {/* Video element for AR feed */}
             <video
                 id="arjs-video"
@@ -551,7 +591,12 @@ export function MazeView3D({
             {/* R3F Canvas */}
             <Canvas
                 gl={{ alpha: true, antialias: true }}
-                camera={{ position: [0, 0, 0], fov: 70 }}
+                camera={{ 
+                    position: [0, 0, 0], 
+                    fov: 70,
+                    near: 0.1,
+                    far: 1000,
+                }}
                 style={{
                     background: "transparent",
                     position: "absolute",
@@ -562,7 +607,6 @@ export function MazeView3D({
                 }}
                 shadows
             >
-                {/* Lighting */}
                 <ambientLight intensity={1.0} />
                 <directionalLight
                     position={[2, 8, 4]}
@@ -576,31 +620,26 @@ export function MazeView3D({
                     shadow-camera-top={5}
                     shadow-camera-bottom={-5}
                 />
-                {/* Ground plane for shadows */}
                 <mesh
                     rotation={[-Math.PI / 2, 0, 0]}
                     position={[0, -0.02, 0]}
                     receiveShadow
                 >
-                    <planeGeometry args={[10, 10]} />{" "}
+                    <planeGeometry args={[10, 10]} />
                     <shadowMaterial opacity={0.3} />
                 </mesh>
 
-                {/* AR Controller (Pass videoRef) */}
-                {/* Type matches RefObject<HTMLVideoElement | null> */}
                 <ARController
                     onMarkerDetected={onMarkerDetected}
                     videoRef={videoElementRef}
-                    isStreamReady={isStreamReady} // state を渡す
+                    isStreamReady={isStreamReady}
                 />
 
-                {/* Parent Group for positioning/rotation */}
                 <group
-                    position={[0, 0.5, -2.5]} // Position: Slightly higher, Further back
-                    rotation={[Math.PI / 4.5, 0, 0]} // Rotation: More tilt down, Slight right rotation
+                    position={[0, 0.5, -2.5]}
+                    rotation={[Math.PI / 4.5, 0, 0]}
                 >
                     <Suspense fallback={null}>
-                        {/* Remove rotation from children */}
                         <MazeMap grid={maze.grid} mazeSize={maze.size} />
                         <RobotModel
                             robotState={robotState}
@@ -612,11 +651,8 @@ export function MazeView3D({
                     </Suspense>
                 </group>
 
-                {/* Detected Command Name Display */}
                 {detectedCommandName && (
                     <Html center position={[0, 0.7 + 0.6, -1.5]}>
-                        {" "}
-                        {/* Adjusted Y */}
                         <div
                             className="select-none rounded bg-black/60 px-3 py-1 text-xl font-bold text-neon-cyan shadow-lg backdrop-blur-sm"
                             style={{ textShadow: "0 0 8px #0ff" }}
@@ -626,11 +662,10 @@ export function MazeView3D({
                     </Html>
                 )}
 
-                {/* Optional OrbitControls (commented out) */}
                 <OrbitControls
-                    enableZoom={true} // Disable zoom
-                    enablePan={true} // Disable panning
-                    enableRotate={true} // Enable rotation only
+                    enableZoom={true}
+                    enablePan={true}
+                    enableRotate={true}
                     target={new THREE.Vector3(0, 0.7, -1.8)}
                 />
             </Canvas>
