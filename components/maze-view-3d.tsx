@@ -157,8 +157,8 @@ function ARController({
 
         // --- Context Initialization ---
         arToolkitContextRef.current = new THREEx.ArToolkitContext({
-            cameraParametersUrl: "https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat",
-            detectionMode: "mono",
+            cameraParametersUrl: "data/camera_para.dat",
+            detectionMode: "image",
             maxDetectionRate: 60,
             canvasWidth: 640,
             canvasHeight: 480,
