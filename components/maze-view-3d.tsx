@@ -166,7 +166,7 @@ function ARController({
         // --- Context Initialization ---
         arToolkitContextRef.current = new THREEx.ArToolkitContext({
             cameraParametersUrl: "/data/camera_para.dat",
-            detectionMode: "mono",
+            detectionMode: "image",
             maxDetectionRate: 60,
             canvasWidth: 640,
             canvasHeight: 480,
@@ -264,6 +264,11 @@ function ARController({
             !arToolkitContextRef.current ||
             !videoRef.current
         ) {
+            console.log("isInitialized:", !isInitialized);
+            console.log("arToolkitSourceRef.current?.ready:", !arToolkitSourceRef.current?.ready);
+            console.log("arToolkitContextRef.current:", !arToolkitContextRef.current);
+            console.log("videoRef.current:", !videoRef.current);
+            console.log("⏳ AR.js not fully initialized yet, skipping frame update.");
             return;
         }
         try {
@@ -440,7 +445,7 @@ function RobotModel({
         let actionName: string | undefined;
         switch (command.type) {
             case "forward":
-                actionName = "Walk";
+                actionName = "forward";
                 break;
             case "turnRight":
                 actionName = "TurnRight";
@@ -449,7 +454,7 @@ function RobotModel({
                 actionName = "TurnLeft";
                 break;
             case "ifHole":
-                actionName = "Action";
+                actionName = "ifHole";
                 break;
             default:
                 actionName = undefined;
