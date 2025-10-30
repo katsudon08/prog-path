@@ -18,7 +18,6 @@ import {
 import * as THREE from "three";
 import type { MazeData, RobotState, TileType, Command } from "@/lib/types";
 
-// Assume THREEx is loaded globally via CDN
 declare const THREEx: any;
 
 interface MazeView3DProps {
@@ -30,7 +29,6 @@ interface MazeView3DProps {
     flattenedCommands: Command[];
 }
 
-// --- AR Controller Component ---
 function ARController({
     onMarkerDetected,
     videoRef,
@@ -57,7 +55,6 @@ function ARController({
         { name: "loop", command: { type: "loop" } },
     ];
 
-    // Check for THREEx availability
     useEffect(() => {
         let checkInterval: NodeJS.Timeout | null = null;
         const checkForTHREEx = () => {
@@ -78,7 +75,6 @@ function ARController({
         };
     }, []);
 
-    // Resize handler using useCallback
     const resizeEverything = useCallback(() => {
         const video = videoRef.current;
         const source = arToolkitSourceRef.current;
@@ -132,6 +128,12 @@ function ARController({
         const THREEx = (window as any).THREEx;
         const video = videoRef.current;
 
+        // ビデオが実際に再生されているか確認
+        if (video.readyState < 2) {
+            console.log("⏳ Video not ready yet, waiting...");
+            return;
+        }
+
         console.log("🎥 Video is playing, creating VideoTexture.");
         const texture = new THREE.VideoTexture(video);
         texture.minFilter = THREE.LinearFilter;
@@ -141,28 +143,35 @@ function ARController({
 
         // --- Source Initialization ---
         arToolkitSourceRef.current = new THREEx.ArToolkitSource({
-            sourceType: "video",
-            sourceElement: video,
+            sourceType: "webcam",
+            sourceWidth: 640,
+            sourceHeight: 480,
+            displayWidth: 640,
+            displayHeight: 480,
         });
 
-        arToolkitSourceRef.current.init(
-            () => {
-                console.log("✅ AR Source Initialized");
-                setTimeout(resizeEverything, 100);
-            },
-            (error: any) => {
-                console.error("❌ AR Source Init Error:", error);
-            }
-        );
+        // AR.jsに既存のvideo要素を使わせる
+        arToolkitSourceRef.current.domElement = video;
+        
+        // すでにストリームが設定されているのでreadyフラグを立てる
+        arToolkitSourceRef.current.ready = true;
+        
+        console.log("✅ AR Source Initialized (using existing video element)");
+        
+        // onResizeイベントハンドラを設定
+        arToolkitSourceRef.current.onResize = resizeEverything;
+        
+        setTimeout(resizeEverything, 100);
 
         // --- Context Initialization ---
         arToolkitContextRef.current = new THREEx.ArToolkitContext({
-            cameraParametersUrl: "data/camera_para.dat",
-            detectionMode: "image",
+            cameraParametersUrl: "/data/camera_para.dat",
+            detectionMode: "mono",
             maxDetectionRate: 60,
             canvasWidth: 640,
             canvasHeight: 480,
         });
+        
         arToolkitContextRef.current.init(() => {
             console.log("✅ AR Context Initialized");
             if (arToolkitContextRef.current) {
@@ -189,7 +198,7 @@ function ARController({
                 }
             );
             
-            console.log(`🎯 Marker registered: ${markerInfo.name} (path: /data/${markerInfo.name}.patt)`);
+            console.log(`🎯 Marker registered: ${markerInfo.name}`);
             
             let lastVisible = false;
             markerRoot.userData.command = markerInfo.command;
@@ -210,7 +219,6 @@ function ARController({
         console.log("✅ AR.js initialization sequence complete.");
         window.addEventListener("resize", resizeEverything);
 
-        // --- Cleanup Function ---
         return () => {
             console.log("🧹 Cleaning up AR.js resources...");
             window.removeEventListener("resize", resizeEverything);
@@ -230,7 +238,6 @@ function ARController({
                 scene.remove(group);
             });
             markerRootsRef.current = {};
-            console.log("🧹 Marker controls disposed and groups removed.");
 
             arToolkitContextRef.current = null;
             arToolkitSourceRef.current = null;
@@ -250,7 +257,6 @@ function ARController({
         isStreamReady,
     ]);
 
-    // --- AR.js Update Loop ---
     useFrame(() => {
         if (
             !isInitialized ||
@@ -265,9 +271,8 @@ function ARController({
                 videoTextureRef.current.needsUpdate = true;
             }
 
-            arToolkitContextRef.current.update(videoRef.current);
+            arToolkitContextRef.current.update(arToolkitSourceRef.current.domElement);
 
-            // 100フレームごとにマーカーの状態をログ出力
             frameCountRef.current++;
             if (frameCountRef.current % 100 === 0) {
                 const visibleMarkers = Object.entries(markerRootsRef.current)
@@ -286,14 +291,12 @@ function ARController({
             });
         } catch (error) {
             console.error("❌ Error during AR.js update:", error);
-            setIsInitialized(false);
         }
     });
 
     return null;
 }
 
-// --- 3D Maze Map Component ---
 function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
     const tileSize = 0.5;
     const wallHeight = 0.5;
@@ -385,7 +388,6 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
     );
 }
 
-// --- Robot Model Component ---
 function RobotModel({
     robotState,
     mazeSize,
@@ -479,7 +481,6 @@ function RobotModel({
     return <primitive ref={modelRef} object={scene} scale={0.12} castShadow />;
 }
 
-// --- Main MazeView3D Component ---
 export function MazeView3D({
     maze,
     robotState,
@@ -492,12 +493,11 @@ export function MazeView3D({
     const [isStreamReady, setIsStreamReady] = useState(false);
     const [debugInfo, setDebugInfo] = useState<string>("");
 
-    // デバッグ情報の更新
     useEffect(() => {
         const interval = setInterval(() => {
             const video = videoElementRef.current;
             if (video && video.videoWidth > 0) {
-                setDebugInfo(`Video: ${video.videoWidth}x${video.videoHeight} | Ready: ${isStreamReady}`);
+                setDebugInfo(`Video: ${video.videoWidth}x${video.videoHeight} | Ready: ${isStreamReady} | ReadyState: ${video.readyState}`);
             } else {
                 setDebugInfo(`Video: Not ready | Ready: ${isStreamReady}`);
             }
@@ -505,7 +505,6 @@ export function MazeView3D({
         return () => clearInterval(interval);
     }, [isStreamReady]);
 
-    // Webカメラの初期化とストリーム管理
     useEffect(() => {
         const video = videoElementRef.current;
         if (!video) return;
@@ -537,6 +536,15 @@ export function MazeView3D({
 
                 video.onplaying = () => {
                     console.log("✅ Video stream is now playing.");
+                    // readyStateが十分であることを確認してから設定
+                    if (video.readyState >= 2) {
+                        setIsStreamReady(true);
+                    }
+                };
+
+                // readyStateの変化を監視
+                video.oncanplay = () => {
+                    console.log("✅ Video can play (readyState >= 2).");
                     setIsStreamReady(true);
                 };
 
@@ -558,6 +566,7 @@ export function MazeView3D({
             if (video && video.srcObject) {
                 video.srcObject = null;
                 video.onplaying = null;
+                video.oncanplay = null;
             }
             setIsStreamReady(false);
         };
@@ -565,12 +574,10 @@ export function MazeView3D({
 
     return (
         <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-neon-cyan/30 bg-transparent">
-            {/* Debug Info */}
             <div className="absolute top-2 left-2 z-10 bg-black/70 px-2 py-1 text-xs text-white rounded">
                 {debugInfo}
             </div>
             
-            {/* Video element for AR feed */}
             <video
                 id="arjs-video"
                 ref={videoElementRef}
@@ -588,7 +595,6 @@ export function MazeView3D({
                 }}
                 muted
             />
-            {/* R3F Canvas */}
             <Canvas
                 gl={{ alpha: true, antialias: true }}
                 camera={{ 
