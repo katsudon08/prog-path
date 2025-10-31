@@ -264,11 +264,6 @@ function ARController({
             !arToolkitContextRef.current ||
             !videoRef.current
         ) {
-            console.log("isInitialized:", !isInitialized);
-            console.log("arToolkitSourceRef.current?.ready:", !arToolkitSourceRef.current?.ready);
-            console.log("arToolkitContextRef.current:", !arToolkitContextRef.current);
-            console.log("videoRef.current:", !videoRef.current);
-            console.log("⏳ AR.js not fully initialized yet, skipping frame update.");
             return;
         }
         try {
