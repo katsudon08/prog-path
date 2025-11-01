@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react"; // Reactをインポート
+import React, { useState, useEffect, useRef, useCallback } from "react"; // useCallback をインポート
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input"; // Inputをインポート
@@ -83,9 +83,32 @@ export function ARExecutionScreen() {
         null
     ); // To temporarily store loop command data
     
-    // --- [修正点4] ループ構築中フラグを追加 ---
+    // --- ループ構築中フラグ ---
     const [isBuildingLoop, setIsBuildingLoop] = useState(false);
-    // --- [修正点4] 終了 ---
+
+    // 実行エラー（壁、穴など）の状態を保持するRef
+    const executionErrorRef = useRef<string | null>(null);
+
+    // --- 修正: 無限ループ対策 ---
+    // state の値を ref に同期させ、安定したコールバック内から
+    // 最新の値を参照できるようにする
+    const isBuildingLoopRef = useRef(isBuildingLoop);
+    const tempLoopCommandRef = useRef(tempLoopCommand);
+    const isExecutingRef = useRef(isExecuting);
+
+    useEffect(() => {
+        isBuildingLoopRef.current = isBuildingLoop;
+    }, [isBuildingLoop]);
+
+    useEffect(() => {
+        tempLoopCommandRef.current = tempLoopCommand;
+    }, [tempLoopCommand]);
+
+    useEffect(() => {
+        isExecutingRef.current = isExecuting;
+    }, [isExecuting]);
+    // --- 修正 終了 ---
+
 
     // Effect to load maze data (no changes)
     useEffect(() => {
@@ -120,7 +143,7 @@ export function ARExecutionScreen() {
         setFlattenedCommands(flattenCommands(commands));
     }, [commands]);
 
-    // Effect for command execution
+    // Effect for command execution (変更なし)
     useEffect(() => {
         if (
             !isExecuting ||
@@ -132,6 +155,7 @@ export function ARExecutionScreen() {
                 isExecuting &&
                 currentCommandIndex >= flattenedCommands.length
             ) {
+                // コマンドが最後まで実行された
                 setIsExecuting(false);
                 setCurrentCommandIndex(-1);
                 if (maze?.grid[robotState.y][robotState.x] !== "goal") {
@@ -142,119 +166,149 @@ export function ARExecutionScreen() {
             return;
         }
 
+        // 実行開始時にエラーフラグをリセット
+        if (isExecuting && currentCommandIndex === 0) {
+            executionErrorRef.current = null;
+        }
+
         const executeCommand = async () => {
             await new Promise((resolve) => setTimeout(resolve, 500)); // Delay between commands
+            
+            // 前回のコマンド実行でエラーRefがセットされていたら、実行を停止
+            if (executionErrorRef.current) {
+                setGameStatus("failed");
+                setErrorMessage(executionErrorRef.current);
+                setIsExecuting(false);
+                executionErrorRef.current = null; // エラーフラグをリセット
+                return; // このティックの実行を終了
+            }
+
+            // ポーズボタンなどで停止された場合
+            if (!isExecuting) return;
+
             const command = flattenedCommands[currentCommandIndex];
 
-            // --- [修正点3] ifHole ロジックの実装 ---
+            // ifHole ロジック (変更なし)
             if (command.type === "ifHole") {
-                // ロボットの現在の状態（robotState）から
-                // 1マス前の座標を計算
                 const checkX = robotState.x + robotState.direction[0];
                 const checkY = robotState.y + robotState.direction[1];
 
-                // 迷路の範囲内かチェック
                 if (
                     checkX >= 0 &&
                     checkX < maze.size &&
                     checkY >= 0 &&
                     checkY < maze.size
                 ) {
-                    // 1マス前が "hole" かどうか
                     if (maze.grid[checkY][checkX] === "hole") {
-                        // 穴を床に変換する
-                        // 迷路のグリッドをディープコピー
                         const newGrid = maze.grid.map((row) => [...row]); 
                         newGrid[checkY][checkX] = "floor";
-                        
-                        // maze ステートを更新
                         setMaze(
                             (prevMaze) =>
                                 prevMaze ? { ...prevMaze, grid: newGrid } : null
                         );
                     }
                 }
-                // ifHole は移動しないので、setRobotState は呼ばずに
-                // 次のコマンドへ進む
+                // ifHole は setRobotState を呼ばないので、ここで次のコマンドへ
                 setCurrentCommandIndex((prev) => prev + 1);
-                return; // この後の setRobotState をスキップ
+                return; 
             }
-            // --- [修正点3] 終了 ---
+            // --- ifHole 終了 ---
 
-            // Update robot state based on command
+            // setRobotState のコールバック内で移動と衝突判定を完結させる
             setRobotState((prevState) => {
+                // このスコープ内で isExecuting を再チェック
+                if (!isExecuting) return prevState; 
+
                 let newState = { ...prevState };
+                
                 if (command.type === "forward") {
                     const newX = prevState.x + prevState.direction[0];
                     const newY = prevState.y + prevState.direction[1];
-                    // Check boundaries and obstacles
+
+                    // 1. 範囲外チェック
                     if (
-                        newX >= 0 &&
-                        newX < maze.size &&
-                        newY >= 0 &&
-                        newY < maze.size
+                        newX < 0 ||
+                        newX >= maze.size ||
+                        newY < 0 ||
+                        newY >= maze.size
                     ) {
-                        const targetTile = maze.grid[newY][newX];
-                        if (targetTile !== "wall") {
-                            newState = { ...prevState, x: newX, y: newY };
-                            setMoveCount((prev) => prev + 1);
-                            // Check for hole or goal
-                            if (targetTile === "hole") {
-                                setGameStatus("failed");
-                                setErrorMessage("穴に落ちてしまいました！");
-                                setIsExecuting(false);
-                            } else if (targetTile === "goal") {
-                                setGameStatus("success");
-                                setIsExecuting(false);
-                            }
-                        } else {
-                            /* Hit wall */ setGameStatus("failed");
-                            setErrorMessage("壁にぶつかりました！");
-                            setIsExecuting(false);
-                        }
-                    } else {
-                        /* Out of bounds */ setGameStatus("failed");
-                        setErrorMessage("迷路の外に出てしまいました！");
-                        setIsExecuting(false);
+                        executionErrorRef.current = "迷路の外に出てしまいました！";
+                        return prevState; // 移動しない
                     }
+
+                    const targetTile = maze.grid[newY][newX];
+
+                    // 2. 壁チェック
+                    if (targetTile === "wall") {
+                        executionErrorRef.current = "壁にぶつかりました！";
+                        return prevState; // 移動しない
+                    }
+
+                    // 3. 穴チェック
+                    if (targetTile === "hole") {
+                        newState = { ...prevState, x: newX, y: newY }; // 穴に移動
+                        setMoveCount((prev) => prev + 1);
+                        executionErrorRef.current = "穴に落ちてしまいました！";
+                        return newState; // 移動する
+                    }
+
+                    // 4. ゴールチェック
+                    if (targetTile === "goal") {
+                        newState = { ...prevState, x: newX, y: newY }; // ゴールに移動
+                        setMoveCount((prev) => prev + 1);
+                        // ゴールはエラーではない
+                        setGameStatus("success");
+                        setIsExecuting(false); // 実行停止 (これは即時反映される)
+                        return newState; // 移動する
+                    }
+
+                    // 5. 安全な移動 (床)
+                    newState = { ...prevState, x: newX, y: newY };
+                    setMoveCount((prev) => prev + 1);
+
                 } else if (command.type === "turnRight") {
-                    // Rotate direction vector clockwise
-                    const newDirection: DirectionVector = [
-                        prevState.direction[1],
-                        -prevState.direction[0],
-                    ];
-                    newState = { ...prevState, direction: newDirection };
-                } else if (command.type === "turnLeft") {
-                    // Rotate direction vector counter-clockwise
-                    const newDirection: DirectionVector = [
+                    // (回転の向き修正済み)
+                    // 時計回り
+                    newState = { ...prevState, direction: [
                         -prevState.direction[1],
                         prevState.direction[0],
-                    ];
-                    newState = { ...prevState, direction: newDirection };
+                    ]};
+                } else if (command.type === "turnLeft") {
+                    // (回転の向き修正済み)
+                    // 反時計回り
+                    newState = { ...prevState, direction: [
+                        prevState.direction[1],
+                        -prevState.direction[0],
+                    ]};
                 }
+                
                 return newState;
             });
-            // Move to the next command
+            
+            // 次のコマンドインデックスに進む
             setCurrentCommandIndex((prev) => prev + 1);
         };
+        
         executeCommand();
-    }, [isExecuting, currentCommandIndex, flattenedCommands, maze, robotState]);
 
-    // --- New/Modified Functions for Step 5 (and Step 4 update) ---
+    // 依存配列から robotState を削除
+    }, [isExecuting, currentCommandIndex, flattenedCommands, maze]);
 
+
+    // --- 修正: 無限ループ対策 ---
     // Function to add a command to the stack (accepts Command object)
-    const handleAddCommand = (newCommand: Command) => {
+    const handleAddCommand = useCallback((newCommand: Command) => {
         setCommands((prevCommands) => [...prevCommands, newCommand]);
-    };
+    }, []); // setCommands は安定しているので依存配列は空
 
-    // --- [修正点4] handleMarkerDetected ロジックの変更 ---
     // Callback function called by MazeView3D when a marker is detected
-    const handleMarkerDetected = (detectedCommand: Command) => {
-        if (isExecuting) return; // Ignore markers while executing
+    // 依存配列を安定させ、Ref を使って最新の state を読む
+    const handleMarkerDetected = useCallback((detectedCommand: Command) => {
+        // isExecuting を Ref から読む
+        if (isExecutingRef.current) return; // Ignore markers while executing
 
-        // Display the detected command name temporarily
-        // ループ構築中かどうかで表示名を変える
-        const commandDisplayName = isBuildingLoop
+        // isBuildingLoop を Ref から読む
+        const commandDisplayName = isBuildingLoopRef.current
             ? detectedCommand.type === "loop"
                 ? "End Loop" // ループ構築中に "loop" マーカーを検出
                 : detectedCommand.type // ループ構築中に他のコマンドを検出
@@ -264,29 +318,29 @@ export function ARExecutionScreen() {
         setTimeout(() => setDetectedCommandName(null), 1500); // Display for 1.5 seconds
 
         if (detectedCommand.type === "loop") {
-            if (isBuildingLoop) {
+            // isBuildingLoop を Ref から読む
+            if (isBuildingLoopRef.current) {
                 // --- ループ終了処理 ---
-                if (tempLoopCommand) {
-                    // 構築完了したループコマンド (子コマンド含む) をスタックに追加
-                    handleAddCommand(tempLoopCommand);
+                // tempLoopCommand を Ref から読む
+                if (tempLoopCommandRef.current) { 
+                    handleAddCommand(tempLoopCommandRef.current);
                 }
-                setIsBuildingLoop(false); // ループ構築モード終了
-                setTempLoopCommand(null); // 一時データをクリア
+                setIsBuildingLoop(false); // state を更新
+                setTempLoopCommand(null); // state を更新
             } else {
                 // --- ループ開始処理 ---
-                // ポップアップのために一時コマンドを準備
                 setTempLoopCommand({
                     ...detectedCommand,
                     loopCount: detectedCommand.loopCount || 2,
                     children: [],
-                }); // Initialize children
+                }); 
                 setLoopPopupOpen(true);
-                // 決定ボタン (handleLoopConfirm) が押されたら isBuildingLoop が true になる
             }
         } else {
             // --- ループ以外のコマンド処理 ---
-            if (isBuildingLoop && tempLoopCommand) {
-                // ループ構築中の場合、子コマンドとして追加
+            // isBuildingLoop を Ref から読む
+            if (isBuildingLoopRef.current) {
+                // functional update を使う
                 setTempLoopCommand((prevLoop) =>
                     prevLoop
                         ? {
@@ -300,49 +354,42 @@ export function ARExecutionScreen() {
                 handleAddCommand(detectedCommand);
             }
         }
-    };
-    // --- [修正点4] 終了 ---
+    // 依存配列から state を削除し、安定した setter と handleAddCommand のみに依存
+    }, [handleAddCommand, setDetectedCommandName, setIsBuildingLoop, setTempLoopCommand, setLoopPopupOpen]);
+    // --- 修正 終了 ---
 
-    // --- [修正点4] handleLoopConfirm ロジックの変更 ---
-    // Function called when the 'Confirm' button in the loop popup is clicked
+    // Function called when the 'Confirm' button in the loop popup is clicked (変更なし)
     const handleLoopConfirm = () => {
         if (tempLoopCommand) {
-            // スタックには追加せず、ループ構築モードを開始する
             setIsBuildingLoop(true); 
         }
-        setLoopPopupOpen(false); // Close the popup
-        // tempLoopCommand はクリアしない (構築中のコマンドを保持するため)
+        setLoopPopupOpen(false); 
     };
-    // --- [修正点4] 終了 ---
 
     // Function to handle changes in the loop count input field (no changes)
     const handleLoopCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (tempLoopCommand) {
-            // Parse input, ensure it's between 1 and 10
             const count = Math.max(
                 1,
                 Math.min(10, Number.parseInt(e.target.value) || 1)
             );
-            // Update the loopCount in the temporary loop command state
             setTempLoopCommand({ ...tempLoopCommand, loopCount: count });
         }
     };
-    // --- End of New/Modified Functions ---
 
     // Function to remove a command (no changes)
     const handleRemoveCommand = (index: number) => {
         setCommands(commands.filter((_, i) => i !== index));
     };
 
-    // Function to update a command (e.g., nested commands in loop/if) (no changes)
+    // Function to update a command (no changes)
     const handleUpdateCommand = (index: number, updatedCommand: Command) => {
         const newCommands = [...commands];
         newCommands[index] = updatedCommand;
         setCommands(newCommands);
     };
 
-    // Function to reset the execution state (no changes)
-    // (ifHole で grid が変更されるため、リセット時に元の迷路に戻す処理が重要)
+    // Function to reset the execution state
     const handleReset = () => {
         setIsExecuting(false);
         setCurrentCommandIndex(-1);
@@ -350,6 +397,7 @@ export function ARExecutionScreen() {
         setRobotState(initialRobotState);
         setErrorMessage("");
         setMoveCount(0);
+        executionErrorRef.current = null; // エラーフラグもリセット
         // Restore original maze grid if it was modified by ifHole
         if (mazeId) {
             const stored = localStorage.getItem("progpath_mazes");
@@ -363,8 +411,7 @@ export function ARExecutionScreen() {
         }
     };
 
-    // Function to start/pause execution (no changes)
-    // (リセットと同様に、実行開始時にも元の迷路に戻す)
+    // Function to start/pause execution
     const handleExecute = () => {
         if (isExecuting) {
             setIsExecuting(false); // Pause execution
@@ -372,9 +419,10 @@ export function ARExecutionScreen() {
             // Reset state before starting execution
             setGameStatus("running");
             setCurrentCommandIndex(0);
-            setRobotState(initialRobotState); // Start from initial position
+            setRobotState(initialRobotState); 
             setErrorMessage("");
             setMoveCount(0);
+            executionErrorRef.current = null; // エラーフラグをリセット
             // Ensure the maze grid is reset to its original state
             if (mazeId) {
                 const stored = localStorage.getItem("progpath_mazes");
@@ -401,11 +449,11 @@ export function ARExecutionScreen() {
         );
     }
 
-    // --- JSX Rendering ---
+    // --- JSX Rendering (変更なし) ---
     return (
         <div className="min-h-screen bg-background pt-16">
             <div className="container mx-auto px-4 py-8">
-                {/* Header Section (no changes) */}
+                {/* Header Section */}
                 <div className="mb-6 flex items-center justify-between">
                     <Button
                         onClick={() => router.push("/")}
@@ -454,18 +502,16 @@ export function ARExecutionScreen() {
                 <div className="grid gap-6 lg:grid-cols-[1fr_350px]">
                     {/* Left Panel: 3D Maze View and Status */}
                     <Card className="border-neon-blue/30 bg-space-dark/50 p-6">
-                        {/* --- Updated MazeView3D props --- */}
                         <MazeView3D
                             maze={maze}
                             robotState={robotState}
-                            onMarkerDetected={handleMarkerDetected} // Pass the callback
-                            detectedCommandName={detectedCommandName} // Pass the name to display
-                            currentCommandIndex={currentCommandIndex} // Pass index for animation
-                            flattenedCommands={flattenedCommands} // Pass commands for animation
+                            onMarkerDetected={handleMarkerDetected} // 安定化された関数を渡す
+                            detectedCommandName={detectedCommandName} 
+                            currentCommandIndex={currentCommandIndex} 
+                            flattenedCommands={flattenedCommands} 
                         />
-                        {/* --- End of update --- */}
 
-                        {/* Status Display Area (no changes) */}
+                        {/* Status Display Area */}
                         <div className="mt-4 space-y-2">
                             {/* Move Counter */}
                             <div className="flex items-center justify-center">
@@ -554,3 +600,4 @@ export function ARExecutionScreen() {
         </div>
     );
 }
+
