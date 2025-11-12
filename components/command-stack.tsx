@@ -161,8 +161,7 @@ export function CommandStack({
                         const isActive = index === currentIndex;
                         const isExpanded = expandedCommands.has(index);
                         const hasChildren =
-                            command.type === "loop" ||
-                            command.type === "ifHole";
+                            command.type === "loop";
 
                         return (
                             <div key={index} className="space-y-1">

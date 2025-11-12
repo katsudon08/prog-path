@@ -119,7 +119,7 @@ export function MazeEditor() {
     };
 
     const handleSizeChange = (newSize: number) => {
-        if (newSize < 3 || newSize > 10) return;
+        if (newSize < 5 || newSize > 10) return;
         setGridSize(newSize);
         initializeGrid(newSize);
     };
@@ -130,7 +130,7 @@ export function MazeEditor() {
     };
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background pt-16">
             <div className="container mx-auto px-4 py-8">
                 <div className="mb-6 flex items-center justify-between">
                     <Button
@@ -194,7 +194,7 @@ export function MazeEditor() {
                                     variant="outline"
                                     size="sm"
                                     className="border-neon-blue text-neon-blue"
-                                    disabled={gridSize <= 3}
+                                    disabled={gridSize <= 5}
                                 >
                                     -
                                 </Button>

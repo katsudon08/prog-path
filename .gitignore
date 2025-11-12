@@ -20,6 +20,9 @@
 # production
 /build
 
+# prompts
+repomix-output.xml
+
 # misc
 .DS_Store
 *.pem
