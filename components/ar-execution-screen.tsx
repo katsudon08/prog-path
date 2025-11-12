@@ -96,6 +96,11 @@ export function ARExecutionScreen() {
     const tempLoopCommandRef = useRef(tempLoopCommand);
     const isExecutingRef = useRef(isExecuting);
 
+    // ★★★ 修正 (Invalid hook call エラー修正) ★★★
+    // 実行ループのタイマーIDを保持するRef (トップレベルに移動)
+    const timerIdRef = useRef<number | null>(null);
+    // ★★★ 修正 終了 ★★★
+
     useEffect(() => {
         isBuildingLoopRef.current = isBuildingLoop;
     }, [isBuildingLoop]);
@@ -143,8 +148,12 @@ export function ARExecutionScreen() {
         setFlattenedCommands(flattenCommands(commands));
     }, [commands]);
 
-    // Effect for command execution (変更なし)
+    // Effect for command execution (変更)
     useEffect(() => {
+        // ★★★ 修正 (Invalid hook call エラー修正) ★★★
+        // const timerId = useRef<number | null>(null); // <-- この行を削除
+        // ★★★ 修正 終了 ★★★
+
         if (
             !isExecuting ||
             currentCommandIndex < 0 ||
@@ -157,6 +166,7 @@ export function ARExecutionScreen() {
             ) {
                 // コマンドが最後まで実行された
                 setIsExecuting(false);
+                // アニメーション停止
                 setCurrentCommandIndex(-1);
                 if (maze?.grid[robotState.y][robotState.x] !== "goal") {
                     setGameStatus("failed");
@@ -172,7 +182,31 @@ export function ARExecutionScreen() {
         }
 
         const executeCommand = async () => {
-            await new Promise((resolve) => setTimeout(resolve, 500)); // Delay between commands
+            // ★★★ 修正 (レースコンディション対策) ★★★
+            // Promise ベースの待機を、キャンセル可能な setTimeout に変更
+            const timeoutPromise = new Promise<void>((resolve) => {
+                const id = window.setTimeout(() => {
+                    resolve();
+                }, 500); // Delay between commands
+                
+                // ★★★ 修正 (Invalid hook call エラー修正) ★★★
+                // timerIdRef (トップレベルのRef) を使用
+                timerIdRef.current = id;
+                // ★★★ 修正 終了 ★★★
+            });
+
+            try {
+                await timeoutPromise;
+                // ★★★ 修正 (Invalid hook call エラー修正) ★★★
+                timerIdRef.current = null; // 実行されたらタイマーIDをクリア
+                // ★★★ 修正 終了 ★★★
+            } catch (e) {
+                // (これはクリーンアップ関数から reject されない限り発生しない)
+                console.log("Timer cancelled during execution");
+                return; // 実行を中止
+            }
+            // ★★★ 修正 終了 ★★★
+
             
             // 前回のコマンド実行でエラーRefがセットされていたら、実行を停止
             if (executionErrorRef.current) {
@@ -180,11 +214,17 @@ export function ARExecutionScreen() {
                 setErrorMessage(executionErrorRef.current);
                 setIsExecuting(false);
                 executionErrorRef.current = null; // エラーフラグをリセット
+                
+                // アニメーション停止
+                setCurrentCommandIndex(-1);
+                
                 return; // このティックの実行を終了
             }
 
-            // ポーズボタンなどで停止された場合
-            if (!isExecuting) return;
+            // ★★★ 修正 (レースコンディション対策) ★★★
+            // ポーズボタンなどで停止された場合 (await 後に Ref で再チェック)
+            if (!isExecutingRef.current) return;
+            // ★★★ 修正 終了 ★★★
 
             const command = flattenedCommands[currentCommandIndex];
 
@@ -216,8 +256,10 @@ export function ARExecutionScreen() {
 
             // setRobotState のコールバック内で移動と衝突判定を完結させる
             setRobotState((prevState) => {
-                // このスコープ内で isExecuting を再チェック
-                if (!isExecuting) return prevState; 
+                // ★★★ 修正 (レースコンディション対策) ★★★
+                // このスコープ内で isExecuting を再チェック (Ref を使用)
+                if (!isExecutingRef.current) return prevState; 
+                // ★★★ 修正 終了 ★★★
 
                 let newState = { ...prevState };
                 
@@ -259,6 +301,7 @@ export function ARExecutionScreen() {
                         // ゴールはエラーではない
                         setGameStatus("success");
                         setIsExecuting(false); // 実行停止 (これは即時反映される)
+                        setCurrentCommandIndex(-1); // アニメーション停止
                         return newState; // 移動する
                     }
 
@@ -285,14 +328,42 @@ export function ARExecutionScreen() {
                 return newState;
             });
             
+            // ★★★★★ 修正 ★★★★★
+            // setRobotState が (同期的に) 実行された直後にエラーRefをチェック
+            if (executionErrorRef.current) {
+                // エラーがセットされた (例: 壁にぶつかった)
+                setGameStatus("failed");
+                setErrorMessage(executionErrorRef.current);
+                setIsExecuting(false); 
+                
+                // ★ 2. アニメーションを停止するためにインデックスをリセット
+                setCurrentCommandIndex(-1); 
+                return; // インデックスを進めずに終了
+            }
+            // ★★★★★ 修正 終了 ★★★★★
+            
             // 次のコマンドインデックスに進む
             setCurrentCommandIndex((prev) => prev + 1);
         };
         
         executeCommand();
 
+        // ★★★ 修正 (レースコンディション対策) ★★★
+        // クリーンアップ関数
+        return () => {
+            // ★★★ 修正 (Invalid hook call エラー修正) ★★★
+            if (timerIdRef.current) {
+                // console.log("Cleaning up timer:", timerIdRef.current);
+                clearTimeout(timerIdRef.current);
+                timerIdRef.current = null;
+            }
+            // ★★★ 修正 終了 ★★★
+        };
+        // ★★★ 修正 終了 ★★★
+
     // 依存配列から robotState を削除
-    }, [isExecuting, currentCommandIndex, flattenedCommands, maze]);
+    // (isExecutingRef を使用するが、useEffect のトリガーとして isExecuting と currentCommandIndex は必要)
+    }, [isExecuting, currentCommandIndex, flattenedCommands, maze, isExecutingRef]); // isExecutingRef を追加
 
 
     // --- 修正: 無限ループ対策 ---
@@ -392,7 +463,7 @@ export function ARExecutionScreen() {
     // Function to reset the execution state
     const handleReset = () => {
         setIsExecuting(false);
-        setCurrentCommandIndex(-1);
+        setCurrentCommandIndex(-1); // ★ アニメーション停止
         setGameStatus("idle");
         setRobotState(initialRobotState);
         setErrorMessage("");
@@ -415,10 +486,14 @@ export function ARExecutionScreen() {
     const handleExecute = () => {
         if (isExecuting) {
             setIsExecuting(false); // Pause execution
+            // ★★★ 修正 ★★★
+            // 一時停止時もアニメーションを止める
+            setCurrentCommandIndex(-1);
+            // ★★★ 修正 終了 ★★★
         } else {
             // Reset state before starting execution
             setGameStatus("running");
-            setCurrentCommandIndex(0);
+            setCurrentCommandIndex(0); // 実行開始 (Index 0 から)
             setRobotState(initialRobotState); 
             setErrorMessage("");
             setMoveCount(0);
@@ -507,7 +582,7 @@ export function ARExecutionScreen() {
                             robotState={robotState}
                             onMarkerDetected={handleMarkerDetected} // 安定化された関数を渡す
                             detectedCommandName={detectedCommandName} 
-                            currentCommandIndex={currentCommandIndex} 
+                            currentCommandIndex={currentCommandIndex} // -1 が渡されるとアニメーションが停止する
                             flattenedCommands={flattenedCommands} 
                         />
 
@@ -600,4 +675,3 @@ export function ARExecutionScreen() {
         </div>
     );
 }
-
