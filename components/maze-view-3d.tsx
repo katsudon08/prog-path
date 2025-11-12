@@ -155,34 +155,70 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
     );
 }
 
-// RobotModel コンポーネント (ロボットの向きのズレ修正済み)
+// RobotModel コンポーネント
 function RobotModel({
     robotState,
     mazeSize,
     currentCommandIndex,
     flattenedCommands,
+    robotTile, // 現在のタイル
+    maze, 
 }: {
     robotState: RobotState;
     mazeSize: number;
     currentCommandIndex: number;
     flattenedCommands: Command[];
+    robotTile: TileType; 
+    maze: MazeData; 
 }) {
     const { scene, animations } = useGLTF("/robot.gltf");
     const { actions, names, mixer } = useAnimations(animations, scene);
     const modelRef = useRef<THREE.Group>(null!);
+    
+    // 現在再生中のアニメーション名を保持する Ref
+    const currentActionRef = useRef<string | null>(null);
+
+    // 落下状態（=移動不能）かどうか
+    const isImmobilizedRef = useRef<boolean>(false);
+    // 落下（移動不能）になった瞬間の座標を保持
+    const immobilizedPositionRef = useRef<THREE.Vector3 | null>(null);
+
+
     const tileSize = 0.5;
     const gridOffset = -(mazeSize * tileSize) / 2 + tileSize / 2;
-    const targetPosition = React.useMemo(
-        () =>
-            new THREE.Vector3(
-                robotState.x * tileSize + gridOffset,
-                0.05,
-                robotState.y * tileSize + gridOffset
-            ),
-        [robotState.x, robotState.y, tileSize, gridOffset]
-    );
+    
+    
+    // targetPosition の useMemo (リセット対応済み)
+    const targetPosition = React.useMemo(() => {
+        
+        // 落下状態が確定しているかチェック
+        if (isImmobilizedRef.current && immobilizedPositionRef.current) {
+            
+            // リセット判定ロジック
+            const currentTile = maze.grid[robotState.y]?.[robotState.x];
+            
+            if (currentTile === "start") {
+                // リセット操作が検知された
+                isImmobilizedRef.current = false; // 落下状態を解除
+                immobilizedPositionRef.current = null;
+            } else {
+                // リセットではない
+                // 落下した位置を維持する
+                return immobilizedPositionRef.current;
+            }
+        }
+        
+        // 落下していない、またはリセットされた場合：
+        // 親の robotState に追従する
+        return new THREE.Vector3(
+            robotState.x * tileSize + gridOffset,
+            0.05,
+            robotState.y * tileSize + gridOffset
+        );
 
-    // ロボットの向きのズレ修正
+    }, [robotState.x, robotState.y, tileSize, gridOffset, maze]); 
+
+    // targetQuaternion の計算 (変更なし)
     const targetQuaternion = React.useMemo(
         () =>
             new THREE.Quaternion().setFromEuler(
@@ -199,56 +235,144 @@ function RobotModel({
     );
 
 
+    // useEffect のロジック
     useEffect(() => {
+        
+        const fallActionName = names.find(name => name.toLowerCase() === "fall");
+
+        // --- 0. リセット判定 (最優先) ---
+        if (robotTile === "start") {
+             isImmobilizedRef.current = false;
+             immobilizedPositionRef.current = null;
+        }
+
+        let actionName: string | undefined = undefined;
+
+        // --- 1a. (コマンド予測) "forward" で穴に向かうか？ ---
         if (
-            currentCommandIndex < 0 ||
-            currentCommandIndex >= flattenedCommands.length
+            currentCommandIndex >= 0 && 
+            // ★ TypeError 修正
+            currentCommandIndex < flattenedCommands.length && 
+            flattenedCommands[currentCommandIndex].type === "forward" && 
+            !isImmobilizedRef.current
         ) {
-            names.forEach((name) => actions[name]?.fadeOut(0.2));
-            return;
+            const nextX = robotState.x + robotState.direction[0];
+            const nextY = robotState.y + robotState.direction[1];
+            let nextTile: TileType = "floor";
+            if (nextY >= 0 && nextY < maze.size && nextX >= 0 && nextX < maze.size) {
+                nextTile = maze.grid[nextY][nextX];
+            }
+            
+            // 穴に向かう場合
+            if (nextTile === "hole") {
+                isImmobilizedRef.current = true; // 落下状態にする
+                // 落下開始時の座標 (移動 *前* の座標) を保存
+                immobilizedPositionRef.current = new THREE.Vector3(
+                    robotState.x * tileSize + gridOffset,
+                    0.05,
+                    robotState.y * tileSize + gridOffset
+                );
+                
+                actionName = fallActionName;
+            }
         }
-        const command = flattenedCommands[currentCommandIndex];
-        let actionName: string | undefined;
-        switch (command.type) {
-            case "forward":
-                actionName = "forward";
-                break;
-            case "turnRight":
-                actionName = "TurnRight";
-                break;
-            case "turnLeft":
-                actionName = "TurnLeft";
-                break;
-            case "ifHole":
-                actionName = "ifHole"; 
-                break;
-            default:
-                actionName = undefined;
+
+        // --- 1b. (現状確認) *今* 穴の上にいるか？ ---
+        if (robotTile === "hole") {
+            if (!isImmobilizedRef.current) { // 穴の上でスタート/リセットされた場合
+                isImmobilizedRef.current = true;
+                // 穴の座標を保存
+                immobilizedPositionRef.current = new THREE.Vector3(
+                    robotState.x * tileSize + gridOffset,
+                    0.05,
+                    robotState.y * tileSize + gridOffset
+                );
+            }
+            
+            actionName = fallActionName; // 穴の上にいる限り fall
         }
+
+        // --- 2. 落下も穴の上でもない場合の処理 ---
+        if (!isImmobilizedRef.current) {
+            
+            // 2a. コマンドインデックスが無効 (実行終了/停止/リセット)
+            if (currentCommandIndex < 0) {
+                actionName = undefined; // アニメーション停止
+            } 
+            // 2b. コマンドインデックスが有効
+            else {
+                // ★ TypeError 修正
+                if (currentCommandIndex < flattenedCommands.length) {
+                    const command = flattenedCommands[currentCommandIndex];
+                    
+                    if (command.type === "forward") {
+                        actionName = "forward"; // 安全な "forward"
+                    } else if (command.type === "turnRight") {
+                        actionName = "TurnRight";
+                    } else if (command.type === "turnLeft") {
+                        actionName = "TurnLeft";
+                    } else if (command.type === "ifHole") {
+                        actionName = "ifHole";
+                    } else {
+                        actionName = undefined; // loop など
+                    }
+                } else {
+                    actionName = undefined;
+                }
+            }
+        }
+        
+        // --- 3. 決定されたアニメーションを再生 ---
+        currentActionRef.current = actionName || null;
         const activeAction = actionName ? actions[actionName] : null;
+
         if (activeAction) {
             names.forEach((name) => {
                 if (name !== actionName && actions[name]?.isRunning()) {
                     actions[name]?.fadeOut(0.2);
                 }
             });
-            activeAction.reset().setLoop(THREE.LoopOnce, 1).clampWhenFinished =
-                true;
-            activeAction.fadeIn(0.2).play();
+            // 既に再生中でなければリセットして再生
+            if (!activeAction.isRunning()) {
+                activeAction.reset().setLoop(THREE.LoopOnce, 1).clampWhenFinished =
+                    true;
+                activeAction.fadeIn(0.2).play();
+            }
         } else {
+            // --- ★ 修正点: アニメーション停止ロジック ---
+            // 対応するアクションがない場合 (リセット時など)
             names.forEach((name) => {
-                if (actions[name]?.isRunning()) actions[name]?.fadeOut(0.2);
+                // isRunning() のチェックを外す
+                // (clampWhenFinished=true で停止中の "fall" も fadeOut させるため)
+                actions[name]?.fadeOut(0.2);
             });
+            // --- ★ 修正点 終了 ---
         }
-    }, [currentCommandIndex, flattenedCommands, actions, names]);
+    
+    // (依存配列は前回の修正のまま)
+    }, [
+        currentCommandIndex, 
+        flattenedCommands, 
+        actions, 
+        names, 
+        robotTile, 
+        maze, 
+        robotState,
+        tileSize, 
+        gridOffset
+    ]);
 
+
+    // useFrame (変更なし)
     useFrame((_, delta) => {
         if (modelRef.current) {
+            
             modelRef.current.position.lerp(targetPosition, delta * 6);
             modelRef.current.quaternion.slerp(targetQuaternion, delta * 12);
         }
         if (mixer) mixer.update(delta);
     });
+    
     return <primitive ref={modelRef} object={scene} scale={0.12} castShadow />;
 }
 
@@ -263,10 +387,8 @@ export function MazeView3D({
     const videoElementRef = useRef<HTMLVideoElement | null>(null);
     const scanCanvasRef = useRef<HTMLCanvasElement | null>(null);
     
-    // --- 修正点: 連続読み取り問題 ---
     // デバウンス（クールダウン）中かどうかを示すフラグRef
     const isCoolingDownRef = useRef<boolean>(false);
-    // --- 修正点 終了 ---
     
     const [isStreamReady, setIsStreamReady] = useState(false);
     const [debugInfo, setDebugInfo] = useState<string>("");
@@ -409,7 +531,6 @@ export function MazeView3D({
                 if (qrCodeData) {
                     const command = qrCodeToCommand[qrCodeData];
                     
-                    // --- 修正点: 連続読み取り問題 ---
                     // クールダウン中でない場合のみコマンドを処理
                     if (command && !isCoolingDownRef.current) { 
                         
@@ -428,7 +549,6 @@ export function MazeView3D({
                             isCoolingDownRef.current = false;
                         }, 1500); 
                     }
-                    // --- 修正点 終了 ---
                 }
             } catch (e) {
                 console.error("Error in scan loop:", e);
@@ -446,6 +566,13 @@ export function MazeView3D({
             isCoolingDownRef.current = false; 
         };
     }, [isStreamReady, onMarkerDetected]); 
+
+    // --- 現在のタイルを計算 ---
+    const robotTile =
+        maze.grid[robotState.y] && maze.grid[robotState.y][robotState.x]
+            ? maze.grid[robotState.y][robotState.x]
+            : "floor"; // 範囲外の場合は 'floor' として扱う (安全対策)
+    // --- 修正点 終了 ---
 
     // --- JSX (変更なし) ---
     return (
@@ -524,6 +651,8 @@ export function MazeView3D({
                             mazeSize={maze.size}
                             currentCommandIndex={currentCommandIndex}
                             flattenedCommands={flattenedCommands}
+                            robotTile={robotTile} 
+                            maze={maze}
                         />
                         <Preload all />
                     </Suspense>
@@ -550,4 +679,3 @@ export function MazeView3D({
         </div>
     );
 }
-
