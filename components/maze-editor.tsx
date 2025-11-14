@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Save, ArrowLeft, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MazeData, TileType } from "@/lib/types";
+import { getInitialMazes } from "@/lib/initial-mazes"; // --- 修正：インポートを追加 ---
 
 const TILE_TYPES: { type: TileType; label: string; color: string }[] = [
     { type: "floor", label: "床", color: "bg-space-blue/30" },
@@ -33,11 +34,20 @@ export function MazeEditor() {
     const [isDrawing, setIsDrawing] = useState(false);
 
     useEffect(() => {
+        // --- 修正箇所：初回ロード時にlocalStorageを初期化 ---
+        const stored = localStorage.getItem("progpath_mazes");
+        if (!stored) {
+            const initialMazes = getInitialMazes();
+            localStorage.setItem("progpath_mazes", JSON.stringify(initialMazes));
+        }
+        // --- 修正終了 ---
+
         if (mazeId) {
             // Load existing maze
-            const stored = localStorage.getItem("progpath_mazes");
-            if (stored) {
-                const mazes: MazeData[] = JSON.parse(stored);
+            // (初期化された可能性のある)localStorageを読み込む
+            const mazesList = localStorage.getItem("progpath_mazes");
+            if (mazesList) {
+                const mazes: MazeData[] = JSON.parse(mazesList);
                 const maze = mazes.find((m) => m.id === mazeId);
                 if (maze) {
                     setMazeName(maze.name);
