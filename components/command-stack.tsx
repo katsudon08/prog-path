@@ -304,7 +304,7 @@ export function CommandStack({
                 <ul className="space-y-1 text-xs text-muted-foreground">
                     <li>• コマンドを追加してロボットを制御</li>
                     <li>• ループで繰り返し実行</li>
-                    <li>• 穴判定で条件分岐</li>
+                    <li>• 穴判定で床を生成</li>
                 </ul>
             </div>
         </Card>

@@ -74,6 +74,30 @@ export function MazeEditor() {
     };
 
     const handleSave = () => {
+        // --- 修正箇所：スタートとゴールの数をチェック ---
+        const flatGrid = grid.flat();
+        const startCount = flatGrid.filter((tile) => tile === "start").length;
+        const goalCount = flatGrid.filter((tile) => tile === "goal").length;
+
+        if (startCount !== 1) {
+            alert(
+                startCount === 0
+                    ? "スタートタイルを1つ配置してください。"
+                    : "スタートタイルは1つだけ配置してください。"
+            );
+            return; // 保存処理を中断
+        }
+
+        if (goalCount !== 1) {
+            alert(
+                goalCount === 0
+                    ? "ゴールタイルを1つ配置してください。"
+                    : "ゴールタイルは1つだけ配置してください。"
+            );
+            return; // 保存処理を中断
+        }
+        // --- 修正終了 ---
+
         const stored = localStorage.getItem("progpath_mazes");
         const mazes: MazeData[] = stored ? JSON.parse(stored) : [];
 
