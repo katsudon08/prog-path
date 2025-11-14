@@ -96,6 +96,12 @@ export function ARExecutionScreen() {
     const tempLoopCommandRef = useRef(tempLoopCommand);
     const isExecutingRef = useRef(isExecuting);
 
+    // ★★★★★ バグ修正 ★★★★★
+    // 迷路の最新状態を Ref にも保持する
+    const mazeRef = useRef<MazeData | null>(null);
+    // ★★★★★ 修正終了 ★★★★★
+
+
     // ★★★ 修正 (Invalid hook call エラー修正) ★★★
     // 実行ループのタイマーIDを保持するRef (トップレベルに移動)
     const timerIdRef = useRef<number | null>(null);
@@ -113,6 +119,13 @@ export function ARExecutionScreen() {
         isExecutingRef.current = isExecuting;
     }, [isExecuting]);
     // --- 修正 終了 ---
+    
+    // ★★★★★ バグ修正 ★★★★★
+    // maze state が更新されたら、mazeRef も更新する
+    useEffect(() => {
+        mazeRef.current = maze;
+    }, [maze]);
+    // ★★★★★ 修正終了 ★★★★★
 
 
     // Effect to load maze data (no changes)
@@ -154,12 +167,15 @@ export function ARExecutionScreen() {
         // const timerId = useRef<number | null>(null); // <-- この行を削除
         // ★★★ 修正 終了 ★★★
 
+        // ★★★★★ バグ修正 ★★★★★
+        // maze state の代わりに mazeRef をチェック
         if (
             !isExecuting ||
             currentCommandIndex < 0 ||
             currentCommandIndex >= flattenedCommands.length ||
-            !maze
+            !mazeRef.current // <-- 修正
         ) {
+        // ★★★★★ 修正終了 ★★★★★
             if (
                 isExecuting &&
                 currentCommandIndex >= flattenedCommands.length
@@ -168,7 +184,10 @@ export function ARExecutionScreen() {
                 setIsExecuting(false);
                 // アニメーション停止
                 setCurrentCommandIndex(-1);
-                if (maze?.grid[robotState.y][robotState.x] !== "goal") {
+                // ★★★★★ バグ修正 ★★★★★
+                // maze state の代わりに mazeRef をチェック
+                if (mazeRef.current?.grid[robotState.y][robotState.x] !== "goal") {
+                // ★★★★★ 修正終了 ★★★★★
                     setGameStatus("failed");
                     setErrorMessage("ゴールに到達できませんでした");
                 }
@@ -227,26 +246,37 @@ export function ARExecutionScreen() {
             // ★★★ 修正 終了 ★★★
 
             const command = flattenedCommands[currentCommandIndex];
+            
+            // ★★★★★ バグ修正 ★★★★★
+            // 実行ロジックで mazeRef.current を使う
+            const currentMaze = mazeRef.current;
+            if (!currentMaze) return; // maze が null なら実行しない
+            // ★★★★★ 修正終了 ★★★★★
 
-            // ifHole ロジック (変更なし)
+
+            // ifHole ロジック (変更)
             if (command.type === "ifHole") {
                 const checkX = robotState.x + robotState.direction[0];
                 const checkY = robotState.y + robotState.direction[1];
 
                 if (
                     checkX >= 0 &&
-                    checkX < maze.size &&
+                    checkX < currentMaze.size && // <-- 修正: currentMaze
                     checkY >= 0 &&
-                    checkY < maze.size
+                    checkY < currentMaze.size // <-- 修正: currentMaze
                 ) {
-                    if (maze.grid[checkY][checkX] === "hole") {
-                        const newGrid = maze.grid.map((row) => [...row]); 
+                    // ★★★★★ バグ修正 ★★★★★
+                    // 読み取りに currentMaze (mazeRef.current) を使用
+                    if (currentMaze.grid[checkY][checkX] === "hole") {
+                        const newGrid = currentMaze.grid.map((row) => [...row]); 
                         newGrid[checkY][checkX] = "floor";
+                        // setMaze は state を更新するために必須
                         setMaze(
                             (prevMaze) =>
                                 prevMaze ? { ...prevMaze, grid: newGrid } : null
                         );
                     }
+                    // ★★★★★ 修正終了 ★★★★★
                 }
                 // ifHole は setRobotState を呼ばないので、ここで次のコマンドへ
                 setCurrentCommandIndex((prev) => prev + 1);
@@ -261,6 +291,13 @@ export function ARExecutionScreen() {
                 if (!isExecutingRef.current) return prevState; 
                 // ★★★ 修正 終了 ★★★
 
+                // ★★★★★ バグ修正 ★★★★★
+                // setRobotState のコールバック内でも、
+                // 迷路のチェックは mazeRef.current を使う
+                const latestMaze = mazeRef.current;
+                if (!latestMaze) return prevState; // 念のため
+                // ★★★★★ 修正終了 ★★★★★
+
                 let newState = { ...prevState };
                 
                 if (command.type === "forward") {
@@ -270,15 +307,18 @@ export function ARExecutionScreen() {
                     // 1. 範囲外チェック
                     if (
                         newX < 0 ||
-                        newX >= maze.size ||
+                        newX >= latestMaze.size || // <-- 修正: latestMaze
                         newY < 0 ||
-                        newY >= maze.size
+                        newY >= latestMaze.size // <-- 修正: latestMaze
                     ) {
                         executionErrorRef.current = "迷路の外に出てしまいました！";
                         return prevState; // 移動しない
                     }
-
-                    const targetTile = maze.grid[newY][newX];
+                    
+                    // ★★★★★ バグ修正 ★★★★★
+                    // 衝突判定に latestMaze (mazeRef.current) を使用
+                    const targetTile = latestMaze.grid[newY][newX];
+                    // ★★★★★ 修正終了 ★★★★★
 
                     // 2. 壁チェック
                     if (targetTile === "wall") {
@@ -286,7 +326,7 @@ export function ARExecutionScreen() {
                         return prevState; // 移動しない
                     }
 
-                    // 3. 穴チェック
+                    // 3. 穴チェック (ここで "floor" になっているはず)
                     if (targetTile === "hole") {
                         newState = { ...prevState, x: newX, y: newY }; // 穴に移動
                         setMoveCount((prev) => prev + 1);
@@ -363,7 +403,11 @@ export function ARExecutionScreen() {
 
     // 依存配列から robotState を削除
     // (isExecutingRef を使用するが、useEffect のトリガーとして isExecuting と currentCommandIndex は必要)
-    }, [isExecuting, currentCommandIndex, flattenedCommands, maze, isExecutingRef]); // isExecutingRef を追加
+    // ★★★★★ バグ修正 ★★★★★
+    // 'maze' は依存配列に残す (maze state の変更が mazeRef に同期され、
+    // 同時にこの effect が再実行されることを期待するため)
+    }, [isExecuting, currentCommandIndex, flattenedCommands, maze, isExecutingRef]);
+    // ★★★★★ 修正終了 ★★★★★
 
 
     // --- 修正: 無限ループ対策 ---
@@ -498,7 +542,10 @@ export function ARExecutionScreen() {
             setErrorMessage("");
             setMoveCount(0);
             executionErrorRef.current = null; // エラーフラグをリセット
-            // Ensure the maze grid is reset to its original state
+            
+            // ★★★★★ バグ修正 (関連) ★★★★★
+            // 実行開始時に迷路をリセットする
+            // (ifHole の変更が次の実行に残らないようにする)
             if (mazeId) {
                 const stored = localStorage.getItem("progpath_mazes");
                 if (stored) {
@@ -509,6 +556,8 @@ export function ARExecutionScreen() {
                     }
                 }
             }
+            // ★★★★★ 修正終了 ★★★★★
+            
             setIsExecuting(true); // Start execution
         }
     };
