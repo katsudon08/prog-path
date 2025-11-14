@@ -12,7 +12,7 @@ export function MazePreview({ grid }: MazePreviewProps) {
             case "floor":
                 return "bg-space-blue/30";
             case "hole":
-                return "bg-black border border-purple-500/30";
+                return "bg-neon-purple border border-purple-900";
             case "start":
                 return "bg-neon-green";
             case "goal":
@@ -23,7 +23,7 @@ export function MazePreview({ grid }: MazePreviewProps) {
     };
 
     return (
-        <div className="inline-flex flex-col gap-0.5 rounded-lg border border-neon-blue/20 bg-space-dark p-2">
+        <div className="inline-flex flex-col gap-0.5 rounded-lg border border-neon-blue bg-space-dark p-2">
             {grid.map((row, rowIndex) => (
                 <div key={rowIndex} className="flex gap-0.5">
                     {row.map((tile, colIndex) => (

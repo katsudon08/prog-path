@@ -16,7 +16,7 @@ const TILE_TYPES: { type: TileType; label: string; color: string }[] = [
     {
         type: "hole",
         label: "穴",
-        color: "bg-black border-2 border-purple-500/50",
+        color: "bg-neon-purple border border-purple-900",
     },
     { type: "start", label: "スタート", color: "bg-neon-green" },
     { type: "goal", label: "ゴール", color: "bg-neon-red" },
