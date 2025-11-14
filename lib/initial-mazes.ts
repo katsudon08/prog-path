@@ -116,10 +116,10 @@ export function getInitialMazes(): MazeData[] {
             size: 5,
             grid: [
                 ["start", "wall", "floor", "floor", "floor"],
-                ["floor", "wall", "floor", "floor", "floor"],
                 ["hole", "wall", "floor", "floor", "floor"],
-                ["floor", "wall", "wall", "wall", "wall"],
-                ["hole", "hole", "floor", "hole", "goal"],
+                ["floor", "wall", "floor", "floor", "floor"],
+                ["hole", "wall", "wall", "wall", "wall"],
+                ["floor", "hole", "floor", "hole", "goal"],
             ],
         },
     ]
