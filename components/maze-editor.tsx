@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Save, ArrowLeft, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MazeData, TileType } from "@/lib/types";
+import { getInitialMazes } from "@/lib/initial-mazes"; // --- 修正：インポートを追加 ---
 
 const TILE_TYPES: { type: TileType; label: string; color: string }[] = [
     { type: "floor", label: "床", color: "bg-space-blue/30" },
@@ -15,7 +16,7 @@ const TILE_TYPES: { type: TileType; label: string; color: string }[] = [
     {
         type: "hole",
         label: "穴",
-        color: "bg-black border-2 border-purple-500/50",
+        color: "bg-neon-purple border border-purple-900",
     },
     { type: "start", label: "スタート", color: "bg-neon-green" },
     { type: "goal", label: "ゴール", color: "bg-neon-red" },
@@ -33,11 +34,20 @@ export function MazeEditor() {
     const [isDrawing, setIsDrawing] = useState(false);
 
     useEffect(() => {
+        // --- 修正箇所：初回ロード時にlocalStorageを初期化 ---
+        const stored = localStorage.getItem("progpath_mazes");
+        if (!stored) {
+            const initialMazes = getInitialMazes();
+            localStorage.setItem("progpath_mazes", JSON.stringify(initialMazes));
+        }
+        // --- 修正終了 ---
+
         if (mazeId) {
             // Load existing maze
-            const stored = localStorage.getItem("progpath_mazes");
-            if (stored) {
-                const mazes: MazeData[] = JSON.parse(stored);
+            // (初期化された可能性のある)localStorageを読み込む
+            const mazesList = localStorage.getItem("progpath_mazes");
+            if (mazesList) {
+                const mazes: MazeData[] = JSON.parse(mazesList);
                 const maze = mazes.find((m) => m.id === mazeId);
                 if (maze) {
                     setMazeName(maze.name);
@@ -74,6 +84,30 @@ export function MazeEditor() {
     };
 
     const handleSave = () => {
+        // --- 修正箇所：スタートとゴールの数をチェック ---
+        const flatGrid = grid.flat();
+        const startCount = flatGrid.filter((tile) => tile === "start").length;
+        const goalCount = flatGrid.filter((tile) => tile === "goal").length;
+
+        if (startCount !== 1) {
+            alert(
+                startCount === 0
+                    ? "スタートタイルを1つ配置してください。"
+                    : "スタートタイルは1つだけ配置してください。"
+            );
+            return; // 保存処理を中断
+        }
+
+        if (goalCount !== 1) {
+            alert(
+                goalCount === 0
+                    ? "ゴールタイルを1つ配置してください。"
+                    : "ゴールタイルは1つだけ配置してください。"
+            );
+            return; // 保存処理を中断
+        }
+        // --- 修正終了 ---
+
         const stored = localStorage.getItem("progpath_mazes");
         const mazes: MazeData[] = stored ? JSON.parse(stored) : [];
 
