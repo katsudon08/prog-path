@@ -136,7 +136,7 @@ export function CommandStack({
         if (command.type === "loop") {
             onUpdateCommand(index, {
                 ...command,
-                loopCount: Math.max(1, Math.min(10, count)),
+                loopCount: count,
             });
         }
     };
