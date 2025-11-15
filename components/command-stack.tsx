@@ -77,6 +77,10 @@ export function CommandStack({
         new Set()
     );
 
+    // ★ バグ修正: ループ回数編集中の一時的な文字列を保持
+    const [editingLoopCounts, setEditingLoopCounts] = useState<Record<number, string>>({});
+
+
     const getCommandInfo = (command: Command) => {
         const info = COMMAND_BUTTONS.find((btn) => btn.type === command.type);
         return info || COMMAND_BUTTONS[0];
@@ -198,23 +202,50 @@ export function CommandStack({
                                         </p>
                                         {command.type === "loop" && (
                                             <div className="flex items-center gap-2">
+                                                {/* ★ バグ修正: value, onChange, onBlur を変更 */}
                                                 <Input
                                                     type="number"
                                                     min="1"
                                                     max="10"
                                                     value={
-                                                        command.loopCount || 2
+                                                        // 編集中はローカル state を、そうでなければ親の state を表示
+                                                        editingLoopCounts[index] ?? 
+                                                        String(command.loopCount || 2)
                                                     }
                                                     onChange={(
                                                         e: React.ChangeEvent<HTMLInputElement>
-                                                    ) =>
-                                                        handleUpdateLoopCount(
-                                                            index,
-                                                            Number.parseInt(
-                                                                e.target.value
-                                                            ) || 2
-                                                        )
-                                                    }
+                                                    ) => {
+                                                        // ローカルの文字列 state のみ更新
+                                                        const value = e.target.value;
+                                                        if (value === "" || /^[0-9]+$/.test(value)) {
+                                                             if (value.length > 3) return; // 長すぎる入力を無視
+                                                             setEditingLoopCounts(prev => ({ ...prev, [index]: value }));
+                                                        }
+                                                    }}
+                                                    onBlur={() => {
+                                                        // フォーカスが外れたら、値を検証して親の state を更新
+                                                        const stringValue = editingLoopCounts[index];
+                                                        // 変更がない（一度も onChange が呼ばれていない）場合は何もしない
+                                                        if (stringValue === undefined) return; 
+                                                        
+                                                        let count = Number.parseInt(stringValue); // "" は NaN
+
+                                                        if (isNaN(count) || count < 1) {
+                                                            count = 1;
+                                                        } else if (count > 10) {
+                                                            count = 10;
+                                                        }
+                                                        
+                                                        // 親コンポーネントの state を更新
+                                                        handleUpdateLoopCount(index, count);
+                                                        
+                                                        // ローカルの編集状態をクリア
+                                                        setEditingLoopCounts(prev => {
+                                                            const newState = { ...prev };
+                                                            delete newState[index];
+                                                            return newState;
+                                                        });
+                                                    }}
                                                     className="h-6 w-16 border-neon-blue/30 bg-space-dark text-xs"
                                                     disabled={disabled}
                                                 />
