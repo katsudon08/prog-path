@@ -83,6 +83,9 @@ export function ARExecutionScreen() {
         null
     ); // To temporarily store loop command data
     
+    // ★ バグ修正: ループ回数入力用の文字列 state
+    const [loopInputString, setLoopInputString] = useState<string>("2");
+
     // --- ループ構築中フラグ ---
     const [isBuildingLoop, setIsBuildingLoop] = useState(false);
 
@@ -444,11 +447,14 @@ export function ARExecutionScreen() {
                 setTempLoopCommand(null); // state を更新
             } else {
                 // --- ループ開始処理 ---
-                setTempLoopCommand({
+                // ★ バグ修正: 
+                const initialCommand = {
                     ...detectedCommand,
                     loopCount: detectedCommand.loopCount || 2,
                     children: [],
-                }); 
+                };
+                setTempLoopCommand(initialCommand); // 先にセット
+                setLoopInputString(String(initialCommand.loopCount)); // input 用の文字列 state もセット
                 setLoopPopupOpen(true);
             }
         } else {
@@ -473,23 +479,33 @@ export function ARExecutionScreen() {
     }, [handleAddCommand, setDetectedCommandName, setIsBuildingLoop, setTempLoopCommand, setLoopPopupOpen]);
     // --- 修正 終了 ---
 
-    // Function called when the 'Confirm' button in the loop popup is clicked (変更なし)
+    // ★ バグ修正: Function called when the 'Confirm' button in the loop popup is clicked
     const handleLoopConfirm = () => {
-        if (tempLoopCommand) {
-            setIsBuildingLoop(true); 
+        let count = Number.parseInt(loopInputString); // "" は NaN
+        
+        if (isNaN(count) || count < 1) {
+            count = 1;
+        } else if (count > 10) {
+            count = 10;
         }
-        setLoopPopupOpen(false); 
+        
+        if (tempLoopCommand) {
+             // 確定した値で tempLoopCommand を更新
+            setTempLoopCommand({ ...tempLoopCommand, loopCount: count });
+            setIsBuildingLoop(true);
+        }
+        setLoopPopupOpen(false);
     };
 
-    // Function to handle changes in the loop count input field (no changes)
+    // ★ バグ修正: Function to handle changes in the loop count input field
     const handleLoopCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (tempLoopCommand) {
-            let count = Math.max(
-                1,
-                Number.parseInt(e.target.value)
-            );
-            count = Math.min(10, count); // 上限10回
-            setTempLoopCommand({ ...tempLoopCommand, loopCount: count });
+        // type="number" は空文字 "" も許可する
+        const value = e.target.value;
+        // 数値か空文字のみ許可
+        if (value === "" || /^[0-9]+$/.test(value)) {
+             // 長すぎる入力を防ぐ
+             if (value.length > 3) return;
+             setLoopInputString(value);
         }
     };
 
@@ -699,10 +715,11 @@ export function ARExecutionScreen() {
                             </DialogTitle>
                         </DialogHeader>
                         <div className="py-4">
+                            {/* ★ バグ修正: value と onChange を変更 */}
                             <Input
                                 id="loopCountInput"
                                 type="number"
-                                value={tempLoopCommand?.loopCount ?? 2} // Use ?? for default value
+                                value={loopInputString}
                                 onChange={handleLoopCountChange}
                                 className="border-neon-blue/30 bg-space-blue/20 text-foreground"
                                 min="1"
