@@ -55,9 +55,9 @@ export function getInitialMazes(): MazeData[] {
             name: "順次処理+条件1",
             size: 5,
             grid: [
-                ["start", "wall", "floor", "floor", "floor"],
-                ["hole", "wall", "floor", "floor", "floor"],
-                ["goal", "wall", "floor", "floor", "floor"],
+                ["start", "hole", "goal", "floor", "floor"],
+                ["wall", "wall", "wall", "floor", "floor"],
+                ["floor", "floor", "floor", "floor", "floor"],
                 ["floor", "floor", "floor", "floor", "floor"],
                 ["floor", "floor", "floor", "floor", "floor"],
             ],

@@ -58,12 +58,12 @@ export function ARExecutionScreen() {
     const [robotState, setRobotState] = useState<RobotState>({
         x: 0,
         y: 0,
-        direction: [1, 0],
+        direction: [0, 1], // ★ 修正: 初期向きを [1, 0] (東) から [0, 1] (南) に変更
     });
     const [initialRobotState, setInitialRobotState] = useState<RobotState>({
         x: 0,
         y: 0,
-        direction: [1, 0],
+        direction: [0, 1], // ★ 修正: 初期向きを [1, 0] (東) から [0, 1] (南) に変更
     });
     const [isExecuting, setIsExecuting] = useState(false);
     const [currentCommandIndex, setCurrentCommandIndex] = useState(-1);
@@ -143,7 +143,7 @@ export function ARExecutionScreen() {
                                 const startState = {
                                     x,
                                     y,
-                                    direction: [1, 0] as DirectionVector,
+                                    direction: [0, 1] as DirectionVector, // ★ 修正: 初期向きを [1, 0] (東) から [0, 1] (南) に変更
                                 };
                                 setRobotState(startState);
                                 setInitialRobotState(startState);
