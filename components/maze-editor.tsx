@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Save, ArrowLeft, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MazeData, TileType } from "@/lib/types";
-import { getInitialMazes } from "@/lib/initial-mazes"; // --- 修正：インポートを追加 ---
+import { getInitialMazes } from "@/lib/initial-mazes";
 
 const TILE_TYPES: { type: TileType; label: string; color: string }[] = [
     { type: "floor", label: "床", color: "bg-space-blue/30" },
@@ -34,31 +34,41 @@ export function MazeEditor() {
     const [isDrawing, setIsDrawing] = useState(false);
 
     useEffect(() => {
-        // --- 修正箇所：初回ロード時にlocalStorageを初期化 ---
+        // --- 修正箇所：localStorageをチェックし、空なら初期化 ---
         const stored = localStorage.getItem("progpath_mazes");
-        if (!stored) {
+        let mazes: MazeData[] = [];
+
+        if (stored) {
+            try {
+                mazes = JSON.parse(stored);
+            } catch (e) {
+                console.error("Failed to parse mazes from localStorage", e);
+                mazes = []; // パース失敗
+            }
+        }
+
+        if (mazes.length === 0) {
+            // localStorage がない、または空配列の場合
             const initialMazes = getInitialMazes();
             localStorage.setItem("progpath_mazes", JSON.stringify(initialMazes));
+            mazes = initialMazes; // 後続の処理で使うため
         }
         // --- 修正終了 ---
 
         if (mazeId) {
             // Load existing maze
-            // (初期化された可能性のある)localStorageを読み込む
-            const mazesList = localStorage.getItem("progpath_mazes");
-            if (mazesList) {
-                const mazes: MazeData[] = JSON.parse(mazesList);
-                const maze = mazes.find((m) => m.id === mazeId);
-                if (maze) {
-                    setMazeName(maze.name);
-                    setGridSize(maze.size);
-                    setGrid(maze.grid);
-                    return;
-                }
+            // (初期化された) mazes 配列から探す
+            const maze = mazes.find((m) => m.id === mazeId);
+            if (maze) {
+                setMazeName(maze.name);
+                setGridSize(maze.size); // 既存の迷路のサイズをセット
+                setGrid(maze.grid);
+                return; // 既存迷路をロードしたので終了
             }
         }
-        // Create new maze
-        initializeGrid(gridSize);
+
+        // Create new maze (mazeId がない、または見つからなかった場合)
+        initializeGrid(gridSize); // 現在の gridSize ステート (初期値 5) でグリッドを初期化
     }, [mazeId]);
 
     const initializeGrid = (size: number) => {
@@ -109,6 +119,7 @@ export function MazeEditor() {
         // --- 修正終了 ---
 
         const stored = localStorage.getItem("progpath_mazes");
+        // (注：ここでは保存時なので、空配列でもそのまま読み込むのが正しい)
         const mazes: MazeData[] = stored ? JSON.parse(stored) : [];
 
         if (mazeId) {

@@ -15,15 +15,25 @@ export function HomeScreen() {
     const router = useRouter();
 
     useEffect(() => {
-        // Load mazes from localStorage or use initial mazes
+        // --- 修正箇所：localStorage が空配列の場合も初期化 ---
         const stored = localStorage.getItem("progpath_mazes");
+        let loadedMazes: MazeData[] = [];
+
         if (stored) {
-            const loadedMazes = JSON.parse(stored);
-            setMazes(loadedMazes);
-            if (loadedMazes.length > 0) {
-                setSelectedMaze(loadedMazes[0]);
+            try {
+                loadedMazes = JSON.parse(stored);
+            } catch (e) {
+                console.error("Failed to parse mazes from localStorage", e);
+                loadedMazes = []; // パース失敗時も初期化
             }
+        }
+
+        if (loadedMazes.length > 0) {
+            // 既存データがある場合
+            setMazes(loadedMazes);
+            setSelectedMaze(loadedMazes[0]);
         } else {
+            // localStorage がない、または空配列の場合
             const initialMazes = getInitialMazes();
             setMazes(initialMazes);
             localStorage.setItem(
@@ -34,6 +44,7 @@ export function HomeScreen() {
                 setSelectedMaze(initialMazes[0]);
             }
         }
+        // --- 修正終了 ---
     }, []);
 
     const handleCreateNew = () => {
