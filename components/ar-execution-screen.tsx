@@ -486,7 +486,7 @@ export function ARExecutionScreen() {
         if (tempLoopCommand) {
             const count = Math.max(
                 1,
-                Math.min(10, Number.parseInt(e.target.value) || 1)
+                Number.parseInt(e.target.value)
             );
             setTempLoopCommand({ ...tempLoopCommand, loopCount: count });
         }
