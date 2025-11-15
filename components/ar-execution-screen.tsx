@@ -484,10 +484,11 @@ export function ARExecutionScreen() {
     // Function to handle changes in the loop count input field (no changes)
     const handleLoopCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (tempLoopCommand) {
-            const count = Math.max(
+            let count = Math.max(
                 1,
                 Number.parseInt(e.target.value)
             );
+            count = Math.min(10, count); // 上限10回
             setTempLoopCommand({ ...tempLoopCommand, loopCount: count });
         }
     };
