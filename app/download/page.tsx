@@ -24,13 +24,10 @@ export default function DownloadPage() {
             return;
         }
 
-        // ファイルをダウンロード
-        const link = document.createElement("a");
-        link.href = "/prog-path Setup 0.1.0.exe";
-        link.download = "prog-path Setup 0.1.0.exe";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // GitHubリリースページへのURL
+        const downloadUrl =
+            "https://github.com/katsudon08/prog-path/releases/download/0.1.0/prog-path.Setup.0.1.0.exe";
+        window.open(downloadUrl, "_blank");
     };
 
     const features = [
