@@ -1,6 +1,7 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
-const serveLib = require('electron-serve');
+const fs = require("fs");
+const serveLib = require("electron-serve");
 const serve = serveLib.default || serveLib;
 
 const appServe = app.isPackaged
@@ -14,6 +15,7 @@ const createWindow = () => {
         webPreferences: {
             nodeIntegration: false, // セキュリティのためfalse推奨
             contextIsolation: true,
+            preload: path.join(__dirname, "preload.js"),
         },
     });
 
@@ -31,6 +33,42 @@ const createWindow = () => {
         });
     }
 };
+
+// アプリのダウンロード処理
+ipcMain.handle("download-app", async () => {
+    try {
+        const sourceFile = path.join(
+            __dirname,
+            "dist",
+            "prog-path Setup 0.1.0.exe"
+        );
+
+        // ソースファイルが存在するか確認
+        if (!fs.existsSync(sourceFile)) {
+            throw new Error("インストーラーファイルが見つかりません");
+        }
+
+        // ダウンロード先を選択
+        const result = await dialog.showSaveDialog({
+            defaultPath: path.join(
+                app.getPath("downloads"),
+                "prog-path Setup 0.1.0.exe"
+            ),
+            filters: [{ name: "Executable", extensions: ["exe"] }],
+        });
+
+        if (result.canceled) {
+            return { success: false, message: "キャンセルされました" };
+        }
+
+        // ファイルをコピー
+        fs.copyFileSync(sourceFile, result.filePath);
+        return { success: true, filePath: result.filePath };
+    } catch (err) {
+        console.error("ダウンロードエラー:", err);
+        return { success: false, message: err.message };
+    }
+});
 
 app.on("ready", () => {
     createWindow();

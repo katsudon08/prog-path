@@ -34,9 +34,12 @@ export function Navbar() {
                 </div>
 
                 <div className="flex items-center">
-                    <button className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-neon-blue/10 hover:text-neon-cyan">
+                    <Link
+                        href="/download"
+                        className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-neon-blue/10 hover:text-neon-cyan"
+                    >
                         <User className="h-5 w-5" />
-                    </button>
+                    </Link>
                 </div>
             </div>
         </nav>
