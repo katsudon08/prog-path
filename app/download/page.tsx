@@ -2,95 +2,168 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, ArrowLeft } from "lucide-react";
+import { Download, ArrowLeft, Zap, Shield, Lightbulb } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function DownloadPage() {
-    const [isElectron, setIsElectron] = useState(false);
+    const [isElectron, setIsElectron] = useState<boolean | null>(null);
 
     useEffect(() => {
-        // Electronアプリかどうかを判定
-        setIsElectron(
-            typeof window !== "undefined" && !!(window as any).electron
-        );
+        // Electronアプリ内かどうかを判定
+        const isElectronApp =
+            typeof window !== "undefined" &&
+            (typeof (window as any).electron !== "undefined" ||
+                typeof (window as any).__TAURI__ !== "undefined" ||
+                navigator.userAgent.includes("Electron"));
+        setIsElectron(isElectronApp);
     }, []);
 
     const handleDownload = async () => {
-        if (isElectron && (window as any).electron) {
-            // Electronアプリの場合、メインプロセスに処理を委譲
-            try {
-                await (window as any).electron.downloadApp();
-            } catch (err) {
-                console.error("ダウンロードエラー:", err);
-            }
+        if (isElectron) {
+            return;
         }
+
+        // ファイルをダウンロード
+        const link = document.createElement("a");
+        link.href = "/prog-path Setup 0.1.0.exe";
+        link.download = "prog-path Setup 0.1.0.exe";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
-    return (
-        <div className="min-h-screen bg-background pt-24 pb-12 px-4">
-            <div className="container mx-auto max-w-2xl">
-                {/* Back Button */}
-                <Link
-                    href="/"
-                    className="mb-8 inline-flex items-center gap-2 text-neon-cyan hover:text-neon-cyan/80 transition-colors"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    戻る
-                </Link>
+    const features = [
+        {
+            icon: Zap,
+            title: "高速動作",
+            description: "Webアプリより高速でレスポンシブ",
+        },
+        {
+            icon: Shield,
+            title: "安定性",
+            description: "より安定した環境でご利用可能",
+        },
+        {
+            icon: Lightbulb,
+            title: "フル機能",
+            description: "すべての機能を活用できます",
+        },
+    ];
 
-                {/* Main Content */}
-                <Card className="border-neon-blue/30 bg-space-dark/50 p-8">
-                    <div className="text-center">
-                        <h1 className="mb-4 text-3xl font-bold text-neon-cyan">
+    return (
+        <div className="fixed inset-0 top-16 bg-background overflow-y-auto">
+            <div className="container mx-auto px-4 py-8 min-h-full flex flex-col">
+                {/* Header */}
+                <div className="mb-12 flex items-center gap-4">
+                    <Link
+                        href="/"
+                        className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-neon-blue/10 hover:text-neon-cyan"
+                    >
+                        <ArrowLeft className="h-6 w-6" />
+                    </Link>
+                    <div>
+                        <h1 className="text-4xl font-bold text-neon-cyan mb-2">
                             ProgPath デスクトップ版
                         </h1>
-                        <p className="mb-8 text-lg text-muted-foreground">
-                            デスクトップアプリケーションでより快適に ProgPath
-                            をご利用いただけます。
+                        <p className="text-muted-foreground">
+                            より快適な体験のために、デスクトップ版をダウンロード
                         </p>
+                    </div>
+                </div>
 
-                        <div className="mb-8 rounded-lg border border-neon-blue/30 bg-space-blue/20 p-6">
-                            <p className="text-foreground mb-4">
-                                以下のボタンからデスクトップ版アプリケーションをダウンロードしてください。
-                            </p>
-                            <ul className="text-left text-muted-foreground space-y-2">
-                                <li>✓ AR機能による迷路実行</li>
-                                <li>✓ リアルタイムロボット制御</li>
-                                <li>✓ オフライン対応</li>
-                            </ul>
+                {/* Main Content */}
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-8">
+                    {/* Left: Features */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {features.map((feature, index) => {
+                                const Icon = feature.icon;
+                                return (
+                                    <Card
+                                        key={index}
+                                        className="border-neon-blue/30 bg-space-dark/50 p-6 hover:border-neon-cyan/50 transition-colors"
+                                    >
+                                        <Icon className="h-8 w-8 text-neon-cyan mb-3" />
+                                        <h3 className="font-semibold text-foreground mb-2">
+                                            {feature.title}
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            {feature.description}
+                                        </p>
+                                    </Card>
+                                );
+                            })}
                         </div>
 
-                        {isElectron ? (
-                            <Button
-                                onClick={handleDownload}
-                                size="lg"
-                                className="bg-neon-green text-space-dark hover:bg-neon-cyan/90"
-                            >
-                                <Download className="mr-2 h-5 w-5" />
-                                ダウンロード
-                            </Button>
-                        ) : (
-                            <div className="rounded-lg bg-neon-blue/10 p-6 border border-neon-blue/30">
-                                <p className="text-neon-blue">
-                                    このページはデスクトップアプリケーション内からのみアクセスできます。
+                        {/* Version Info */}
+                        <Card className="border-neon-blue/30 bg-space-dark/50 p-6">
+                            <h3 className="text-lg font-semibold text-neon-cyan mb-4">
+                                バージョン情報
+                            </h3>
+                            <div className="space-y-3 text-sm text-muted-foreground">
+                                <div className="flex justify-between">
+                                    <span>バージョン:</span>
+                                    <span className="text-neon-cyan">
+                                        0.1.0
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>ファイルサイズ:</span>
+                                    <span className="text-neon-cyan">
+                                        約 150 MB
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>対応OS:</span>
+                                    <span className="text-neon-cyan">
+                                        Windows 10 以上
+                                    </span>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Right: Download Card */}
+                    <div className="lg:col-span-1">
+                        <Card className="border-neon-cyan/50 bg-space-dark/50 p-8 sticky top-24 h-fit">
+                            <div className="text-center mb-6">
+                                <Download className="h-12 w-12 text-neon-cyan mx-auto mb-3" />
+                                <h2 className="text-2xl font-bold text-neon-cyan">
+                                    今すぐ
+                                </h2>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    ダウンロード開始
                                 </p>
                             </div>
-                        )}
-                    </div>
-                </Card>
 
-                {/* System Requirements */}
-                <Card className="mt-8 border-neon-blue/30 bg-space-dark/50 p-6">
-                    <h2 className="mb-4 text-xl font-semibold text-neon-blue">
-                        システム要件
-                    </h2>
-                    <ul className="space-y-2 text-muted-foreground">
-                        <li>OS: Windows 7 以上</li>
-                        <li>メモリ: 4GB 以上推奨</li>
-                        <li>ストレージ: 500MB 以上の空き容量</li>
-                    </ul>
-                </Card>
+                            {isElectron === null ? (
+                                <div className="w-full rounded bg-neon-blue/10 px-4 py-3 text-center text-muted-foreground text-sm">
+                                    読み込み中...
+                                </div>
+                            ) : !isElectron ? (
+                                <>
+                                    <Button
+                                        onClick={handleDownload}
+                                        className="w-full bg-neon-green text-space-dark hover:bg-neon-green/70 mb-3 font-semibold"
+                                    >
+                                        <Download className="mr-2 h-4 w-4" />
+                                        ダウンロード
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        prog-path Setup 0.1.0.exe
+                                    </p>
+                                </>
+                            ) : (
+                                <div className="w-full rounded-lg bg-neon-blue/10 px-4 py-4 text-center border border-neon-blue/30">
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        Webアプリからのダウンロードのみサポートされています
+                                    </p>
+                                </div>
+                            )}
+                        </Card>
+                    </div>
+                </div>
             </div>
         </div>
     );
