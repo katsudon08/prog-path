@@ -130,7 +130,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                     rotation={[-Math.PI / 2, 0, 0]}
                                 >
                                     <planeGeometry
-                                        args={[tileSize, tileSize]}
+                                        args={[tileSize * 0.98, tileSize * 0.98]}
                                     />
                                     <meshStandardMaterial
                                         color={
