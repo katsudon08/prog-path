@@ -24,7 +24,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="ja">
+        <html lang="ja" suppressHydrationWarning>
             <head>
                 {/* AR.js のために three.js (r128) を読み込む */}
                 <script

@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,31 @@ export function CommandStack({
     const [editingLoopCounts, setEditingLoopCounts] = useState<Record<number, string>>({});
 
 
+    // 自動スクロール用のref配列
+    const commandRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+    // コマンドリストコンテナのref
+    const listContainerRef = useRef<HTMLDivElement | null>(null);
+
+    // currentIndexが変更されたら、該当コマンドへ自動スクロール（領域内）
+    useEffect(() => {
+        if (currentIndex >= 0 && currentIndex < commands.length) {
+            const element = commandRefs.current[currentIndex];
+            const container = listContainerRef.current;
+            if (element && container) {
+                // コマンドリスト領域内で実行中のコマンドが常に一番上に表示されるようにスクロール
+                // 現在のスクロール位置と要素の相対位置を正確に計算
+                const containerRect = container.getBoundingClientRect();
+                const elementRect = element.getBoundingClientRect();
+                const scrollPosition = container.scrollTop + (elementRect.top - containerRect.top);
+                container.scrollTo({
+                    behavior: 'smooth',
+                    top: scrollPosition,
+                });
+            }
+        }
+    }, [currentIndex, commands.length]);
+
     const getCommandInfo = (command: Command) => {
         const info = COMMAND_BUTTONS.find((btn) => btn.type === command.type);
         return info || COMMAND_BUTTONS[0];
@@ -152,7 +177,7 @@ export function CommandStack({
             </h3>
 
             {/* Command List */}
-            <div className="mb-4 space-y-2">
+            <div className="space-y-2 h-72 overflow-y-auto p-2 border border-neon-blue/20 rounded-lg" ref={listContainerRef}>
                 {commands.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-neon-blue/30 p-8 text-center">
                         <p className="text-sm text-muted-foreground">
@@ -168,7 +193,7 @@ export function CommandStack({
                             command.type === "loop";
 
                         return (
-                            <div key={index} className="space-y-1">
+                            <div key={index} className="space-y-1" ref={(el) => { commandRefs.current[index] = el; }}>
                                 <div
                                     className={`flex items-center gap-2 rounded-lg border-2 p-3 transition-all ${
                                         isActive
