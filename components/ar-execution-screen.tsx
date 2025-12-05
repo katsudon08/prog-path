@@ -579,6 +579,17 @@ export function ARExecutionScreen() {
         }
     };
 
+    // Auto-hide success/failure messages after 3 seconds
+    useEffect(() => {
+        if (gameStatus === "success" || gameStatus === "failed") {
+            const timer = setTimeout(() => {
+                setGameStatus("idle");
+            }, 3000);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [gameStatus]);
+
     // Loading state display (no changes)
     if (!maze) {
         return (
@@ -642,7 +653,7 @@ export function ARExecutionScreen() {
                 {/* Main Content Grid */}
                 <div className="grid gap-6 lg:grid-cols-[1fr_350px]">
                     {/* Left Panel: 3D Maze View and Status */}
-                    <Card className="border-neon-blue/30 bg-space-dark/50 p-6">
+                    <Card className="relative border-neon-blue/30 bg-space-dark/50 p-6">
                         <MazeView3D
                             maze={maze}
                             robotState={robotState}
@@ -651,6 +662,35 @@ export function ARExecutionScreen() {
                             currentCommandIndex={currentCommandIndex} // -1 が渡されるとアニメーションが停止する
                             flattenedCommands={flattenedCommands} 
                         />
+
+                        {/* Success Message Overlay */}
+                        {gameStatus === "success" && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                                <div className="max-w-2xl w-full mx-4 animate-bounce-in rounded-lg border-2 border-neon-green bg-neon-green/10 px-8 py-6 text-center shadow-lg shadow-neon-green/20 backdrop-blur-md pointer-events-auto">
+                                <Trophy className="mx-auto mb-3 h-12 w-12 text-neon-green" />
+                                <p className="text-2xl font-bold text-neon-green">
+                                    ゴール達成！
+                                </p>
+                                <p className="text-base text-neon-green/80">
+                                    {moveCount}回の移動でクリア
+                                </p>
+                                </div>
+                            </div>
+                        )}
+                        {/* Failure Message Overlay */}
+                        {gameStatus === "failed" && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                                <div className="max-w-2xl w-full mx-4 animate-shake rounded-lg border-2 border-neon-red bg-neon-red/10 px-8 py-6 text-center shadow-lg shadow-neon-red/20 backdrop-blur-md pointer-events-auto">
+                                <AlertTriangle className="mx-auto mb-3 h-12 w-12 text-neon-red" />
+                                <p className="text-2xl font-bold text-neon-red">
+                                    失敗！
+                                </p>
+                                <p className="text-base text-neon-red/80">
+                                    {errorMessage}
+                                </p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Status Display Area */}
                         <div className="mt-4 space-y-2">
@@ -667,7 +707,7 @@ export function ARExecutionScreen() {
                                 </div>
                             </div>
                             {/* Success Message */}
-                            {gameStatus === "success" && (
+                            {false && gameStatus === "success" && (
                                 <div className="animate-bounce-in rounded-lg border-2 border-neon-green bg-neon-green/10 px-6 py-4 text-center shadow-lg shadow-neon-green/20">
                                     <Trophy className="mx-auto mb-2 h-8 w-8 text-neon-green" />
                                     <p className="text-lg font-bold text-neon-green">
@@ -679,7 +719,7 @@ export function ARExecutionScreen() {
                                 </div>
                             )}
                             {/* Failure Message */}
-                            {gameStatus === "failed" && (
+                            {false && gameStatus === "failed" && (
                                 <div className="animate-shake rounded-lg border-2 border-neon-red bg-neon-red/10 px-6 py-4 text-center shadow-lg shadow-neon-red/20">
                                     <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-neon-red" />
                                     <p className="text-lg font-bold text-neon-red">
