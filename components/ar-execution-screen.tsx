@@ -82,6 +82,7 @@ export function ARExecutionScreen() {
     const [tempLoopCommand, setTempLoopCommand] = useState<Command | null>(
         null
     ); // To temporarily store loop command data
+    const [buildingLoopIndex, setBuildingLoopIndex] = useState<number | null>(null); // ★ 追加: 構築中のloopコマンドのインデックス
     
     // ★ バグ修正: ループ回数入力用の文字列 state
     const [loopInputString, setLoopInputString] = useState<string>("2");
@@ -97,6 +98,7 @@ export function ARExecutionScreen() {
     // 最新の値を参照できるようにする
     const isBuildingLoopRef = useRef(isBuildingLoop);
     const tempLoopCommandRef = useRef(tempLoopCommand);
+    const buildingLoopIndexRef = useRef<number | null>(null); // ★ 追加: buildingLoopIndexのRef
     const isExecutingRef = useRef(isExecuting);
 
     // ★★★★★ バグ修正 ★★★★★
@@ -117,6 +119,10 @@ export function ARExecutionScreen() {
     useEffect(() => {
         tempLoopCommandRef.current = tempLoopCommand;
     }, [tempLoopCommand]);
+
+    useEffect(() => {
+        buildingLoopIndexRef.current = buildingLoopIndex;
+    }, [buildingLoopIndex]); // ★ 追加: buildingLoopIndexの同期
 
     useEffect(() => {
         isExecutingRef.current = isExecuting;
@@ -439,12 +445,13 @@ export function ARExecutionScreen() {
             // isBuildingLoop を Ref から読む
             if (isBuildingLoopRef.current) {
                 // --- ループ終了処理 ---
-                // tempLoopCommand を Ref から読む
-                if (tempLoopCommandRef.current) { 
-                    handleAddCommand(tempLoopCommandRef.current);
-                }
+                // ★ 修正: handleAddCommandは呼ばない（既に追加済み）
+ 
+
+
                 setIsBuildingLoop(false); // state を更新
                 setTempLoopCommand(null); // state を更新
+                setBuildingLoopIndex(null); // インデックスをリセット
             } else {
                 // --- ループ開始処理 ---
                 // ★ バグ修正: 
@@ -470,6 +477,21 @@ export function ARExecutionScreen() {
                         }
                         : null
                 );
+                
+                // ★ 追加: commands配列内のloopコマンドも更新
+                const loopIndex = buildingLoopIndexRef.current;
+                if (loopIndex !== null) {
+                    setCommands((prevCommands) => {
+                        const newCommands = [...prevCommands];
+                        if (newCommands[loopIndex]) {
+                            newCommands[loopIndex] = {
+                                ...newCommands[loopIndex],
+                                children: [...(newCommands[loopIndex].children || []), detectedCommand],
+                            };
+                        }
+                        return newCommands;
+                    });
+                }
             } else {
                 // 通常時：直接スタックに追加
                 handleAddCommand(detectedCommand);
@@ -491,7 +513,10 @@ export function ARExecutionScreen() {
         
         if (tempLoopCommand) {
              // 確定した値で tempLoopCommand を更新
-            setTempLoopCommand({ ...tempLoopCommand, loopCount: count });
+            const updatedCommand = { ...tempLoopCommand, loopCount: count };
+            setTempLoopCommand(updatedCommand);
+            handleAddCommand(updatedCommand); // ★ loop コマンドを即座に追加
+            setBuildingLoopIndex(commands.length); // ★ インデックスを記録
             setIsBuildingLoop(true);
         }
         setLoopPopupOpen(false);
