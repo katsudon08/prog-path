@@ -28,6 +28,12 @@ import type {
     RobotState,
     DirectionVector,
 } from "@/lib/types";
+
+interface InsertionPoint {
+    parentIndex: number | null;
+    childIndex: number;
+}
+
 import { CommandStack } from "@/components/command-stack";
 import { MazeView3D } from "@/components/maze-view-3d";
 
@@ -83,6 +89,11 @@ export function ARExecutionScreen() {
         null
     ); // To temporarily store loop command data
     const [buildingLoopIndex, setBuildingLoopIndex] = useState<number | null>(null); // ★ 追加: 構築中のloopコマンドのインデックス
+
+    const [insertionPoint, setInsertionPoint] = useState<InsertionPoint>({
+        parentIndex: null,
+        childIndex: 0
+    });
     
     // ★ バグ修正: ループ回数入力用の文字列 state
     const [loopInputString, setLoopInputString] = useState<string>("2");
@@ -111,6 +122,9 @@ export function ARExecutionScreen() {
     // 実行ループのタイマーIDを保持するRef (トップレベルに移動)
     const timerIdRef = useRef<number | null>(null);
     // ★★★ 修正 終了 ★★★
+
+    // ★ 追加: 最後に追加したコマンド情報（インターバル制御用）
+    const lastAddedCommandRef = useRef<{ type: string; time: number } | null>(null);
 
     useEffect(() => {
         isBuildingLoopRef.current = isBuildingLoop;
@@ -419,11 +433,33 @@ export function ARExecutionScreen() {
     // ★★★★★ 修正終了 ★★★★★
 
 
-    // --- 修正: 無限ループ対策 ---
+        // --- 修正: 無限ループ対策 ---
     // Function to add a command to the stack (accepts Command object)
     const handleAddCommand = useCallback((newCommand: Command) => {
-        setCommands((prevCommands) => [...prevCommands, newCommand]);
-    }, []); // setCommands は安定しているので依存配列は空
+        setCommands((prevCommands) => {
+            const newCommands = [...prevCommands];
+
+            if (insertionPoint.parentIndex === null) {
+                // ルートレベルへの挿入
+                newCommands.splice(insertionPoint.childIndex, 0, newCommand);
+            } else {
+                // ループ内への挿入
+                const parentCommand = newCommands[insertionPoint.parentIndex];
+                if (parentCommand && parentCommand.children) {
+                    parentCommand.children.splice(insertionPoint.childIndex, 0, newCommand);
+                    newCommands[insertionPoint.parentIndex] = { ...parentCommand };
+                }
+            }
+
+            return newCommands;
+        });
+
+        // 挿入位置を次の位置に進める
+        setInsertionPoint(prev => ({
+            ...prev,
+            childIndex: prev.childIndex + 1
+        }));
+    }, [insertionPoint]);
 
     // Callback function called by MazeView3D when a marker is detected
     // 依存配列を安定させ、Ref を使って最新の state を読む
@@ -431,6 +467,16 @@ export function ARExecutionScreen() {
         // isExecuting を Ref から読む
         if (isExecutingRef.current) return; // Ignore markers while executing
 
+        // ★ 追加: 同じコマンドタイプが2秒以内に連続して検出されたら無視
+        const now = Date.now();
+        const lastAdded = lastAddedCommandRef.current;
+        if (lastAdded && lastAdded.type === detectedCommand.type && (now - lastAdded.time) < 2000) {
+            return; // 同じコマンドタイプが2秒以内なら無視
+        }
+        
+        // ★ 現在のコマンドを記録
+        lastAddedCommandRef.current = { type: detectedCommand.type, time: now };
+    
         // isBuildingLoop を Ref から読む
         const commandDisplayName = isBuildingLoopRef.current
             ? detectedCommand.type === "loop"
@@ -464,33 +510,52 @@ export function ARExecutionScreen() {
                 setLoopInputString(String(initialCommand.loopCount)); // input 用の文字列 state もセット
                 setLoopPopupOpen(true);
             }
-        } else {
+                } else {
             // --- ループ以外のコマンド処理 ---
             // isBuildingLoop を Ref から読む
             if (isBuildingLoopRef.current) {
-                // functional update を使う
+                // ★ 修正: loop構築中は、insertionPointに基づいて挿入
+                const loopIndex = buildingLoopIndexRef.current;
+                
+                // 構築中のloopの指定位置に挿入
                 setTempLoopCommand((prevLoop) =>
                     prevLoop
                         ? {
                             ...prevLoop,
-                            children: [...(prevLoop.children || []), detectedCommand],
+                            children: [
+                                ...(prevLoop.children || []).slice(0, insertionPoint.childIndex),
+                                detectedCommand,
+                                ...(prevLoop.children || []).slice(insertionPoint.childIndex)
+                            ],
                         }
                         : null
                 );
                 
-                // ★ 追加: commands配列内のloopコマンドも更新
-                const loopIndex = buildingLoopIndexRef.current;
+                // commands配列内のloopコマンドも更新
                 if (loopIndex !== null) {
                     setCommands((prevCommands) => {
                         const newCommands = [...prevCommands];
                         if (newCommands[loopIndex]) {
+                            const children = newCommands[loopIndex].children || [];
                             newCommands[loopIndex] = {
                                 ...newCommands[loopIndex],
-                                children: [...(newCommands[loopIndex].children || []), detectedCommand],
+                                children: [
+                                    ...children.slice(0, insertionPoint.childIndex),
+                                    detectedCommand,
+                                    ...children.slice(insertionPoint.childIndex)
+                                ],
                             };
                         }
                         return newCommands;
                     });
+                }
+                
+                // 挿入位置を次に進める（loop内の場合のみ）
+                if (insertionPoint.parentIndex === loopIndex) {
+                    setInsertionPoint(prev => ({
+                        ...prev,
+                        childIndex: prev.childIndex + 1
+                    }));
                 }
             } else {
                 // 通常時：直接スタックに追加
@@ -516,8 +581,16 @@ export function ARExecutionScreen() {
             const updatedCommand = { ...tempLoopCommand, loopCount: count };
             setTempLoopCommand(updatedCommand);
             handleAddCommand(updatedCommand); // ★ loop コマンドを即座に追加
-            setBuildingLoopIndex(commands.length); // ★ インデックスを記録
+                        
+            const loopIndex = commands.length; // 追加されるloopのインデックス
+            setBuildingLoopIndex(loopIndex); // ★ インデックスを記録
             setIsBuildingLoop(true);
+            
+            // ★ 追加: insertionPointをloop内の先頭に設定
+            setInsertionPoint({
+                parentIndex: loopIndex,
+                childIndex: 0
+            });
         }
         setLoopPopupOpen(false);
     };
@@ -537,6 +610,10 @@ export function ARExecutionScreen() {
     // Function to remove a command (no changes)
     const handleRemoveCommand = (index: number) => {
         setCommands(commands.filter((_, i) => i !== index));
+
+        // ★ 追加: 削除時のフィードバックメッセージ
+        setDetectedCommandName("Command Deleted");
+        setTimeout(() => setDetectedCommandName(null), 1500);
     };
 
     // Function to update a command (no changes)
@@ -764,8 +841,14 @@ export function ARExecutionScreen() {
                             commands={commands}
                             currentIndex={currentCommandIndex}
                             onRemove={handleRemoveCommand}
+                            onRemoveChild={() => {
+                                setDetectedCommandName("Command Deleted");
+                                setTimeout(() => setDetectedCommandName(null), 1500);
+                            }}
                             onAddCommand={() => {}} // Adding commands is now done via markers
                             onUpdateCommand={handleUpdateCommand}
+                            insertionPoint={insertionPoint}
+                            onSetInsertionPoint={setInsertionPoint}
                             disabled={isExecuting}
                         />
                     </div>

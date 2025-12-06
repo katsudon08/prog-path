@@ -18,12 +18,20 @@ import {
 } from "lucide-react";
 import type { Command, CommandType } from "@/lib/types";
 
+interface InsertionPoint {
+    parentIndex: number | null;
+    childIndex: number;
+}
+
 interface CommandStackProps {
     commands: Command[];
     currentIndex: number;
     onRemove: (index: number) => void;
+    onRemoveChild?: () => void; // ★ 追加: 子コマンド削除時の通知
     onAddCommand: (type: CommandType) => void;
     onUpdateCommand?: (index: number, command: Command) => void;
+    insertionPoint?: InsertionPoint;
+    onSetInsertionPoint?: (point: InsertionPoint) => void;
     disabled?: boolean;
 }
 
@@ -69,8 +77,11 @@ export function CommandStack({
     commands,
     currentIndex,
     onRemove,
+    onRemoveChild,
     onAddCommand,
     onUpdateCommand,
+    insertionPoint,
+    onSetInsertionPoint,
     disabled,
 }: CommandStackProps) {
     const [expandedCommands, setExpandedCommands] = useState<Set<number>>(
@@ -156,6 +167,9 @@ export function CommandStack({
         };
 
         onUpdateCommand(parentIndex, updatedParent);
+
+        // ★ 追加: 削除通知を親に送る
+        onRemoveChild?.();
     };
 
     const handleUpdateLoopCount = (index: number, count: number) => {
@@ -291,59 +305,88 @@ export function CommandStack({
                                     </Button>
                                 </div>
 
-                                {/* Nested Commands */}
+                                {/* 挿入位置選択ボタン */}
+                                <button
+                                    onClick={() => onSetInsertionPoint?.({ parentIndex: null, childIndex: index + 1 })}
+                                    className={`w-full mt-1 py-1 px-2 text-xs rounded border transition-all ${
+                                        insertionPoint?.parentIndex === null && insertionPoint?.childIndex === index + 1
+                                            ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan font-medium'
+                                            : 'border-gray-600 text-gray-500 hover:border-gray-400 hover:text-gray-300'
+                                    }`}
+                                    disabled={disabled}
+                                >
+                                    {insertionPoint?.parentIndex === null && insertionPoint?.childIndex === index + 1
+                                        ? '✓ 選択中（次はここに挿入）'
+                                        : 'ここを選択'}
+                                </button>
+
+                                                                {/* Nested Commands */}
                                 {hasChildren && isExpanded && (
                                     <div className="ml-8 space-y-1 border-l-2 border-neon-purple/30 pl-4">
+                                        {/* ★ 追加: ループの最初の挿入位置 */}
+                                        <button
+                                            onClick={() => onSetInsertionPoint?.({ parentIndex: index, childIndex: 0 })}
+                                            className={`w-full py-1 px-2 text-xs rounded border transition-all ${
+                                                insertionPoint?.parentIndex === index && insertionPoint?.childIndex === 0
+                                                    ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan font-medium'
+                                                    : 'border-gray-600 text-gray-500 hover:border-gray-400 hover:text-gray-300'
+                                            }`}
+                                            disabled={disabled}
+                                        >
+                                            {insertionPoint?.parentIndex === index && insertionPoint?.childIndex === 0
+                                                ? '✓ 選択中（次はここに挿入）'
+                                                : 'ここを選択'}
+                                        </button>
+
                                         {(command.children || []).map(
                                             (child, childIndex) => {
                                                 const childInfo =
                                                     getCommandInfo(child);
                                                 return (
-                                                    <div
-                                                        key={childIndex}
-                                                        className="flex items-center gap-2 rounded-lg border border-neon-purple/30 bg-space-dark/50 p-2"
-                                                    >
-                                                        <div
-                                                            className={`flex h-6 w-6 items-center justify-center rounded ${childInfo.color} text-space-dark`}
-                                                        >
-                                                            {childInfo.icon}
+                                                    <div key={childIndex} className="space-y-1">
+                                                        <div className="flex items-center gap-2 rounded-lg border border-neon-purple/30 bg-space-dark/50 p-2">
+                                                            <div
+                                                                className={`flex h-6 w-6 items-center justify-center rounded ${childInfo.color} text-space-dark`}
+                                                            >
+                                                                {childInfo.icon}
+                                                            </div>
+                                                            <span className="flex-1 text-xs text-foreground">
+                                                                {childInfo.label}
+                                                            </span>
+                                                            <Button
+                                                                onClick={() =>
+                                                                    handleRemoveChildCommand(
+                                                                        index,
+                                                                        childIndex
+                                                                    )
+                                                                }
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-6 w-6 p-0 text-neon-red hover:bg-neon-red/10"
+                                                                disabled={disabled}
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </Button>
                                                         </div>
-                                                        <span className="flex-1 text-xs text-foreground">
-                                                            {childInfo.label}
-                                                        </span>
-                                                        <Button
-                                                            onClick={() =>
-                                                                handleRemoveChildCommand(
-                                                                    index,
-                                                                    childIndex
-                                                                )
-                                                            }
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-6 w-6 p-0 text-neon-red hover:bg-neon-red/10"
+
+                                                        {/* ★ 追加: 各子コマンドの後の挿入位置 */}
+                                                        <button
+                                                            onClick={() => onSetInsertionPoint?.({ parentIndex: index, childIndex: childIndex + 1 })}
+                                                            className={`w-full py-1 px-2 text-xs rounded border transition-all ${
+                                                                insertionPoint?.parentIndex === index && insertionPoint?.childIndex === childIndex + 1
+                                                                    ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan font-medium'
+                                                                    : 'border-gray-600 text-gray-500 hover:border-gray-400 hover:text-gray-300'
+                                                            }`}
                                                             disabled={disabled}
                                                         >
-                                                            <Trash2 className="h-3 w-3" />
-                                                        </Button>
+                                                            {insertionPoint?.parentIndex === index && insertionPoint?.childIndex === childIndex + 1
+                                                                ? '✓ 選択中（次はここに挿入）'
+                                                                : 'ここを選択'}
+                                                        </button>
                                                     </div>
                                                 );
                                             }
                                         )}
-                                        <Button
-                                            onClick={() =>
-                                                handleAddChildCommand(
-                                                    index,
-                                                    "forward"
-                                                )
-                                            }
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full border-neon-purple/30 text-xs text-neon-purple hover:bg-neon-purple/10"
-                                            disabled={disabled}
-                                        >
-                                            <Plus className="mr-1 h-3 w-3" />
-                                            コマンド追加
-                                        </Button>
                                     </div>
                                 )}
                             </div>
