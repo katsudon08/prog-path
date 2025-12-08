@@ -68,11 +68,13 @@ const qrCodeToCommand: { [key: string]: Command } = {
 function TeleportTile({ 
     position, 
     isUp, 
-    tileSize 
+    tileSize,
+    opacity = 1.0
 }: { 
     position: [number, number, number]; 
     isUp: boolean; 
     tileSize: number;
+    opacity?: number;
 }) {
     const meshRef = useRef<THREE.Mesh>(null);
     const arrowRef = useRef<THREE.Group>(null);
@@ -108,8 +110,8 @@ function TeleportTile({
                 <meshStandardMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={0.5}
-                    opacity={0.8}
+                    emissiveIntensity={0.5 * opacity}
+                    opacity={0.8 * opacity}
                     transparent
                     side={THREE.DoubleSide}
                 />
@@ -124,7 +126,9 @@ function TeleportTile({
                     <meshStandardMaterial
                         color="#ffffff"
                         emissive="#ffffff"
-                        emissiveIntensity={1.5}
+                        emissiveIntensity={1.5 * opacity}
+                        opacity={opacity}
+                        transparent
                     />
                 </mesh>
             </group>
@@ -133,7 +137,17 @@ function TeleportTile({
 }
 
 // MazeMap コンポーネント (変更なし)
-function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
+function MazeMap({ 
+    grid, 
+    mazeSize,
+    opacity = 1.0,
+    layerOffset = 0
+}: { 
+    grid: TileType[][]; 
+    mazeSize: number;
+    opacity?: number;
+    layerOffset?: number;
+}) {
     const tileSize = 0.5;
     const wallHeight = 0.5;
     const gridOffset = -(mazeSize * tileSize) / 2 + tileSize / 2;
@@ -164,7 +178,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                     />
                                     <meshStandardMaterial
                                         color="#4a90e2"
-                                        opacity={0.85}
+                                        opacity={0.85 * opacity}
                                         transparent
                                     />
                                 </mesh>
@@ -183,7 +197,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                     <meshStandardMaterial
                                         color="#8b5cf6"
                                         transparent
-                                        opacity={0.6}
+                                        opacity={0.6 * opacity}
                                         side={THREE.DoubleSide}
                                     />
                                 </mesh>
@@ -196,6 +210,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                     position={position}
                                     isUp={tile === "teleportUp"}
                                     tileSize={tileSize}
+                                    opacity={opacity}
                                 />
                             );
                         case "start":
@@ -219,7 +234,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                                 ? "#ef4444"
                                                 : "#1a2540"
                                         }
-                                        opacity={0.75}
+                                        opacity={0.75 * opacity}
                                         transparent
                                         side={THREE.DoubleSide}
                                     />
@@ -454,27 +469,31 @@ function RobotModel({
             // 目標位置との距離を計算
             const distance = modelRef.current.position.distanceTo(targetPosition);
             
-            // ★ リセット検出: 距離が1マス（0.5）以上離れている場合は瞬間移動
-            if (distance > 0.75) {
+            // ★ リセット検出: 距離が1マス（0.5）以上離れている場合、またはアニメーション停止中は瞬間移動
+            if (distance > 0.75 || currentCommandIndex === -1) {
                 // リセットなど大きな移動 → 瞬間移動
                 modelRef.current.position.copy(targetPosition);
                 modelRef.current.quaternion.copy(targetQuaternion);
-            } else if (distance > 0.01) {
-                // 通常の移動: 一定速度で移動
-                const maxMove = moveSpeed * delta; // 今回移動できる最大距離
-                const moveAmount = Math.min(distance, maxMove); // 実際の移動量
-                
-                // 目標位置に向かって移動
-                const direction = new THREE.Vector3()
-                    .subVectors(targetPosition, modelRef.current.position)
-                    .normalize();
-                modelRef.current.position.add(direction.multiplyScalar(moveAmount));
-                
-                // 回転（slerpのまま）
-                modelRef.current.quaternion.slerp(targetQuaternion, delta * rotateSpeed);
             } else {
-                // 到達したら正確に目標位置に設定
-                modelRef.current.position.copy(targetPosition);
+                // ★ 位置の移動（距離がある場合のみ）
+                if (distance > 0.01) {
+                    // 通常の移動: 一定速度で移動
+                    const maxMove = moveSpeed * delta; // 今回移動できる最大距離
+                    const moveAmount = Math.min(distance, maxMove); // 実際の移動量
+                    
+                    // 目標位置に向かって移動
+                    const direction = new THREE.Vector3()
+                        .subVectors(targetPosition, modelRef.current.position)
+                        .normalize();
+                    modelRef.current.position.add(direction.multiplyScalar(moveAmount));
+                } else {
+                    // 到達したら正確に目標位置に設定
+                    modelRef.current.position.copy(targetPosition);
+                }
+                
+                // ★ 回転処理（位置の移動とは独立）
+                // 常に目標の回転に向かって補間
+                modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
             }
         }
         if (mixer) mixer.update(delta);
@@ -780,7 +799,32 @@ export function MazeView3D({
                     rotation={[Math.PI / 4.5, 0, 0]}
                 >
                     <Suspense fallback={null}>
-                        <MazeMap grid={currentLayer || []} mazeSize={maze.size} />
+                        {/* 複数層の表示 */}
+                        {maze.layers.map((layer, layerIndex) => {
+                            // ロボットの現在の層
+                            const currentZ = robotState.z;
+                            
+                            // 透明度を計算（すべての層を表示）
+                            let layerOpacity = 1.0;
+                            if (layerIndex !== currentZ) {
+                                layerOpacity = 0.5; // 現在の層以外は薄く
+                            }
+                            
+                            // 層の高さオフセット（各層を0.8単位で縦に配置）
+                            const layerYOffset = (layerIndex - currentZ) * 0.8;
+                            
+                            return (
+                                    <group key={`layer-${layerIndex}`} position={[0, layerYOffset, 0]}>
+                                        <MazeMap 
+                                            grid={layer} 
+                                            mazeSize={maze.size}
+                                            opacity={layerOpacity}
+                                            layerOffset={0}
+                                        />
+                                    </group>
+                                );
+                        })}
+                        
                         <RobotModel
                             robotState={robotState}
                             mazeSize={maze.size}

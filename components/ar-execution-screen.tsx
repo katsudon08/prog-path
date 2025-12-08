@@ -520,8 +520,10 @@ export function ARExecutionScreen() {
                 // ループ内への挿入
                 const parentCommand = newCommands[insertionPoint.parentIndex];
                 if (parentCommand && parentCommand.children) {
-                    parentCommand.children.splice(insertionPoint.childIndex, 0, newCommand);
-                    newCommands[insertionPoint.parentIndex] = { ...parentCommand };
+                    // ★ 修正: children配列の新しいコピーを作成
+                    const children = [...parentCommand.children];
+                    children.splice(insertionPoint.childIndex, 0, newCommand);
+                    newCommands[insertionPoint.parentIndex] = { ...parentCommand, children };
                 }
             }
 
@@ -588,24 +590,10 @@ export function ARExecutionScreen() {
             // --- ループ以外のコマンド処理 ---
             // isBuildingLoop を Ref から読む
             if (isBuildingLoopRef.current) {
-                // ★ 修正: loop構築中は、insertionPointに基づいて挿入
+                // ★ 修正: loop構築中は、setCommandsのみで処理
                 const loopIndex = buildingLoopIndexRef.current;
                 
-                // 構築中のloopの指定位置に挿入
-                setTempLoopCommand((prevLoop) =>
-                    prevLoop
-                        ? {
-                            ...prevLoop,
-                            children: [
-                                ...(prevLoop.children || []).slice(0, insertionPoint.childIndex),
-                                detectedCommand,
-                                ...(prevLoop.children || []).slice(insertionPoint.childIndex)
-                            ],
-                        }
-                        : null
-                );
-                
-                // commands配列内のloopコマンドも更新
+                // commands配列内のloopコマンドを更新
                 if (loopIndex !== null) {
                     setCommands((prevCommands) => {
                         const newCommands = [...prevCommands];
