@@ -33,6 +33,19 @@ export function HomeScreen() {
     const scanCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const scanIntervalRef = useRef<number | null>(null);
 
+    // データマイグレーション関数：旧形式（grid）を新形式（layers）に変換
+    const migrateMazeData = (maze: any): MazeData => {
+        // 既に新形式の場合はそのまま返す
+        if (maze.layers) return maze as MazeData;
+        
+        // 旧形式の場合は変換
+        return {
+            ...maze,
+            layers: [maze.grid], // gridをlayersの最初の要素に
+            currentLayer: 0,
+        };
+    };
+
     useEffect(() => {
         // --- 修正箇所：localStorage が空配列の場合も初期化 ---
         const stored = localStorage.getItem("progpath_mazes");
@@ -40,7 +53,9 @@ export function HomeScreen() {
 
         if (stored) {
             try {
-                loadedMazes = JSON.parse(stored);
+                const parsed = JSON.parse(stored);
+                // マイグレーションを適用
+                loadedMazes = parsed.map(migrateMazeData);
             } catch (e) {
                 console.error("Failed to parse mazes from localStorage", e);
                 loadedMazes = []; // パース失敗時も初期化
@@ -51,6 +66,11 @@ export function HomeScreen() {
             // 既存データがある場合
             setMazes(loadedMazes);
             setSelectedMaze(loadedMazes[0]);
+            // マイグレーション後のデータを保存
+            localStorage.setItem(
+                "progpath_mazes",
+                JSON.stringify(loadedMazes)
+            );
         } else {
             // localStorage がない、または空配列の場合
             const initialMazes = getInitialMazes();
@@ -311,8 +331,8 @@ export function HomeScreen() {
                                         <ChevronRight className="h-5 w-5 text-neon-blue" />
                                     </div>
                                     <div className="mt-1 text-sm text-muted-foreground">
-                                        {maze.grid.length}×
-                                        {maze.grid[0]?.length || 0} グリッド
+                                        {maze.layers[0]?.length || 0}×
+                                        {maze.layers[0]?.[0]?.length || 0} グリッド
                                     </div>
                                 </button>
                             ))}
@@ -337,7 +357,7 @@ export function HomeScreen() {
                                     <div className="flex justify-center">
                                         <div className="max-w-2xl">
                                             <MazePreview
-                                                grid={selectedMaze.grid}
+                                                layers={selectedMaze.layers}
                                             />
                                         </div>
                                     </div>
@@ -352,9 +372,15 @@ export function HomeScreen() {
                                         <div className="flex justify-between">
                                             <span>グリッドサイズ:</span>
                                             <span className="text-neon-cyan">
-                                                {selectedMaze.grid.length} ×{" "}
-                                                {selectedMaze.grid[0]?.length ||
+                                                {selectedMaze.layers[0]?.length || 0} ×{" "}
+                                                {selectedMaze.layers[0]?.[0]?.length ||
                                                     0}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>階層数:</span>
+                                            <span className="text-neon-cyan">
+                                                {selectedMaze.layers.length}層
                                             </span>
                                         </div>
                                         <div className="flex justify-between">

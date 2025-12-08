@@ -64,6 +64,74 @@ const qrCodeToCommand: { [key: string]: Command } = {
     loop: { type: "loop" },
 };
 
+// テレポートタイル用コンポーネント
+function TeleportTile({ 
+    position, 
+    isUp, 
+    tileSize 
+}: { 
+    position: [number, number, number]; 
+    isUp: boolean; 
+    tileSize: number;
+}) {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const arrowRef = useRef<THREE.Group>(null);
+    
+    useFrame((state) => {
+        if (meshRef.current) {
+            // 発光の脈動アニメーション
+            const intensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.3;
+            const material = meshRef.current.material as THREE.MeshStandardMaterial;
+            material.emissiveIntensity = intensity;
+        }
+        
+        if (arrowRef.current) {
+            // 矢印の上下アニメーション
+            const bounceAmount = Math.sin(state.clock.elapsedTime * 3) * 0.03;
+            arrowRef.current.position.y = 0.05 + bounceAmount;
+        }
+    });
+    
+    const color = isUp ? "#60a5fa" : "#a78bfa"; // 青 vs 紫
+    const arrowRotation = isUp ? 0 : Math.PI; // 上向き vs 下向き
+    
+    return (
+        <group>
+            {/* 床タイル */}
+            <mesh
+                ref={meshRef}
+                receiveShadow
+                position={position}
+                rotation={[-Math.PI / 2, 0, 0]}
+            >
+                <planeGeometry args={[tileSize * 0.98, tileSize * 0.98]} />
+                <meshStandardMaterial
+                    color={color}
+                    emissive={color}
+                    emissiveIntensity={0.5}
+                    opacity={0.8}
+                    transparent
+                    side={THREE.DoubleSide}
+                />
+            </mesh>
+            
+            {/* 矢印インジケーター */}
+            <group ref={arrowRef} position={[position[0], 0.05, position[2]]}>
+                <mesh
+                    rotation={[arrowRotation, 0, 0]}
+                >
+                    <coneGeometry args={[0.08, 0.15, 3]} />
+                    <meshStandardMaterial
+                        color="#ffffff"
+                        emissive="#ffffff"
+                        emissiveIntensity={1.5}
+                    />
+                </mesh>
+            </group>
+        </group>
+    );
+}
+
 // MazeMap コンポーネント (変更なし)
 function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
     const tileSize = 0.5;
@@ -119,6 +187,16 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                         side={THREE.DoubleSide}
                                     />
                                 </mesh>
+                            );
+                        case "teleportUp":
+                        case "teleportDown":
+                            return (
+                                <TeleportTile
+                                    key={`${x}-${y}`}
+                                    position={position}
+                                    isUp={tile === "teleportUp"}
+                                    tileSize={tileSize}
+                                />
                             );
                         case "start":
                         case "goal":
@@ -196,7 +274,8 @@ function RobotModel({
         if (isImmobilizedRef.current && immobilizedPositionRef.current) {
             
             // リセット判定ロジック
-            const currentTile = maze.grid[robotState.y]?.[robotState.x];
+            const currentLayer = robotState.z >= 0 && robotState.z < maze.layers.length ? maze.layers[robotState.z] : null;
+            const currentTile = currentLayer?.[robotState.y]?.[robotState.x];
             
             if (currentTile === "start") {
                 // リセット操作が検知された
@@ -261,7 +340,8 @@ function RobotModel({
             const nextY = robotState.y + robotState.direction[1];
             let nextTile: TileType = "floor";
             if (nextY >= 0 && nextY < maze.size && nextX >= 0 && nextX < maze.size) {
-                nextTile = maze.grid[nextY][nextX];
+                const nextLayer = robotState.z >= 0 && robotState.z < maze.layers.length ? maze.layers[robotState.z] : null;
+                nextTile = nextLayer?.[nextY]?.[nextX] || "floor";
             }
             
             // 穴に向かう場合
@@ -615,9 +695,10 @@ export function MazeView3D({
     }, [isStreamReady, onMarkerDetected]); 
 
     // --- 現在のタイルを計算 ---
+    const currentLayer = robotState.z >= 0 && robotState.z < maze.layers.length ? maze.layers[robotState.z] : null;
     const robotTile =
-        maze.grid[robotState.y] && maze.grid[robotState.y][robotState.x]
-            ? maze.grid[robotState.y][robotState.x]
+        currentLayer && currentLayer[robotState.y] && currentLayer[robotState.y][robotState.x]
+            ? currentLayer[robotState.y][robotState.x]
             : "floor"; // 範囲外の場合は 'floor' として扱う (安全対策)
     // --- 修正点 終了 ---
 
@@ -628,6 +709,13 @@ export function MazeView3D({
 
             <div className="absolute top-2 left-2 z-10 bg-black/70 px-2 py-1 text-xs text-white rounded">
                 {debugInfo} (QR Mode)
+            </div>
+
+            {/* 層番号表示 */}
+            <div className="absolute top-10 left-2 z-10 bg-black/70 px-3 py-2 rounded border border-neon-cyan/50">
+                <div className="text-sm font-bold text-neon-cyan">
+                    Layer {robotState.z + 1} / {maze.layers.length}
+                </div>
             </div>
 
             <video
@@ -692,7 +780,7 @@ export function MazeView3D({
                     rotation={[Math.PI / 4.5, 0, 0]}
                 >
                     <Suspense fallback={null}>
-                        <MazeMap grid={maze.grid} mazeSize={maze.size} />
+                        <MazeMap grid={currentLayer || []} mazeSize={maze.size} />
                         <RobotModel
                             robotState={robotState}
                             mazeSize={maze.size}
