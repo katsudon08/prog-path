@@ -58,6 +58,7 @@ export function ARExecutionScreen() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const mazeId = searchParams.get("id");
+    const importMode = searchParams.get("import") === "true";
 
     const [maze, setMaze] = useState<MazeData | null>(null);
     const [commands, setCommands] = useState<Command[]>([]);
@@ -151,9 +152,10 @@ export function ARExecutionScreen() {
     // ★★★★★ 修正終了 ★★★★★
 
 
-    // Effect to load maze data (no changes)
+    // Effect to load maze data
     useEffect(() => {
         if (mazeId) {
+            // 通常モード: 指定されたIDの迷路を読み込む
             const stored = localStorage.getItem("progpath_mazes");
             if (stored) {
                 const mazes: MazeData[] = JSON.parse(stored);
@@ -176,8 +178,33 @@ export function ARExecutionScreen() {
                     }
                 }
             }
+        } else if (importMode) {
+            // インポートモード: カメラでQRコードをスキャンして迷路を読み込む
+            // 最初の迷路をデフォルトとして読み込む
+            const stored = localStorage.getItem("progpath_mazes");
+            if (stored) {
+                const mazes: MazeData[] = JSON.parse(stored);
+                if (mazes.length > 0) {
+                    const defaultMaze = mazes[0];
+                    setMaze(defaultMaze);
+                    for (let y = 0; y < defaultMaze.grid.length; y++) {
+                        for (let x = 0; x < defaultMaze.grid[y].length; x++) {
+                            if (defaultMaze.grid[y][x] === "start") {
+                                const startState = {
+                                    x,
+                                    y,
+                                    direction: [0, 1] as DirectionVector,
+                                };
+                                setRobotState(startState);
+                                setInitialRobotState(startState);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
         }
-    }, [mazeId]);
+    }, [mazeId, importMode]);
 
     // Effect to update flattened commands (no changes)
     useEffect(() => {

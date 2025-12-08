@@ -19,6 +19,7 @@ import * as THREE from "three";
 import type { MazeData, RobotState, TileType, Command } from "@/lib/types";
 // 1. jsQR をインポート
 import jsQR from "jsqr";
+import { isMazeQRCode, decodeMazeFromQR } from "@/lib/maze-encoder";
 
 // 2. AR.js 関連の型定義を削除
 
@@ -416,7 +417,7 @@ export function MazeView3D({
     // デバウンス（クールダウン）中かどうかを示すフラグRef
     const isCoolingDownRef = useRef<boolean>(false);
     
-    const [isStreamReady, setIsStreamReady] = useState(false);
+    const [isStreamReady, setIsStreamReady] = useState<boolean>(false);
     const [debugInfo, setDebugInfo] = useState<string>("");
 
     // デバッグ情報表示 (変更なし)
@@ -554,30 +555,50 @@ export function MazeView3D({
 
                 const qrCodeData = scanQRCodeWithJsQR(imageData);
 
-                if (qrCodeData) {
-                    const command = qrCodeToCommand[qrCodeData];
-                    
-                    // クールダウン中でない場合のみコマンドを処理
-                    if (command && !isCoolingDownRef.current) { 
-                        
-                        // 検出を処理
-                        console.log(
-                            `🎯 QR Code detected: ${qrCodeData}`,
-                            command
-                        );
-                        onMarkerDetected(command); 
-                        
-                        // クールダウンを開始
-                        isCoolingDownRef.current = true;
-                        
-                        // 1.5秒後にクールダウンを解除
-                        setTimeout(() => {
-                            isCoolingDownRef.current = false;
-                        }, 1500); 
+                try {
+                    if (qrCodeData) {
+                        // ★ 迷路QRコードのチェック
+                        if (isMazeQRCode(qrCodeData)) {
+                            const maze = decodeMazeFromQR(qrCodeData);
+                            if (maze) {
+                                const stored = localStorage.getItem("progpath_mazes");
+                                const mazes: MazeData[] = stored ? JSON.parse(stored) : [];
+                                
+                                if (!mazes.find(m => m.id === maze.id)) {
+                                    mazes.push(maze);
+                                    localStorage.setItem("progpath_mazes", JSON.stringify(mazes));
+                                    console.log("✅ 迷路をインポート:", maze.name);
+                                }
+                            }
+                        } else {
+                            // コマンドQRコード
+                            const command = qrCodeToCommand[qrCodeData];
+                            
+                            // クールダウン中でない場合のみコマンドを処理
+                            if (command && !isCoolingDownRef.current) { 
+                            
+                                // 検出を処理
+                                console.log(
+                                    `🎯 QR Code detected: ${qrCodeData}`,
+                                    command
+                                );
+                                onMarkerDetected(command); 
+                                
+                                // クールダウンを開始
+                                isCoolingDownRef.current = true;
+                                
+                                // 1.5秒後にクールダウンを解除
+                                setTimeout(() => {
+                                    isCoolingDownRef.current = false;
+                                }, 1500); 
+                            }
+                        }
                     }
+                } catch (e) {
+                    console.error("Error in scan loop:", e);
                 }
-            } catch (e) {
-                console.error("Error in scan loop:", e);
+            } catch (err) {
+                console.error("Error drawing video to canvas:", err);
             }
         };
 

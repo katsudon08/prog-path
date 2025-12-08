@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, ArrowLeft, Trash2 } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Save, ArrowLeft, Trash2, QrCode } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MazeData, TileType } from "@/lib/types";
 import { getInitialMazes } from "@/lib/initial-mazes";
@@ -191,7 +197,7 @@ export function MazeEditor() {
                             <Button
                                 onClick={handleDelete}
                                 variant="outline"
-                                className="border-neon-red text-neon-red bg-transparent"
+                                className="border-neon-red hover:bg-neon-red/80 text-neon-red bg-transparent"
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 削除
@@ -199,7 +205,7 @@ export function MazeEditor() {
                         )}
                         <Button
                             onClick={handleSave}
-                            className="bg-neon-cyan text-space-dark hover:bg-neon-cyan/90"
+                            className="bg-neon-cyan text-space-dark hover:bg-neon-cyan/80"
                         >
                             <Save className="mr-2 h-4 w-4" />
                             保存
