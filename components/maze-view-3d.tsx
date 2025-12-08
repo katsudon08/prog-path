@@ -19,6 +19,7 @@ import * as THREE from "three";
 import type { MazeData, RobotState, TileType, Command } from "@/lib/types";
 // 1. jsQR をインポート
 import jsQR from "jsqr";
+import { isMazeQRCode, decodeMazeFromQR } from "@/lib/maze-encoder";
 
 // 2. AR.js 関連の型定義を削除
 
@@ -130,7 +131,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                     rotation={[-Math.PI / 2, 0, 0]}
                                 >
                                     <planeGeometry
-                                        args={[tileSize, tileSize]}
+                                        args={[tileSize * 0.98, tileSize * 0.98]}
                                     />
                                     <meshStandardMaterial
                                         color={
@@ -306,7 +307,7 @@ function RobotModel({
                     const command = flattenedCommands[currentCommandIndex];
                     
                     if (command.type === "forward") {
-                        actionName = "forward"; // 安全な "forward"
+                        actionName = undefined; // アニメーションを無効化し、コードで移動制御
                     } else if (command.type === "turnRight") {
                         actionName = "TurnRight";
                     } else if (command.type === "turnLeft") {
@@ -363,12 +364,38 @@ function RobotModel({
     ]);
 
 
-    // useFrame (変更なし)
+    // useFrame
     useFrame((_, delta) => {
         if (modelRef.current) {
+            // ★ 修正: 一定速度で移動（アニメーション非依存）
+            const moveSpeed = 0.8; // マス/秒（調整可能）
+            const rotateSpeed = 4.0; // ラジアン/秒（調整可能）
             
-            modelRef.current.position.lerp(targetPosition, delta * 6);
-            modelRef.current.quaternion.slerp(targetQuaternion, delta * 12);
+            // 目標位置との距離を計算
+            const distance = modelRef.current.position.distanceTo(targetPosition);
+            
+            // ★ リセット検出: 距離が1マス（0.5）以上離れている場合は瞬間移動
+            if (distance > 0.75) {
+                // リセットなど大きな移動 → 瞬間移動
+                modelRef.current.position.copy(targetPosition);
+                modelRef.current.quaternion.copy(targetQuaternion);
+            } else if (distance > 0.01) {
+                // 通常の移動: 一定速度で移動
+                const maxMove = moveSpeed * delta; // 今回移動できる最大距離
+                const moveAmount = Math.min(distance, maxMove); // 実際の移動量
+                
+                // 目標位置に向かって移動
+                const direction = new THREE.Vector3()
+                    .subVectors(targetPosition, modelRef.current.position)
+                    .normalize();
+                modelRef.current.position.add(direction.multiplyScalar(moveAmount));
+                
+                // 回転（slerpのまま）
+                modelRef.current.quaternion.slerp(targetQuaternion, delta * rotateSpeed);
+            } else {
+                // 到達したら正確に目標位置に設定
+                modelRef.current.position.copy(targetPosition);
+            }
         }
         if (mixer) mixer.update(delta);
     });
@@ -390,7 +417,7 @@ export function MazeView3D({
     // デバウンス（クールダウン）中かどうかを示すフラグRef
     const isCoolingDownRef = useRef<boolean>(false);
     
-    const [isStreamReady, setIsStreamReady] = useState(false);
+    const [isStreamReady, setIsStreamReady] = useState<boolean>(false);
     const [debugInfo, setDebugInfo] = useState<string>("");
 
     // デバッグ情報表示 (変更なし)
@@ -528,30 +555,50 @@ export function MazeView3D({
 
                 const qrCodeData = scanQRCodeWithJsQR(imageData);
 
-                if (qrCodeData) {
-                    const command = qrCodeToCommand[qrCodeData];
-                    
-                    // クールダウン中でない場合のみコマンドを処理
-                    if (command && !isCoolingDownRef.current) { 
-                        
-                        // 検出を処理
-                        console.log(
-                            `🎯 QR Code detected: ${qrCodeData}`,
-                            command
-                        );
-                        onMarkerDetected(command); 
-                        
-                        // クールダウンを開始
-                        isCoolingDownRef.current = true;
-                        
-                        // 1.5秒後にクールダウンを解除
-                        setTimeout(() => {
-                            isCoolingDownRef.current = false;
-                        }, 1500); 
+                try {
+                    if (qrCodeData) {
+                        // ★ 迷路QRコードのチェック
+                        if (isMazeQRCode(qrCodeData)) {
+                            const maze = decodeMazeFromQR(qrCodeData);
+                            if (maze) {
+                                const stored = localStorage.getItem("progpath_mazes");
+                                const mazes: MazeData[] = stored ? JSON.parse(stored) : [];
+                                
+                                if (!mazes.find(m => m.id === maze.id)) {
+                                    mazes.push(maze);
+                                    localStorage.setItem("progpath_mazes", JSON.stringify(mazes));
+                                    console.log("✅ 迷路をインポート:", maze.name);
+                                }
+                            }
+                        } else {
+                            // コマンドQRコード
+                            const command = qrCodeToCommand[qrCodeData];
+                            
+                            // クールダウン中でない場合のみコマンドを処理
+                            if (command && !isCoolingDownRef.current) { 
+                            
+                                // 検出を処理
+                                console.log(
+                                    `🎯 QR Code detected: ${qrCodeData}`,
+                                    command
+                                );
+                                onMarkerDetected(command); 
+                                
+                                // クールダウンを開始
+                                isCoolingDownRef.current = true;
+                                
+                                // 1.5秒後にクールダウンを解除
+                                setTimeout(() => {
+                                    isCoolingDownRef.current = false;
+                                }, 1500); 
+                            }
+                        }
                     }
+                } catch (e) {
+                    console.error("Error in scan loop:", e);
                 }
-            } catch (e) {
-                console.error("Error in scan loop:", e);
+            } catch (err) {
+                console.error("Error drawing video to canvas:", err);
             }
         };
 

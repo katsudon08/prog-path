@@ -28,6 +28,12 @@ import type {
     RobotState,
     DirectionVector,
 } from "@/lib/types";
+
+interface InsertionPoint {
+    parentIndex: number | null;
+    childIndex: number;
+}
+
 import { CommandStack } from "@/components/command-stack";
 import { MazeView3D } from "@/components/maze-view-3d";
 
@@ -52,6 +58,7 @@ export function ARExecutionScreen() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const mazeId = searchParams.get("id");
+    const importMode = searchParams.get("import") === "true";
 
     const [maze, setMaze] = useState<MazeData | null>(null);
     const [commands, setCommands] = useState<Command[]>([]);
@@ -82,6 +89,12 @@ export function ARExecutionScreen() {
     const [tempLoopCommand, setTempLoopCommand] = useState<Command | null>(
         null
     ); // To temporarily store loop command data
+    const [buildingLoopIndex, setBuildingLoopIndex] = useState<number | null>(null); // ★ 追加: 構築中のloopコマンドのインデックス
+
+    const [insertionPoint, setInsertionPoint] = useState<InsertionPoint>({
+        parentIndex: null,
+        childIndex: 0
+    });
     
     // ★ バグ修正: ループ回数入力用の文字列 state
     const [loopInputString, setLoopInputString] = useState<string>("2");
@@ -97,6 +110,7 @@ export function ARExecutionScreen() {
     // 最新の値を参照できるようにする
     const isBuildingLoopRef = useRef(isBuildingLoop);
     const tempLoopCommandRef = useRef(tempLoopCommand);
+    const buildingLoopIndexRef = useRef<number | null>(null); // ★ 追加: buildingLoopIndexのRef
     const isExecutingRef = useRef(isExecuting);
 
     // ★★★★★ バグ修正 ★★★★★
@@ -110,6 +124,9 @@ export function ARExecutionScreen() {
     const timerIdRef = useRef<number | null>(null);
     // ★★★ 修正 終了 ★★★
 
+    // ★ 追加: 最後に追加したコマンド情報（インターバル制御用）
+    const lastAddedCommandRef = useRef<{ type: string; time: number } | null>(null);
+
     useEffect(() => {
         isBuildingLoopRef.current = isBuildingLoop;
     }, [isBuildingLoop]);
@@ -117,6 +134,10 @@ export function ARExecutionScreen() {
     useEffect(() => {
         tempLoopCommandRef.current = tempLoopCommand;
     }, [tempLoopCommand]);
+
+    useEffect(() => {
+        buildingLoopIndexRef.current = buildingLoopIndex;
+    }, [buildingLoopIndex]); // ★ 追加: buildingLoopIndexの同期
 
     useEffect(() => {
         isExecutingRef.current = isExecuting;
@@ -131,9 +152,10 @@ export function ARExecutionScreen() {
     // ★★★★★ 修正終了 ★★★★★
 
 
-    // Effect to load maze data (no changes)
+    // Effect to load maze data
     useEffect(() => {
         if (mazeId) {
+            // 通常モード: 指定されたIDの迷路を読み込む
             const stored = localStorage.getItem("progpath_mazes");
             if (stored) {
                 const mazes: MazeData[] = JSON.parse(stored);
@@ -156,8 +178,33 @@ export function ARExecutionScreen() {
                     }
                 }
             }
+        } else if (importMode) {
+            // インポートモード: カメラでQRコードをスキャンして迷路を読み込む
+            // 最初の迷路をデフォルトとして読み込む
+            const stored = localStorage.getItem("progpath_mazes");
+            if (stored) {
+                const mazes: MazeData[] = JSON.parse(stored);
+                if (mazes.length > 0) {
+                    const defaultMaze = mazes[0];
+                    setMaze(defaultMaze);
+                    for (let y = 0; y < defaultMaze.grid.length; y++) {
+                        for (let x = 0; x < defaultMaze.grid[y].length; x++) {
+                            if (defaultMaze.grid[y][x] === "start") {
+                                const startState = {
+                                    x,
+                                    y,
+                                    direction: [0, 1] as DirectionVector,
+                                };
+                                setRobotState(startState);
+                                setInitialRobotState(startState);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
         }
-    }, [mazeId]);
+    }, [mazeId, importMode]);
 
     // Effect to update flattened commands (no changes)
     useEffect(() => {
@@ -413,11 +460,33 @@ export function ARExecutionScreen() {
     // ★★★★★ 修正終了 ★★★★★
 
 
-    // --- 修正: 無限ループ対策 ---
+        // --- 修正: 無限ループ対策 ---
     // Function to add a command to the stack (accepts Command object)
     const handleAddCommand = useCallback((newCommand: Command) => {
-        setCommands((prevCommands) => [...prevCommands, newCommand]);
-    }, []); // setCommands は安定しているので依存配列は空
+        setCommands((prevCommands) => {
+            const newCommands = [...prevCommands];
+
+            if (insertionPoint.parentIndex === null) {
+                // ルートレベルへの挿入
+                newCommands.splice(insertionPoint.childIndex, 0, newCommand);
+            } else {
+                // ループ内への挿入
+                const parentCommand = newCommands[insertionPoint.parentIndex];
+                if (parentCommand && parentCommand.children) {
+                    parentCommand.children.splice(insertionPoint.childIndex, 0, newCommand);
+                    newCommands[insertionPoint.parentIndex] = { ...parentCommand };
+                }
+            }
+
+            return newCommands;
+        });
+
+        // 挿入位置を次の位置に進める
+        setInsertionPoint(prev => ({
+            ...prev,
+            childIndex: prev.childIndex + 1
+        }));
+    }, [insertionPoint]);
 
     // Callback function called by MazeView3D when a marker is detected
     // 依存配列を安定させ、Ref を使って最新の state を読む
@@ -425,6 +494,16 @@ export function ARExecutionScreen() {
         // isExecuting を Ref から読む
         if (isExecutingRef.current) return; // Ignore markers while executing
 
+        // ★ 追加: 同じコマンドタイプが2秒以内に連続して検出されたら無視
+        const now = Date.now();
+        const lastAdded = lastAddedCommandRef.current;
+        if (lastAdded && lastAdded.type === detectedCommand.type && (now - lastAdded.time) < 2000) {
+            return; // 同じコマンドタイプが2秒以内なら無視
+        }
+        
+        // ★ 現在のコマンドを記録
+        lastAddedCommandRef.current = { type: detectedCommand.type, time: now };
+    
         // isBuildingLoop を Ref から読む
         const commandDisplayName = isBuildingLoopRef.current
             ? detectedCommand.type === "loop"
@@ -439,12 +518,13 @@ export function ARExecutionScreen() {
             // isBuildingLoop を Ref から読む
             if (isBuildingLoopRef.current) {
                 // --- ループ終了処理 ---
-                // tempLoopCommand を Ref から読む
-                if (tempLoopCommandRef.current) { 
-                    handleAddCommand(tempLoopCommandRef.current);
-                }
+                // ★ 修正: handleAddCommandは呼ばない（既に追加済み）
+ 
+
+
                 setIsBuildingLoop(false); // state を更新
                 setTempLoopCommand(null); // state を更新
+                setBuildingLoopIndex(null); // インデックスをリセット
             } else {
                 // --- ループ開始処理 ---
                 // ★ バグ修正: 
@@ -457,19 +537,53 @@ export function ARExecutionScreen() {
                 setLoopInputString(String(initialCommand.loopCount)); // input 用の文字列 state もセット
                 setLoopPopupOpen(true);
             }
-        } else {
+                } else {
             // --- ループ以外のコマンド処理 ---
             // isBuildingLoop を Ref から読む
             if (isBuildingLoopRef.current) {
-                // functional update を使う
+                // ★ 修正: loop構築中は、insertionPointに基づいて挿入
+                const loopIndex = buildingLoopIndexRef.current;
+                
+                // 構築中のloopの指定位置に挿入
                 setTempLoopCommand((prevLoop) =>
                     prevLoop
                         ? {
                             ...prevLoop,
-                            children: [...(prevLoop.children || []), detectedCommand],
+                            children: [
+                                ...(prevLoop.children || []).slice(0, insertionPoint.childIndex),
+                                detectedCommand,
+                                ...(prevLoop.children || []).slice(insertionPoint.childIndex)
+                            ],
                         }
                         : null
                 );
+                
+                // commands配列内のloopコマンドも更新
+                if (loopIndex !== null) {
+                    setCommands((prevCommands) => {
+                        const newCommands = [...prevCommands];
+                        if (newCommands[loopIndex]) {
+                            const children = newCommands[loopIndex].children || [];
+                            newCommands[loopIndex] = {
+                                ...newCommands[loopIndex],
+                                children: [
+                                    ...children.slice(0, insertionPoint.childIndex),
+                                    detectedCommand,
+                                    ...children.slice(insertionPoint.childIndex)
+                                ],
+                            };
+                        }
+                        return newCommands;
+                    });
+                }
+                
+                // 挿入位置を次に進める（loop内の場合のみ）
+                if (insertionPoint.parentIndex === loopIndex) {
+                    setInsertionPoint(prev => ({
+                        ...prev,
+                        childIndex: prev.childIndex + 1
+                    }));
+                }
             } else {
                 // 通常時：直接スタックに追加
                 handleAddCommand(detectedCommand);
@@ -491,8 +605,19 @@ export function ARExecutionScreen() {
         
         if (tempLoopCommand) {
              // 確定した値で tempLoopCommand を更新
-            setTempLoopCommand({ ...tempLoopCommand, loopCount: count });
+            const updatedCommand = { ...tempLoopCommand, loopCount: count };
+            setTempLoopCommand(updatedCommand);
+            handleAddCommand(updatedCommand); // ★ loop コマンドを即座に追加
+                        
+            const loopIndex = commands.length; // 追加されるloopのインデックス
+            setBuildingLoopIndex(loopIndex); // ★ インデックスを記録
             setIsBuildingLoop(true);
+            
+            // ★ 追加: insertionPointをloop内の先頭に設定
+            setInsertionPoint({
+                parentIndex: loopIndex,
+                childIndex: 0
+            });
         }
         setLoopPopupOpen(false);
     };
@@ -512,6 +637,10 @@ export function ARExecutionScreen() {
     // Function to remove a command (no changes)
     const handleRemoveCommand = (index: number) => {
         setCommands(commands.filter((_, i) => i !== index));
+
+        // ★ 追加: 削除時のフィードバックメッセージ
+        setDetectedCommandName("Command Deleted");
+        setTimeout(() => setDetectedCommandName(null), 1500);
     };
 
     // Function to update a command (no changes)
@@ -579,6 +708,17 @@ export function ARExecutionScreen() {
         }
     };
 
+    // Auto-hide success/failure messages after 3 seconds
+    useEffect(() => {
+        if (gameStatus === "success" || gameStatus === "failed") {
+            const timer = setTimeout(() => {
+                setGameStatus("idle");
+            }, 3000);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [gameStatus]);
+
     // Loading state display (no changes)
     if (!maze) {
         return (
@@ -642,7 +782,7 @@ export function ARExecutionScreen() {
                 {/* Main Content Grid */}
                 <div className="grid gap-6 lg:grid-cols-[1fr_350px]">
                     {/* Left Panel: 3D Maze View and Status */}
-                    <Card className="border-neon-blue/30 bg-space-dark/50 p-6">
+                    <Card className="relative border-neon-blue/30 bg-space-dark/50 p-6">
                         <MazeView3D
                             maze={maze}
                             robotState={robotState}
@@ -651,6 +791,35 @@ export function ARExecutionScreen() {
                             currentCommandIndex={currentCommandIndex} // -1 が渡されるとアニメーションが停止する
                             flattenedCommands={flattenedCommands} 
                         />
+
+                        {/* Success Message Overlay */}
+                        {gameStatus === "success" && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                                <div className="max-w-2xl w-full mx-4 animate-bounce-in rounded-lg border-2 border-neon-green bg-neon-green/10 px-8 py-6 text-center shadow-lg shadow-neon-green/20 backdrop-blur-md pointer-events-auto">
+                                <Trophy className="mx-auto mb-3 h-12 w-12 text-neon-green" />
+                                <p className="text-2xl font-bold text-neon-green">
+                                    ゴール達成！
+                                </p>
+                                <p className="text-base text-neon-green/80">
+                                    {moveCount}回の移動でクリア
+                                </p>
+                                </div>
+                            </div>
+                        )}
+                        {/* Failure Message Overlay */}
+                        {gameStatus === "failed" && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                                <div className="max-w-2xl w-full mx-4 animate-shake rounded-lg border-2 border-neon-red bg-neon-red/10 px-8 py-6 text-center shadow-lg shadow-neon-red/20 backdrop-blur-md pointer-events-auto">
+                                <AlertTriangle className="mx-auto mb-3 h-12 w-12 text-neon-red" />
+                                <p className="text-2xl font-bold text-neon-red">
+                                    失敗！
+                                </p>
+                                <p className="text-base text-neon-red/80">
+                                    {errorMessage}
+                                </p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Status Display Area */}
                         <div className="mt-4 space-y-2">
@@ -667,7 +836,7 @@ export function ARExecutionScreen() {
                                 </div>
                             </div>
                             {/* Success Message */}
-                            {gameStatus === "success" && (
+                            {false && gameStatus === "success" && (
                                 <div className="animate-bounce-in rounded-lg border-2 border-neon-green bg-neon-green/10 px-6 py-4 text-center shadow-lg shadow-neon-green/20">
                                     <Trophy className="mx-auto mb-2 h-8 w-8 text-neon-green" />
                                     <p className="text-lg font-bold text-neon-green">
@@ -679,7 +848,7 @@ export function ARExecutionScreen() {
                                 </div>
                             )}
                             {/* Failure Message */}
-                            {gameStatus === "failed" && (
+                            {false && gameStatus === "failed" && (
                                 <div className="animate-shake rounded-lg border-2 border-neon-red bg-neon-red/10 px-6 py-4 text-center shadow-lg shadow-neon-red/20">
                                     <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-neon-red" />
                                     <p className="text-lg font-bold text-neon-red">
@@ -699,8 +868,14 @@ export function ARExecutionScreen() {
                             commands={commands}
                             currentIndex={currentCommandIndex}
                             onRemove={handleRemoveCommand}
+                            onRemoveChild={() => {
+                                setDetectedCommandName("Command Deleted");
+                                setTimeout(() => setDetectedCommandName(null), 1500);
+                            }}
                             onAddCommand={() => {}} // Adding commands is now done via markers
                             onUpdateCommand={handleUpdateCommand}
+                            insertionPoint={insertionPoint}
+                            onSetInsertionPoint={setInsertionPoint}
                             disabled={isExecuting}
                         />
                     </div>
