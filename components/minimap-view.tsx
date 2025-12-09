@@ -38,10 +38,25 @@ function MinimapTile({
     const color = getTileColor(tile);
     
     return (
-        <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[tileSize * 0.95, tileSize * 0.95]} />
-            <meshStandardMaterial color={color} />
-        </mesh>
+        <group position={position}>
+            {/* ベースのタイル */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[tileSize * 0.95, tileSize * 0.95]} />
+                <meshStandardMaterial color={color} />
+            </mesh>
+            
+            {/* 鍵アイコン */}
+            {tile === 'key' && (
+                <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <torusGeometry args={[0.12, 0.04, 8, 16]} />
+                    <meshStandardMaterial 
+                        color="#ffd700" 
+                        emissive="#ffd700"
+                        emissiveIntensity={0.5}
+                    />
+                </mesh>
+            )}
+        </group>
     );
 }
 

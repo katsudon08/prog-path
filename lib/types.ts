@@ -1,4 +1,4 @@
-export type TileType = "wall" | "floor" | "hole" | "start" | "goal" | "teleportUp" | "teleportDown"
+export type TileType = "wall" | "floor" | "hole" | "start" | "goal" | "teleportUp" | "teleportDown" | "key"
 
 export interface MazeData {
     id: string
@@ -24,4 +24,5 @@ export interface RobotState {
     y: number;
     z: number; // 階層情報を追加（0-indexed）
     direction: DirectionVector; // 文字列からベクトルに変更
+    hasKey?: boolean; // 鍵を持っているかどうか
 }
