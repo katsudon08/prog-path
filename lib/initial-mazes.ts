@@ -132,5 +132,18 @@ export function getInitialMazes(): MazeData[] {
             ]],
             currentLayer: 0,
         },
+        {
+            id: "maze-key-test",
+            name: "鍵+ゴールテスト",
+            size: 5,
+            layers: [[
+                ["start", "floor", "key", "floor", "floor"],
+                ["floor", "wall", "wall", "wall", "floor"],
+                ["key", "wall", "floor", "floor", "floor"],
+                ["floor", "wall", "floor", "wall", "floor"],
+                ["floor", "floor", "floor", "floor", "goal"],
+            ]],
+            currentLayer: 0,
+        },
     ]
 }

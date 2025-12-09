@@ -252,6 +252,15 @@ export function ARExecutionScreen() {
                 setIsExecuting(false);
                 // アニメーション停止
                 setCurrentCommandIndex(-1);
+
+                // ★ エラーチェック (最後のコマンドでエラーが発生した場合)
+                if (executionErrorRef.current) {
+                    setGameStatus("failed");
+                    setErrorMessage(executionErrorRef.current);
+                    executionErrorRef.current = null;
+                    return;
+                }
+
                 // ★★★★★ バグ修正 ★★★★★
                 // maze state の代わりに mazeRef をチェック
                 const currentZ = robotState.z;
@@ -437,15 +446,60 @@ export function ARExecutionScreen() {
                             executionErrorRef.current = "これより下の階層はありません！";
                             return prevState;
                         }
+                    // 5. ゴールチェック
                     } else if (targetTile === "goal") {
-                        // 5. ゴールチェック
+                        // ★ 鍵チェック: 迷路全体（全階層）に鍵が残っていないか確認
+                        let hasKeyRemaining = false;
+                        if (latestMaze && latestMaze.layers) {
+                            for (const layer of latestMaze.layers) {
+                                for (const row of layer) {
+                                    if (row.includes("key")) {
+                                        hasKeyRemaining = true;
+                                        break;
+                                    }
+                                }
+                                if (hasKeyRemaining) break;
+                            }
+                        }
+
+                        if (hasKeyRemaining) {
+                            executionErrorRef.current = "鍵をすべて集めてください！";
+                            // return prevState; // 削除: 移動を許可する
+                        }
+
                         newState = { ...prevState, x: newX, y: newY }; // ゴールに移動
                         setMoveCount((prev) => prev + 1);
+                        
+                        // エラーがある場合はここでリターン（移動は反映される）
+                        if (hasKeyRemaining) {
+                             return newState;
+                        }
+
                         // ゴールはエラーではない
                         setGameStatus("success");
                         setIsExecuting(false); // 実行停止 (これは即時反映される)
                         setCurrentCommandIndex(-1); // アニメーション停止
                         return newState; // 移動する
+                    } else if (targetTile === "key") {
+                         // ★ 鍵取得処理
+                         // 迷路データを更新して鍵を床に変える
+                         const newLayers = latestMaze.layers.map((layer, idx) =>
+                            idx === currentZ
+                                ? layer.map((row, rIdx) => 
+                                    rIdx === newY 
+                                        ? row.map((tile, cIdx) => cIdx === newX ? "floor" : tile)
+                                        : row
+                                  )
+                                : layer
+                        );
+                        
+                        setMaze(
+                            (prevMaze) =>
+                                prevMaze ? { ...prevMaze, layers: newLayers } : null
+                        );
+
+                        newState = { ...prevState, x: newX, y: newY };
+                        setMoveCount((prev) => prev + 1);
                     } else {
                         // 6. 安全な移動 (床)
                         newState = { ...prevState, x: newX, y: newY };
