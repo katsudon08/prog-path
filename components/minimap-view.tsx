@@ -3,7 +3,7 @@
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { MazeData, RobotState, TileType } from '@/types/game';
+import type { MazeData, RobotState, TileType } from '@/lib/types';
 
 // タイルの色を取得
 function getTileColor(tile: TileType): string {
@@ -64,8 +64,8 @@ function MinimapRobot({
             <mesh position={[0, 0, -0.05]}>
                 <boxGeometry args={[0.04, 0.04, 0.15]} />
                 <meshStandardMaterial 
-                    color="#ffff00" 
-                    emissive="#ffff00" 
+                    color="#ffffff" 
+                    emissive="#ffffff" 
                     emissiveIntensity={0.8} 
                 />
             </mesh>
@@ -73,8 +73,8 @@ function MinimapRobot({
             <mesh position={[0, 0, 0.08]} rotation={[Math.PI / 2, 0, 0]}>
                 <coneGeometry args={[0.08, 0.15, 8]} />
                 <meshStandardMaterial 
-                    color="#ffff00" 
-                    emissive="#ffff00" 
+                    color="#ffffff" 
+                    emissive="#ffffff" 
                     emissiveIntensity={0.8} 
                 />
             </mesh>

@@ -14,6 +14,8 @@ import {
     useAnimations,
     Preload,
     OrbitControls,
+    Text3D,
+    Center,
 } from "@react-three/drei";
 import * as THREE from "three";
 import type { MazeData, RobotState, TileType, Command } from "@/lib/types";
@@ -1001,6 +1003,30 @@ export function MazeView3D({
                                             opacity={layerOpacity}
                                             layerOffset={0}
                                         />
+                                        
+                                        {/* 層番号の3Dテキスト表示 */}
+                                        {/* 層番号の3Dテキスト表示（Text3Dで厚みを追加） */}
+                                        <Center
+                                            position={[-(maze.size * 0.5) / 2 - 0.8, 0.5, 0]}
+                                            rotation={[0, Math.PI / 4, 0]}
+                                        >
+                                            <Text3D
+                                                font="https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
+                                                size={0.5}
+                                                height={0.02} // 薄く
+                                                curveSegments={12}
+                                                bevelEnabled
+                                                bevelThickness={0.01}
+                                                bevelSize={0.01}
+                                                bevelOffset={0}
+                                                bevelSegments={5}
+                                            >
+                                                {layerIndex + 1}F
+                                                <meshStandardMaterial color="#E0FFFF" emissive="#E0FFFF" emissiveIntensity={2.0} toneMapped={false} />
+                                                <meshStandardMaterial color="#87CEEB" emissive="#87CEEB" emissiveIntensity={1.5} toneMapped={false} />
+                                            </Text3D>
+                                        </Center>
+                                        
                                     </group>
                                 );
                         })}
