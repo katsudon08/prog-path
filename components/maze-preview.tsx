@@ -49,7 +49,7 @@ export function MazePreview({ grid, layers, layerIndex }: MazePreviewProps) {
     };
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 items-center">
             {/* 階層ナビゲーション */}
             {hasMultipleLayers && (
                 <div className="flex items-center justify-between bg-space-dark/50 rounded-lg p-2 border border-neon-blue/30">
