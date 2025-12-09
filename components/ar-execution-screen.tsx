@@ -36,6 +36,7 @@ interface InsertionPoint {
 
 import { CommandStack } from "@/components/command-stack";
 import { MazeView3D } from "@/components/maze-view-3d";
+import { MinimapView } from "@/components/minimap-view";
 
 // flattenCommands 関数は変更なし
 function flattenCommands(commands: Command[]): Command[] {
@@ -65,11 +66,13 @@ export function ARExecutionScreen() {
     const [robotState, setRobotState] = useState<RobotState>({
         x: 0,
         y: 0,
+        z: 0, // 階層情報を追加
         direction: [0, 1], // ★ 修正: 初期向きを [1, 0] (東) から [0, 1] (南) に変更
     });
     const [initialRobotState, setInitialRobotState] = useState<RobotState>({
         x: 0,
         y: 0,
+        z: 0, // 階層情報を追加
         direction: [0, 1], // ★ 修正: 初期向きを [1, 0] (東) から [0, 1] (南) に変更
     });
     const [isExecuting, setIsExecuting] = useState(false);
@@ -116,6 +119,9 @@ export function ARExecutionScreen() {
     // ★★★★★ バグ修正 ★★★★★
     // 迷路の最新状態を Ref にも保持する
     const mazeRef = useRef<MazeData | null>(null);
+    
+    // ★ テレポート検出用のRef
+    const isTeleportingRef = useRef<boolean>(false);
     // ★★★★★ 修正終了 ★★★★★
 
 
@@ -154,21 +160,30 @@ export function ARExecutionScreen() {
 
     // Effect to load maze data
     useEffect(() => {
+        // マイグレーション関数
+        const migrateMazeData = (maze: any): MazeData => {
+            if (maze.layers) return maze as MazeData;
+            return { ...maze, layers: [maze.grid], currentLayer: 0 };
+        };
+
         if (mazeId) {
             // 通常モード: 指定されたIDの迷路を読み込む
             const stored = localStorage.getItem("progpath_mazes");
             if (stored) {
-                const mazes: MazeData[] = JSON.parse(stored);
+                const parsed = JSON.parse(stored);
+                const mazes: MazeData[] = parsed.map(migrateMazeData);
                 const foundMaze = mazes.find((m) => m.id === mazeId);
                 if (foundMaze) {
                     setMaze(foundMaze);
-                    for (let y = 0; y < foundMaze.grid.length; y++) {
-                        for (let x = 0; x < foundMaze.grid[y].length; x++) {
-                            if (foundMaze.grid[y][x] === "start") {
+                    // 最初の階層（z=0）でstartタイルを探す
+                    for (let y = 0; y < foundMaze.layers[0].length; y++) {
+                        for (let x = 0; x < foundMaze.layers[0][y].length; x++) {
+                            if (foundMaze.layers[0][y][x] === "start") {
                                 const startState = {
                                     x,
                                     y,
-                                    direction: [0, 1] as DirectionVector, // ★ 修正: 初期向きを [1, 0] (東) から [0, 1] (南) に変更
+                                    z: 0,
+                                    direction: [0, 1] as DirectionVector,
                                 };
                                 setRobotState(startState);
                                 setInitialRobotState(startState);
@@ -183,16 +198,19 @@ export function ARExecutionScreen() {
             // 最初の迷路をデフォルトとして読み込む
             const stored = localStorage.getItem("progpath_mazes");
             if (stored) {
-                const mazes: MazeData[] = JSON.parse(stored);
+                const parsed = JSON.parse(stored);
+                const mazes: MazeData[] = parsed.map(migrateMazeData);
                 if (mazes.length > 0) {
                     const defaultMaze = mazes[0];
                     setMaze(defaultMaze);
-                    for (let y = 0; y < defaultMaze.grid.length; y++) {
-                        for (let x = 0; x < defaultMaze.grid[y].length; x++) {
-                            if (defaultMaze.grid[y][x] === "start") {
+                    // 最初の階層でstartタイルを探す
+                    for (let y = 0; y < defaultMaze.layers[0].length; y++) {
+                        for (let x = 0; x < defaultMaze.layers[0][y].length; x++) {
+                            if (defaultMaze.layers[0][y][x] === "start") {
                                 const startState = {
                                     x,
                                     y,
+                                    z: 0,
                                     direction: [0, 1] as DirectionVector,
                                 };
                                 setRobotState(startState);
@@ -236,7 +254,11 @@ export function ARExecutionScreen() {
                 setCurrentCommandIndex(-1);
                 // ★★★★★ バグ修正 ★★★★★
                 // maze state の代わりに mazeRef をチェック
-                if (mazeRef.current?.grid[robotState.y][robotState.x] !== "goal") {
+                const currentZ = robotState.z;
+                if (mazeRef.current && 
+                    currentZ >= 0 && 
+                    currentZ < mazeRef.current.layers.length &&
+                    mazeRef.current.layers[currentZ][robotState.y][robotState.x] !== "goal") {
                 // ★★★★★ 修正終了 ★★★★★
                     setGameStatus("failed");
                     setErrorMessage("ゴールに到達できませんでした");
@@ -308,22 +330,29 @@ export function ARExecutionScreen() {
             if (command.type === "ifHole") {
                 const checkX = robotState.x + robotState.direction[0];
                 const checkY = robotState.y + robotState.direction[1];
+                const checkZ = robotState.z;
 
                 if (
                     checkX >= 0 &&
                     checkX < currentMaze.size && // <-- 修正: currentMaze
                     checkY >= 0 &&
-                    checkY < currentMaze.size // <-- 修正: currentMaze
+                    checkY < currentMaze.size && // <-- 修正: currentMaze
+                    checkZ >= 0 &&
+                    checkZ < currentMaze.layers.length
                 ) {
                     // ★★★★★ バグ修正 ★★★★★
                     // 読み取りに currentMaze (mazeRef.current) を使用
-                    if (currentMaze.grid[checkY][checkX] === "hole") {
-                        const newGrid = currentMaze.grid.map((row) => [...row]); 
-                        newGrid[checkY][checkX] = "floor";
+                    if (currentMaze.layers[checkZ][checkY][checkX] === "hole") {
+                        const newLayers = currentMaze.layers.map((layer, idx) =>
+                            idx === checkZ
+                                ? layer.map(row => [...row])
+                                : layer
+                        );
+                        newLayers[checkZ][checkY][checkX] = "floor";
                         // setMaze は state を更新するために必須
                         setMaze(
                             (prevMaze) =>
-                                prevMaze ? { ...prevMaze, grid: newGrid } : null
+                                prevMaze ? { ...prevMaze, layers: newLayers } : null
                         );
                     }
                     // ★★★★★ 修正終了 ★★★★★
@@ -367,7 +396,12 @@ export function ARExecutionScreen() {
                     
                     // ★★★★★ バグ修正 ★★★★★
                     // 衝突判定に latestMaze (mazeRef.current) を使用
-                    const targetTile = latestMaze.grid[newY][newX];
+                    const currentZ = prevState.z;
+                    if (currentZ < 0 || currentZ >= latestMaze.layers.length) {
+                        executionErrorRef.current = "階層エラーが発生しました！";
+                        return prevState;
+                    }
+                    const targetTile = latestMaze.layers[currentZ][newY][newX];
                     // ★★★★★ 修正終了 ★★★★★
 
                     // 2. 壁チェック
@@ -384,8 +418,27 @@ export function ARExecutionScreen() {
                         return newState; // 移動する
                     }
 
-                    // 4. ゴールチェック
-                    if (targetTile === "goal") {
+                    // 4. テレポート床チェック
+                    if (targetTile === "teleportUp") {
+                        if (currentZ < latestMaze.layers.length - 1) {
+                            newState = { ...prevState, x: newX, y: newY, z: currentZ + 1 };
+                            setMoveCount((prev) => prev + 1);
+                            isTeleportingRef.current = true; // ★ テレポートフラグ
+                        } else {
+                            executionErrorRef.current = "これより上の階層はありません！";
+                            return prevState;
+                        }
+                    } else if (targetTile === "teleportDown") {
+                        if (currentZ > 0) {
+                            newState = { ...prevState, x: newX, y: newY, z: currentZ - 1 };
+                            setMoveCount((prev) => prev + 1);
+                            isTeleportingRef.current = true; // ★ テレポートフラグ
+                        } else {
+                            executionErrorRef.current = "これより下の階層はありません！";
+                            return prevState;
+                        }
+                    } else if (targetTile === "goal") {
+                        // 5. ゴールチェック
                         newState = { ...prevState, x: newX, y: newY }; // ゴールに移動
                         setMoveCount((prev) => prev + 1);
                         // ゴールはエラーではない
@@ -393,11 +446,11 @@ export function ARExecutionScreen() {
                         setIsExecuting(false); // 実行停止 (これは即時反映される)
                         setCurrentCommandIndex(-1); // アニメーション停止
                         return newState; // 移動する
+                    } else {
+                        // 6. 安全な移動 (床)
+                        newState = { ...prevState, x: newX, y: newY };
+                        setMoveCount((prev) => prev + 1);
                     }
-
-                    // 5. 安全な移動 (床)
-                    newState = { ...prevState, x: newX, y: newY };
-                    setMoveCount((prev) => prev + 1);
 
                 } else if (command.type === "turnRight") {
                     // (回転の向き修正済み)
@@ -431,6 +484,18 @@ export function ARExecutionScreen() {
                 return; // インデックスを進めずに終了
             }
             // ★★★★★ 修正 終了 ★★★★★
+            
+            // ★ テレポート後の待機時間
+            if (isTeleportingRef.current) {
+                isTeleportingRef.current = false; // フラグをリセット
+                await new Promise<void>((resolve) => {
+                    const id = window.setTimeout(() => {
+                        resolve();
+                    }, 1100); // テレポートアニメーション完了まで待機（1.0秒 + 余裕0.1秒）
+                    timerIdRef.current = id;
+                });
+                timerIdRef.current = null;
+            }
             
             // 次のコマンドインデックスに進む
             setCurrentCommandIndex((prev) => prev + 1);
@@ -473,8 +538,10 @@ export function ARExecutionScreen() {
                 // ループ内への挿入
                 const parentCommand = newCommands[insertionPoint.parentIndex];
                 if (parentCommand && parentCommand.children) {
-                    parentCommand.children.splice(insertionPoint.childIndex, 0, newCommand);
-                    newCommands[insertionPoint.parentIndex] = { ...parentCommand };
+                    // ★ 修正: children配列の新しいコピーを作成
+                    const children = [...parentCommand.children];
+                    children.splice(insertionPoint.childIndex, 0, newCommand);
+                    newCommands[insertionPoint.parentIndex] = { ...parentCommand, children };
                 }
             }
 
@@ -541,24 +608,10 @@ export function ARExecutionScreen() {
             // --- ループ以外のコマンド処理 ---
             // isBuildingLoop を Ref から読む
             if (isBuildingLoopRef.current) {
-                // ★ 修正: loop構築中は、insertionPointに基づいて挿入
+                // ★ 修正: loop構築中は、setCommandsのみで処理
                 const loopIndex = buildingLoopIndexRef.current;
                 
-                // 構築中のloopの指定位置に挿入
-                setTempLoopCommand((prevLoop) =>
-                    prevLoop
-                        ? {
-                            ...prevLoop,
-                            children: [
-                                ...(prevLoop.children || []).slice(0, insertionPoint.childIndex),
-                                detectedCommand,
-                                ...(prevLoop.children || []).slice(insertionPoint.childIndex)
-                            ],
-                        }
-                        : null
-                );
-                
-                // commands配列内のloopコマンドも更新
+                // commands配列内のloopコマンドを更新
                 if (loopIndex !== null) {
                     setCommands((prevCommands) => {
                         const newCommands = [...prevCommands];
@@ -663,7 +716,12 @@ export function ARExecutionScreen() {
         if (mazeId) {
             const stored = localStorage.getItem("progpath_mazes");
             if (stored) {
-                const mazes: MazeData[] = JSON.parse(stored);
+                const parsed = JSON.parse(stored);
+                const migrateMazeData = (maze: any): MazeData => {
+                    if (maze.layers) return maze as MazeData;
+                    return { ...maze, layers: [maze.grid], currentLayer: 0 };
+                };
+                const mazes: MazeData[] = parsed.map(migrateMazeData);
                 const foundMaze = mazes.find((m) => m.id === mazeId);
                 if (foundMaze) {
                     setMaze(foundMaze);
@@ -695,7 +753,12 @@ export function ARExecutionScreen() {
             if (mazeId) {
                 const stored = localStorage.getItem("progpath_mazes");
                 if (stored) {
-                    const mazes: MazeData[] = JSON.parse(stored);
+                    const parsed = JSON.parse(stored);
+                    const migrateMazeData = (maze: any): MazeData => {
+                        if (maze.layers) return maze as MazeData;
+                        return { ...maze, layers: [maze.grid], currentLayer: 0 };
+                    };
+                    const mazes: MazeData[] = parsed.map(migrateMazeData);
                     const foundMaze = mazes.find((m) => m.id === mazeId);
                     if (foundMaze) {
                         setMaze(foundMaze);
@@ -791,6 +854,17 @@ export function ARExecutionScreen() {
                             currentCommandIndex={currentCommandIndex} // -1 が渡されるとアニメーションが停止する
                             flattenedCommands={flattenedCommands} 
                         />
+                        
+                        {/* Minimap View */}
+                        {maze && (
+                            <div className="absolute top-10 right-10 w-48 h-48 border-2 border-neon-cyan/50 rounded-lg overflow-hidden bg-space-dark/80 backdrop-blur-sm shadow-lg shadow-neon-cyan/30 z-20">
+                                <MinimapView
+                                    maze={maze}
+                                    robotState={robotState}
+                                />
+                            </div>
+                        )}
+
 
                         {/* Success Message Overlay */}
                         {gameStatus === "success" && (

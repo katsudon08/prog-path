@@ -1,10 +1,11 @@
-export type TileType = "wall" | "floor" | "hole" | "start" | "goal"
+export type TileType = "wall" | "floor" | "hole" | "start" | "goal" | "teleportUp" | "teleportDown"
 
 export interface MazeData {
     id: string
     name: string
-    grid: TileType[][]
+    layers: TileType[][][] // 複数階層対応（grid → layers）
     size: number
+    currentLayer?: number // エディター用の現在表示階層
 }
 
 export type CommandType = "forward" | "turnRight" | "turnLeft" | "ifHole" | "loop"
@@ -21,5 +22,6 @@ export type DirectionVector = [number, number];
 export interface RobotState {
     x: number;
     y: number;
+    z: number; // 階層情報を追加（0-indexed）
     direction: DirectionVector; // 文字列からベクトルに変更
 }

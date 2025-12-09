@@ -11,7 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Save, ArrowLeft, Trash2, QrCode } from "lucide-react";
+import { Save, ArrowLeft, Trash2, ArrowUp, ArrowDown, Plus, Minus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MazeData, TileType } from "@/lib/types";
 import { getInitialMazes } from "@/lib/initial-mazes";
@@ -26,6 +26,8 @@ const TILE_TYPES: { type: TileType; label: string; color: string }[] = [
     },
     { type: "start", label: "スタート", color: "bg-neon-green" },
     { type: "goal", label: "ゴール", color: "bg-neon-red" },
+    { type: "teleportUp", label: "上へ", color: "bg-blue-500 border border-blue-300" },
+    { type: "teleportDown", label: "下へ", color: "bg-purple-500 border border-purple-300" },
 ];
 
 export function MazeEditor() {
@@ -35,62 +37,90 @@ export function MazeEditor() {
 
     const [mazeName, setMazeName] = useState("新しい迷路");
     const [gridSize, setGridSize] = useState(5);
-    const [grid, setGrid] = useState<TileType[][]>([]);
+    const [layers, setLayers] = useState<TileType[][][]>([[]]);
+    const [currentLayer, setCurrentLayer] = useState(0);
     const [selectedTile, setSelectedTile] = useState<TileType>("floor");
     const [isDrawing, setIsDrawing] = useState(false);
 
+    // マイグレーション関数
+    const migrateMazeData = (maze: any): MazeData => {
+        if (maze.layers) return maze as MazeData;
+        return {
+            ...maze,
+            layers: [maze.grid],
+            currentLayer: 0,
+        };
+    };
+
     useEffect(() => {
-        // --- 修正箇所：localStorageをチェックし、空なら初期化 ---
         const stored = localStorage.getItem("progpath_mazes");
         let mazes: MazeData[] = [];
 
         if (stored) {
             try {
-                mazes = JSON.parse(stored);
+                const parsed = JSON.parse(stored);
+                mazes = parsed.map(migrateMazeData);
             } catch (e) {
                 console.error("Failed to parse mazes from localStorage", e);
-                mazes = []; // パース失敗
+                mazes = [];
             }
         }
 
         if (mazes.length === 0) {
-            // localStorage がない、または空配列の場合
             const initialMazes = getInitialMazes();
             localStorage.setItem("progpath_mazes", JSON.stringify(initialMazes));
-            mazes = initialMazes; // 後続の処理で使うため
+            mazes = initialMazes;
         }
-        // --- 修正終了 ---
 
         if (mazeId) {
-            // Load existing maze
-            // (初期化された) mazes 配列から探す
             const maze = mazes.find((m) => m.id === mazeId);
             if (maze) {
                 setMazeName(maze.name);
-                setGridSize(maze.size); // 既存の迷路のサイズをセット
-                setGrid(maze.grid);
-                return; // 既存迷路をロードしたので終了
+                setGridSize(maze.size);
+                setLayers(maze.layers);
+                setCurrentLayer(maze.currentLayer || 0);
+                return;
             }
         }
 
-        // Create new maze (mazeId がない、または見つからなかった場合)
-        initializeGrid(gridSize); // 現在の gridSize ステート (初期値 5) でグリッドを初期化
+        // Create new maze
+        initializeGrid(gridSize);
     }, [mazeId]);
 
     const initializeGrid = (size: number) => {
         const newGrid: TileType[][] = Array(size)
             .fill(null)
             .map(() => Array(size).fill("floor"));
-        // Set default start and goal
         newGrid[0][0] = "start";
         newGrid[size - 1][size - 1] = "goal";
-        setGrid(newGrid);
+        setLayers([newGrid]);
+        setCurrentLayer(0);
     };
 
     const handleTileClick = (row: number, col: number) => {
-        const newGrid = [...grid];
-        newGrid[row][col] = selectedTile;
-        setGrid(newGrid);
+        let newLayers = [...layers];
+        
+        // スタートタイルを配置する場合、既存のスタートタイルを削除
+        if (selectedTile === "start") {
+            newLayers = newLayers.map(layer =>
+                layer.map(r =>
+                    r.map(tile => tile === "start" ? "floor" : tile)
+                )
+            );
+        }
+        
+        // 新しいタイルを配置
+        newLayers = newLayers.map((layer, idx) => 
+            idx === currentLayer 
+                ? layer.map((r, rIdx) => 
+                    rIdx === row 
+                        ? r.map((c, cIdx) => cIdx === col ? selectedTile : c)
+                        : r
+                  )
+                : layer
+        );
+        
+        setLayers(newLayers);
     };
 
     const handleTileMouseEnter = (row: number, col: number) => {
@@ -99,33 +129,53 @@ export function MazeEditor() {
         }
     };
 
+    const handleAddLayer = () => {
+        if (layers.length >= 5) {
+            alert("最大5階層まで作成できます");
+            return;
+        }
+        const newGrid: TileType[][] = Array(gridSize)
+            .fill(null)
+            .map(() => Array(gridSize).fill("floor"));
+        setLayers([...layers, newGrid]);
+    };
+
+    const handleRemoveLayer = () => {
+        if (layers.length <= 1) {
+            alert("最低1階層は必要です");
+            return;
+        }
+        if (currentLayer >= layers.length - 1) {
+            setCurrentLayer(layers.length - 2);
+        }
+        setLayers(layers.slice(0, -1));
+    };
+
     const handleSave = () => {
-        // --- 修正箇所：スタートとゴールの数をチェック ---
-        const flatGrid = grid.flat();
-        const startCount = flatGrid.filter((tile) => tile === "start").length;
-        const goalCount = flatGrid.filter((tile) => tile === "goal").length;
+        // 全階層を結合してスタートとゴールの数をチェック
+        const allTiles = layers.flat(2); // 全階層の全タイルを1次元配列に
+        const startCount = allTiles.filter((tile) => tile === "start").length;
+        const goalCount = allTiles.filter((tile) => tile === "goal").length;
 
         if (startCount !== 1) {
             alert(
                 startCount === 0
                     ? "スタートタイルを1つ配置してください。"
-                    : "スタートタイルは1つだけ配置してください。"
+                    : "スタートタイルは1つだけ配置してください。（全階層合計）"
             );
-            return; // 保存処理を中断
+            return;
         }
 
         if (goalCount !== 1) {
             alert(
                 goalCount === 0
                     ? "ゴールタイルを1つ配置してください。"
-                    : "ゴールタイルは1つだけ配置してください。"
+                    : "ゴールタイルは1つだけ配置してください。（全階層合計）"
             );
-            return; // 保存処理を中断
+            return;
         }
-        // --- 修正終了 ---
 
         const stored = localStorage.getItem("progpath_mazes");
-        // (注：ここでは保存時なので、空配列でもそのまま読み込むのが正しい)
         const mazes: MazeData[] = stored ? JSON.parse(stored) : [];
 
         if (mazeId) {
@@ -136,7 +186,8 @@ export function MazeEditor() {
                     id: mazeId,
                     name: mazeName,
                     size: gridSize,
-                    grid,
+                    layers,
+                    currentLayer,
                 };
             }
         } else {
@@ -145,7 +196,8 @@ export function MazeEditor() {
                 id: `maze_${Date.now()}`,
                 name: mazeName,
                 size: gridSize,
-                grid,
+                layers,
+                currentLayer,
             };
             mazes.push(newMaze);
         }
@@ -266,13 +318,74 @@ export function MazeEditor() {
                             </div>
                         </div>
 
+                        {/* Layer Management */}
+                        <div className="mb-6">
+                            <Label className="text-neon-cyan">
+                                階層管理: Layer {currentLayer + 1} / {layers.length}
+                            </Label>
+                            <div className="mt-2 flex items-center gap-2">
+                                <Button
+                                    onClick={() => setCurrentLayer(Math.max(0, currentLayer - 1))}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-neon-blue text-neon-blue"
+                                    disabled={currentLayer === 0}
+                                >
+                                    <ArrowDown className="h-4 w-4" />
+                                </Button>
+                                <div className="flex-1 flex gap-1 justify-center">
+                                    {layers.map((_, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => setCurrentLayer(idx)}
+                                            className={
+                                                "h-2 w-8 rounded " +
+                                                (idx === currentLayer
+                                                    ? "bg-neon-cyan"
+                                                    : "bg-neon-blue/30")
+                                            }
+                                        ></button>
+                                    ))}
+                                </div>
+                                <Button
+                                    onClick={() => setCurrentLayer(Math.min(layers.length - 1, currentLayer + 1))}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-neon-blue text-neon-blue"
+                                    disabled={currentLayer === layers.length - 1}
+                                >
+                                    <ArrowUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    onClick={handleAddLayer}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-neon-green text-neon-green"
+                                    disabled={layers.length >= 5}
+                                >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    追加
+                                </Button>
+                                <Button
+                                    onClick={handleRemoveLayer}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-neon-red text-neon-red"
+                                    disabled={layers.length <= 1}
+                                >
+                                    <Minus className="h-4 w-4 mr-1" />
+                                    削除
+                                </Button>
+                            </div>
+                        </div>
+
                         {/* Grid Editor */}
                         <div className="flex justify-center">
                             <div
                                 className="inline-flex flex-col gap-1 rounded-lg border-2 border-neon-cyan/30 bg-space-dark p-4"
                                 onMouseLeave={() => setIsDrawing(false)}
                             >
-                                {grid.map((row, rowIndex) => (
+                                {layers[currentLayer]?.map((row, rowIndex) => (
                                     <div key={rowIndex} className="flex gap-1">
                                         {row.map((tile, colIndex) => (
                                             <button

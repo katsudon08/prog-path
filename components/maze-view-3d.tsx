@@ -14,6 +14,8 @@ import {
     useAnimations,
     Preload,
     OrbitControls,
+    Text3D,
+    Center,
 } from "@react-three/drei";
 import * as THREE from "three";
 import type { MazeData, RobotState, TileType, Command } from "@/lib/types";
@@ -64,8 +66,93 @@ const qrCodeToCommand: { [key: string]: Command } = {
     loop: { type: "loop" },
 };
 
+// テレポートタイル用コンポーネント
+function TeleportTile({ 
+    position, 
+    isUp, 
+    tileSize,
+    opacity = 1.0
+}: { 
+    position: [number, number, number]; 
+    isUp: boolean; 
+    tileSize: number;
+    opacity?: number;
+}) {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const arrowRef = useRef<THREE.Group>(null);
+    
+    useFrame((state) => {
+        if (meshRef.current) {
+            // 発光の脈動アニメーション（より強調）
+            const intensity = 0.6 + Math.sin(state.clock.elapsedTime * 2) * 0.4;
+            const material = meshRef.current.material as THREE.MeshStandardMaterial;
+            material.emissiveIntensity = intensity;
+        }
+        
+        if (arrowRef.current) {
+            // 矢印の上下アニメーション（振幅を増やす）
+            const bounceAmount = Math.sin(state.clock.elapsedTime * 3) * 0.05;
+            arrowRef.current.position.y = 0.08 + bounceAmount;
+            
+            // 矢印の回転アニメーション（立体的な動き）
+            arrowRef.current.rotation.y = state.clock.elapsedTime * 0.8;
+        }
+    });
+    
+    const color = isUp ? "#60a5fa" : "#a78bfa"; // 青 vs 紫
+    const arrowRotation = isUp ? 0 : Math.PI; // 上向き vs 下向き
+    
+    return (
+        <group>
+            {/* 床タイル */}
+            <mesh
+                ref={meshRef}
+                receiveShadow
+                position={position}
+                rotation={[-Math.PI / 2, 0, 0]}
+            >
+                <planeGeometry args={[tileSize * 0.98, tileSize * 0.98]} />
+                <meshStandardMaterial
+                    color={color}
+                    emissive={color}
+                    emissiveIntensity={0.5 * opacity}
+                    opacity={0.8 * opacity}
+                    transparent
+                    side={THREE.DoubleSide}
+                />
+            </mesh>
+            
+            {/* 矢印インジケーター */}
+            <group ref={arrowRef} position={[position[0], 0.05, position[2]]}>
+                <mesh
+                    rotation={[arrowRotation, 0, 0]}
+                >
+                    <coneGeometry args={[0.08, 0.15, 3]} />
+                    <meshStandardMaterial
+                        color="#ffffff"
+                        emissive="#ffffff"
+                        emissiveIntensity={1.5 * opacity}
+                        opacity={opacity}
+                        transparent
+                    />
+                </mesh>
+            </group>
+        </group>
+    );
+}
+
 // MazeMap コンポーネント (変更なし)
-function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
+function MazeMap({ 
+    grid, 
+    mazeSize,
+    opacity = 1.0,
+    layerOffset = 0
+}: { 
+    grid: TileType[][]; 
+    mazeSize: number;
+    opacity?: number;
+    layerOffset?: number;
+}) {
     const tileSize = 0.5;
     const wallHeight = 0.5;
     const gridOffset = -(mazeSize * tileSize) / 2 + tileSize / 2;
@@ -96,7 +183,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                     />
                                     <meshStandardMaterial
                                         color="#4a90e2"
-                                        opacity={0.85}
+                                        opacity={0.85 * opacity}
                                         transparent
                                     />
                                 </mesh>
@@ -115,10 +202,21 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                     <meshStandardMaterial
                                         color="#8b5cf6"
                                         transparent
-                                        opacity={0.6}
+                                        opacity={0.6 * opacity}
                                         side={THREE.DoubleSide}
                                     />
                                 </mesh>
+                            );
+                        case "teleportUp":
+                        case "teleportDown":
+                            return (
+                                <TeleportTile
+                                    key={`${x}-${y}`}
+                                    position={position}
+                                    isUp={tile === "teleportUp"}
+                                    tileSize={tileSize}
+                                    opacity={opacity}
+                                />
                             );
                         case "start":
                         case "goal":
@@ -141,7 +239,7 @@ function MazeMap({ grid, mazeSize }: { grid: TileType[][]; mazeSize: number }) {
                                                 ? "#ef4444"
                                                 : "#1a2540"
                                         }
-                                        opacity={0.75}
+                                        opacity={0.75 * opacity}
                                         transparent
                                         side={THREE.DoubleSide}
                                     />
@@ -184,6 +282,22 @@ function RobotModel({
     // 落下（移動不能）になった瞬間の座標を保持
     const immobilizedPositionRef = useRef<THREE.Vector3 | null>(null);
 
+    // ★ テレポートアニメーション用の状態管理
+    const [isTeleporting, setIsTeleporting] = useState(false);
+    const [teleportPhase, setTeleportPhase] = useState(0); // 0-5
+    const [teleportDirection, setTeleportDirection] = useState<'up' | 'down'>('up');
+    
+    // テレポートアニメーション用のタイマーとオフセット
+    const teleportStartTimeRef = useRef<number>(0);
+    const prevZRef = useRef(robotState.z);
+    const teleportYOffsetRef = useRef(0);
+    const teleportOpacityRef = useRef(1.0);
+    // テレポート開始時の位置を保存（アニメーション中の位置固定用）
+    const teleportPositionSnapshotRef = useRef<THREE.Vector3 | null>(null);
+    // テレポート完了直後フラグ（瞬間移動を防ぐ）
+    const justFinishedTeleportRef = useRef(false);
+    const teleportFinishTimeRef = useRef(0);
+
 
     const tileSize = 0.5;
     const gridOffset = -(mazeSize * tileSize) / 2 + tileSize / 2;
@@ -196,7 +310,8 @@ function RobotModel({
         if (isImmobilizedRef.current && immobilizedPositionRef.current) {
             
             // リセット判定ロジック
-            const currentTile = maze.grid[robotState.y]?.[robotState.x];
+            const currentLayer = robotState.z >= 0 && robotState.z < maze.layers.length ? maze.layers[robotState.z] : null;
+            const currentTile = currentLayer?.[robotState.y]?.[robotState.x];
             
             if (currentTile === "start") {
                 // リセット操作が検知された
@@ -235,6 +350,30 @@ function RobotModel({
         [robotState.direction]
     );
 
+    // ★ テレポート検出用のuseEffect
+    useEffect(() => {
+        // z座標の変化を検出
+        // 以下の場合はテレポートアニメーションをスキップ:
+        // 1. リセット時（currentCommandIndex === -1）
+        // 2. スタート位置への移動（robotState.z === 0）
+        if (
+            robotState.z !== prevZRef.current && 
+            !isTeleporting && 
+            currentCommandIndex !== -1 &&  // リセット時はスキップ
+            robotState.z !== 0  // スタート位置への移動はスキップ
+        ) {
+            // テレポート開始
+            const direction = robotState.z > prevZRef.current ? 'up' : 'down';
+            setIsTeleporting(true);
+            setTeleportPhase(1);
+            setTeleportDirection(direction);
+            teleportStartTimeRef.current = performance.now();
+            // テレポート開始時の位置をスナップショットとして保存
+            teleportPositionSnapshotRef.current = targetPosition.clone();
+        }
+        prevZRef.current = robotState.z;
+    }, [robotState.z, isTeleporting, currentCommandIndex, targetPosition]);
+
 
     // useEffect のロジック
     useEffect(() => {
@@ -261,7 +400,8 @@ function RobotModel({
             const nextY = robotState.y + robotState.direction[1];
             let nextTile: TileType = "floor";
             if (nextY >= 0 && nextY < maze.size && nextX >= 0 && nextX < maze.size) {
-                nextTile = maze.grid[nextY][nextX];
+                const nextLayer = robotState.z >= 0 && robotState.z < maze.layers.length ? maze.layers[robotState.z] : null;
+                nextTile = nextLayer?.[nextY]?.[nextX] || "floor";
             }
             
             // 穴に向かう場合
@@ -367,34 +507,175 @@ function RobotModel({
     // useFrame
     useFrame((_, delta) => {
         if (modelRef.current) {
-            // ★ 修正: 一定速度で移動（アニメーション非依存）
-            const moveSpeed = 0.8; // マス/秒（調整可能）
-            const rotateSpeed = 4.0; // ラジアン/秒（調整可能）
-            
-            // 目標位置との距離を計算
-            const distance = modelRef.current.position.distanceTo(targetPosition);
-            
-            // ★ リセット検出: 距離が1マス（0.5）以上離れている場合は瞬間移動
-            if (distance > 0.75) {
-                // リセットなど大きな移動 → 瞬間移動
-                modelRef.current.position.copy(targetPosition);
-                modelRef.current.quaternion.copy(targetQuaternion);
-            } else if (distance > 0.01) {
-                // 通常の移動: 一定速度で移動
-                const maxMove = moveSpeed * delta; // 今回移動できる最大距離
-                const moveAmount = Math.min(distance, maxMove); // 実際の移動量
+            // ★ テレポートアニメーション処理
+            if (isTeleporting) {
+                const elapsed = performance.now() - teleportStartTimeRef.current;
                 
-                // 目標位置に向かって移動
-                const direction = new THREE.Vector3()
-                    .subVectors(targetPosition, modelRef.current.position)
-                    .normalize();
-                modelRef.current.position.add(direction.multiplyScalar(moveAmount));
+                switch (teleportPhase) {
+                    case 1: // 上昇/降下
+                        const phase1Duration = 300;
+                        const phase1Progress = Math.min(elapsed / phase1Duration, 1);
+                        
+                        if (teleportDirection === 'up') {
+                            teleportYOffsetRef.current = 0.3 * phase1Progress;
+                        } else {
+                            teleportYOffsetRef.current = -0.3 * phase1Progress;
+                        }
+                        
+                        if (phase1Progress >= 1) {
+                            setTeleportPhase(2);
+                            teleportStartTimeRef.current = performance.now();
+                        }
+                        break;
+                        
+                    case 2: // フェードアウト
+                        const phase2Duration = 200;
+                        const phase2Progress = Math.min(elapsed / phase2Duration, 1);
+                        
+                        teleportOpacityRef.current = 1.0 - phase2Progress;
+                        
+                        if (phase2Progress >= 1) {
+                            setTeleportPhase(3);
+                        }
+                        break;
+                        
+                    case 3: // 層移動（瞬間）
+                        // スナップショット位置を使用（次のコマンドによるtargetPosition更新を回避）
+                        const snapPosition = teleportPositionSnapshotRef.current || targetPosition;
+                        modelRef.current.position.copy(snapPosition);
+                        modelRef.current.position.y = snapPosition.y + teleportYOffsetRef.current;
+                        
+                        setTeleportPhase(4);
+                        teleportStartTimeRef.current = performance.now();
+                        break;
+                        
+                    case 4: // フェードイン
+                        const phase4Duration = 200;
+                        const phase4Progress = Math.min(elapsed / phase4Duration, 1);
+                        
+                        teleportOpacityRef.current = phase4Progress;
+                        
+                        if (phase4Progress >= 1) {
+                            setTeleportPhase(5);
+                            teleportStartTimeRef.current = performance.now();
+                        }
+                        break;
+                        
+                    case 5: // 降下/上昇（元の高さに戻る）
+                        const phase5Duration = 300;
+                        const phase5Progress = Math.min(elapsed / phase5Duration, 1);
+                        
+                        if (teleportDirection === 'up') {
+                            teleportYOffsetRef.current = 0.3 * (1 - phase5Progress);
+                        } else {
+                            teleportYOffsetRef.current = -0.3 * (1 - phase5Progress);
+                        }
+                        
+                        if (phase5Progress >= 1) {
+                            setIsTeleporting(false);
+                            setTeleportPhase(0);
+                            teleportYOffsetRef.current = 0;
+                            teleportOpacityRef.current = 1.0;
+                            teleportPositionSnapshotRef.current = null; // スナップショットをクリア
+                            
+                            // 位置をrobotStateから直接計算して設定
+                            const finalX = robotState.x * tileSize + gridOffset;
+                            const finalY = 0.05;
+                            const finalZ = robotState.y * tileSize + gridOffset;
+                            modelRef.current.position.set(finalX, finalY, finalZ);
+                            
+                            // テレポート完了直後フラグを設定
+                            justFinishedTeleportRef.current = true;
+                            teleportFinishTimeRef.current = performance.now();
+                            
+                            // マテリアルの不透明度をリセット
+                            modelRef.current.traverse((child) => {
+                                if (child instanceof THREE.Mesh && child.material) {
+                                    if (Array.isArray(child.material)) {
+                                        child.material.forEach(mat => {
+                                            mat.opacity = 1.0;
+                                            mat.transparent = false;
+                                        });
+                                    } else {
+                                        child.material.opacity = 1.0;
+                                        child.material.transparent = false;
+                                    }
+                                }
+                            });
+                        }
+                        break;
+                }
                 
-                // 回転（slerpのまま）
-                modelRef.current.quaternion.slerp(targetQuaternion, delta * rotateSpeed);
+                // y座標オフセットを適用
+                // アニメーション中はスナップショット位置を使用
+                const basePosition = teleportPositionSnapshotRef.current || targetPosition;
+                if (teleportPhase !== 3) {
+                    modelRef.current.position.copy(basePosition);
+                    modelRef.current.position.y = basePosition.y + teleportYOffsetRef.current;
+                }
+                
+                // 不透明度を適用
+                modelRef.current.traverse((child) => {
+                    if (child instanceof THREE.Mesh && child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(mat => {
+                                mat.transparent = true;
+                                mat.opacity = teleportOpacityRef.current;
+                            });
+                        } else {
+                            child.material.transparent = true;
+                            child.material.opacity = teleportOpacityRef.current;
+                        }
+                    }
+                });
+                
+                // 回転は常に適用
+                modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
+                
             } else {
-                // 到達したら正確に目標位置に設定
-                modelRef.current.position.copy(targetPosition);
+                // ★ 通常の移動処理（既存のロジック）
+                // ★ 修正: 一定速度で移動（アニメーション非依存）
+                const moveSpeed = 0.8;
+                const rotateSpeed = 4.0;
+                
+                // 目標位置との距離を計算
+                const distance = modelRef.current.position.distanceTo(targetPosition);
+                
+                // テレポート完了直後（1500ms以内）は瞬間移動をスキップ
+                if (justFinishedTeleportRef.current) {
+                    const timeSinceTeleport = performance.now() - teleportFinishTimeRef.current;
+                    if (timeSinceTeleport > 1500) {
+                        justFinishedTeleportRef.current = false;
+                    }
+                }
+                
+                // ★ リセット検出: 距離が1マス（0.5）以上離れている場合、またはアニメーション停止中は瞬間移動
+                // ただし、テレポート完了直後はスキップ
+                if ((distance > 0.75 || currentCommandIndex === -1) && !justFinishedTeleportRef.current) {
+                    // リセットなど大きな移動 → 瞬間移動
+                    modelRef.current.position.copy(targetPosition);
+                    modelRef.current.quaternion.copy(targetQuaternion);
+                } else {
+                    // ★ 位置の移動（距離がある場合のみ）
+                    if (distance > 0.01) {
+                        // 通常の移動: 一定速度で移動
+                        const maxMove = moveSpeed * delta;
+                        const moveAmount = Math.min(distance, maxMove);
+                        
+                        // 目標位置に向かって移動
+                        const direction = new THREE.Vector3()
+                            .subVectors(targetPosition, modelRef.current.position)
+                            .normalize();
+                        modelRef.current.position.add(direction.multiplyScalar(moveAmount));
+                    } else {
+                        // 到達したら正確に目標位置に設定
+                        modelRef.current.position.copy(targetPosition);
+                    }
+                    
+                    // ★ 回転処理（位置の移動とは独立）
+                    // 常に目標の回転に向かって補間
+                    modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
+                }
             }
         }
         if (mixer) mixer.update(delta);
@@ -615,9 +896,10 @@ export function MazeView3D({
     }, [isStreamReady, onMarkerDetected]); 
 
     // --- 現在のタイルを計算 ---
+    const currentLayer = robotState.z >= 0 && robotState.z < maze.layers.length ? maze.layers[robotState.z] : null;
     const robotTile =
-        maze.grid[robotState.y] && maze.grid[robotState.y][robotState.x]
-            ? maze.grid[robotState.y][robotState.x]
+        currentLayer && currentLayer[robotState.y] && currentLayer[robotState.y][robotState.x]
+            ? currentLayer[robotState.y][robotState.x]
             : "floor"; // 範囲外の場合は 'floor' として扱う (安全対策)
     // --- 修正点 終了 ---
 
@@ -628,6 +910,13 @@ export function MazeView3D({
 
             <div className="absolute top-2 left-2 z-10 bg-black/70 px-2 py-1 text-xs text-white rounded">
                 {debugInfo} (QR Mode)
+            </div>
+
+            {/* 層番号表示 */}
+            <div className="absolute top-10 left-2 z-10 bg-black/70 px-3 py-2 rounded border border-neon-cyan/50">
+                <div className="text-sm font-bold text-neon-cyan">
+                    Layer {robotState.z + 1} / {maze.layers.length}
+                </div>
             </div>
 
             <video
@@ -692,7 +981,56 @@ export function MazeView3D({
                     rotation={[Math.PI / 4.5, 0, 0]}
                 >
                     <Suspense fallback={null}>
-                        <MazeMap grid={maze.grid} mazeSize={maze.size} />
+                        {/* 複数層の表示 */}
+                        {maze.layers.map((layer, layerIndex) => {
+                            // ロボットの現在の層
+                            const currentZ = robotState.z;
+                            
+                            // 透明度を計算（すべての層を表示）
+                            let layerOpacity = 1.0;
+                            if (layerIndex !== currentZ) {
+                                layerOpacity = 0.5; // 現在の層以外は薄く
+                            }
+                            
+                            // 層の高さオフセット（各層を0.8単位で縦に配置）
+                            const layerYOffset = (layerIndex - currentZ) * 0.8;
+                            
+                            return (
+                                    <group key={`layer-${layerIndex}`} position={[0, layerYOffset, 0]}>
+                                        <MazeMap 
+                                            grid={layer} 
+                                            mazeSize={maze.size}
+                                            opacity={layerOpacity}
+                                            layerOffset={0}
+                                        />
+                                        
+                                        {/* 層番号の3Dテキスト表示 */}
+                                        {/* 層番号の3Dテキスト表示（Text3Dで厚みを追加） */}
+                                        <Center
+                                            position={[-(maze.size * 0.5) / 2 - 0.8, 0.5, 0]}
+                                            rotation={[0, Math.PI / 4, 0]}
+                                        >
+                                            <Text3D
+                                                font="https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
+                                                size={0.5}
+                                                height={0.02} // 薄く
+                                                curveSegments={12}
+                                                bevelEnabled
+                                                bevelThickness={0.01}
+                                                bevelSize={0.01}
+                                                bevelOffset={0}
+                                                bevelSegments={5}
+                                            >
+                                                {layerIndex + 1}F
+                                                <meshStandardMaterial color="#E0FFFF" emissive="#E0FFFF" emissiveIntensity={2.0} toneMapped={false} />
+                                                <meshStandardMaterial color="#87CEEB" emissive="#87CEEB" emissiveIntensity={1.5} toneMapped={false} />
+                                            </Text3D>
+                                        </Center>
+                                        
+                                    </group>
+                                );
+                        })}
+                        
                         <RobotModel
                             robotState={robotState}
                             mazeSize={maze.size}

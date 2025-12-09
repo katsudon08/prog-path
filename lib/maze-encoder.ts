@@ -29,7 +29,7 @@ export function decodeMazeFromQR(qrData: string): MazeData | null {
         const maze: MazeData = JSON.parse(json);
 
         // 基本的なバリデーション
-        if (!maze.id || !maze.name || !maze.grid || !maze.size) {
+        if (!maze.id || !maze.name || !maze.layers || !maze.size) {
             console.error("Invalid maze data structure");
             return null;
         }
