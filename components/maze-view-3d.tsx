@@ -81,16 +81,19 @@ function TeleportTile({
     
     useFrame((state) => {
         if (meshRef.current) {
-            // 発光の脈動アニメーション
-            const intensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.3;
+            // 発光の脈動アニメーション（より強調）
+            const intensity = 0.6 + Math.sin(state.clock.elapsedTime * 2) * 0.4;
             const material = meshRef.current.material as THREE.MeshStandardMaterial;
             material.emissiveIntensity = intensity;
         }
         
         if (arrowRef.current) {
-            // 矢印の上下アニメーション
-            const bounceAmount = Math.sin(state.clock.elapsedTime * 3) * 0.03;
-            arrowRef.current.position.y = 0.05 + bounceAmount;
+            // 矢印の上下アニメーション（振幅を増やす）
+            const bounceAmount = Math.sin(state.clock.elapsedTime * 3) * 0.05;
+            arrowRef.current.position.y = 0.08 + bounceAmount;
+            
+            // 矢印の回転アニメーション（立体的な動き）
+            arrowRef.current.rotation.y = state.clock.elapsedTime * 0.8;
         }
     });
     
@@ -277,6 +280,22 @@ function RobotModel({
     // 落下（移動不能）になった瞬間の座標を保持
     const immobilizedPositionRef = useRef<THREE.Vector3 | null>(null);
 
+    // ★ テレポートアニメーション用の状態管理
+    const [isTeleporting, setIsTeleporting] = useState(false);
+    const [teleportPhase, setTeleportPhase] = useState(0); // 0-5
+    const [teleportDirection, setTeleportDirection] = useState<'up' | 'down'>('up');
+    
+    // テレポートアニメーション用のタイマーとオフセット
+    const teleportStartTimeRef = useRef<number>(0);
+    const prevZRef = useRef(robotState.z);
+    const teleportYOffsetRef = useRef(0);
+    const teleportOpacityRef = useRef(1.0);
+    // テレポート開始時の位置を保存（アニメーション中の位置固定用）
+    const teleportPositionSnapshotRef = useRef<THREE.Vector3 | null>(null);
+    // テレポート完了直後フラグ（瞬間移動を防ぐ）
+    const justFinishedTeleportRef = useRef(false);
+    const teleportFinishTimeRef = useRef(0);
+
 
     const tileSize = 0.5;
     const gridOffset = -(mazeSize * tileSize) / 2 + tileSize / 2;
@@ -328,6 +347,30 @@ function RobotModel({
             ),
         [robotState.direction]
     );
+
+    // ★ テレポート検出用のuseEffect
+    useEffect(() => {
+        // z座標の変化を検出
+        // 以下の場合はテレポートアニメーションをスキップ:
+        // 1. リセット時（currentCommandIndex === -1）
+        // 2. スタート位置への移動（robotState.z === 0）
+        if (
+            robotState.z !== prevZRef.current && 
+            !isTeleporting && 
+            currentCommandIndex !== -1 &&  // リセット時はスキップ
+            robotState.z !== 0  // スタート位置への移動はスキップ
+        ) {
+            // テレポート開始
+            const direction = robotState.z > prevZRef.current ? 'up' : 'down';
+            setIsTeleporting(true);
+            setTeleportPhase(1);
+            setTeleportDirection(direction);
+            teleportStartTimeRef.current = performance.now();
+            // テレポート開始時の位置をスナップショットとして保存
+            teleportPositionSnapshotRef.current = targetPosition.clone();
+        }
+        prevZRef.current = robotState.z;
+    }, [robotState.z, isTeleporting, currentCommandIndex, targetPosition]);
 
 
     // useEffect のロジック
@@ -462,38 +505,175 @@ function RobotModel({
     // useFrame
     useFrame((_, delta) => {
         if (modelRef.current) {
-            // ★ 修正: 一定速度で移動（アニメーション非依存）
-            const moveSpeed = 0.8; // マス/秒（調整可能）
-            const rotateSpeed = 4.0; // ラジアン/秒（調整可能）
-            
-            // 目標位置との距離を計算
-            const distance = modelRef.current.position.distanceTo(targetPosition);
-            
-            // ★ リセット検出: 距離が1マス（0.5）以上離れている場合、またはアニメーション停止中は瞬間移動
-            if (distance > 0.75 || currentCommandIndex === -1) {
-                // リセットなど大きな移動 → 瞬間移動
-                modelRef.current.position.copy(targetPosition);
-                modelRef.current.quaternion.copy(targetQuaternion);
-            } else {
-                // ★ 位置の移動（距離がある場合のみ）
-                if (distance > 0.01) {
-                    // 通常の移動: 一定速度で移動
-                    const maxMove = moveSpeed * delta; // 今回移動できる最大距離
-                    const moveAmount = Math.min(distance, maxMove); // 実際の移動量
-                    
-                    // 目標位置に向かって移動
-                    const direction = new THREE.Vector3()
-                        .subVectors(targetPosition, modelRef.current.position)
-                        .normalize();
-                    modelRef.current.position.add(direction.multiplyScalar(moveAmount));
-                } else {
-                    // 到達したら正確に目標位置に設定
-                    modelRef.current.position.copy(targetPosition);
+            // ★ テレポートアニメーション処理
+            if (isTeleporting) {
+                const elapsed = performance.now() - teleportStartTimeRef.current;
+                
+                switch (teleportPhase) {
+                    case 1: // 上昇/降下
+                        const phase1Duration = 300;
+                        const phase1Progress = Math.min(elapsed / phase1Duration, 1);
+                        
+                        if (teleportDirection === 'up') {
+                            teleportYOffsetRef.current = 0.3 * phase1Progress;
+                        } else {
+                            teleportYOffsetRef.current = -0.3 * phase1Progress;
+                        }
+                        
+                        if (phase1Progress >= 1) {
+                            setTeleportPhase(2);
+                            teleportStartTimeRef.current = performance.now();
+                        }
+                        break;
+                        
+                    case 2: // フェードアウト
+                        const phase2Duration = 200;
+                        const phase2Progress = Math.min(elapsed / phase2Duration, 1);
+                        
+                        teleportOpacityRef.current = 1.0 - phase2Progress;
+                        
+                        if (phase2Progress >= 1) {
+                            setTeleportPhase(3);
+                        }
+                        break;
+                        
+                    case 3: // 層移動（瞬間）
+                        // スナップショット位置を使用（次のコマンドによるtargetPosition更新を回避）
+                        const snapPosition = teleportPositionSnapshotRef.current || targetPosition;
+                        modelRef.current.position.copy(snapPosition);
+                        modelRef.current.position.y = snapPosition.y + teleportYOffsetRef.current;
+                        
+                        setTeleportPhase(4);
+                        teleportStartTimeRef.current = performance.now();
+                        break;
+                        
+                    case 4: // フェードイン
+                        const phase4Duration = 200;
+                        const phase4Progress = Math.min(elapsed / phase4Duration, 1);
+                        
+                        teleportOpacityRef.current = phase4Progress;
+                        
+                        if (phase4Progress >= 1) {
+                            setTeleportPhase(5);
+                            teleportStartTimeRef.current = performance.now();
+                        }
+                        break;
+                        
+                    case 5: // 降下/上昇（元の高さに戻る）
+                        const phase5Duration = 300;
+                        const phase5Progress = Math.min(elapsed / phase5Duration, 1);
+                        
+                        if (teleportDirection === 'up') {
+                            teleportYOffsetRef.current = 0.3 * (1 - phase5Progress);
+                        } else {
+                            teleportYOffsetRef.current = -0.3 * (1 - phase5Progress);
+                        }
+                        
+                        if (phase5Progress >= 1) {
+                            setIsTeleporting(false);
+                            setTeleportPhase(0);
+                            teleportYOffsetRef.current = 0;
+                            teleportOpacityRef.current = 1.0;
+                            teleportPositionSnapshotRef.current = null; // スナップショットをクリア
+                            
+                            // 位置をrobotStateから直接計算して設定
+                            const finalX = robotState.x * tileSize + gridOffset;
+                            const finalY = 0.05;
+                            const finalZ = robotState.y * tileSize + gridOffset;
+                            modelRef.current.position.set(finalX, finalY, finalZ);
+                            
+                            // テレポート完了直後フラグを設定
+                            justFinishedTeleportRef.current = true;
+                            teleportFinishTimeRef.current = performance.now();
+                            
+                            // マテリアルの不透明度をリセット
+                            modelRef.current.traverse((child) => {
+                                if (child instanceof THREE.Mesh && child.material) {
+                                    if (Array.isArray(child.material)) {
+                                        child.material.forEach(mat => {
+                                            mat.opacity = 1.0;
+                                            mat.transparent = false;
+                                        });
+                                    } else {
+                                        child.material.opacity = 1.0;
+                                        child.material.transparent = false;
+                                    }
+                                }
+                            });
+                        }
+                        break;
                 }
                 
-                // ★ 回転処理（位置の移動とは独立）
-                // 常に目標の回転に向かって補間
+                // y座標オフセットを適用
+                // アニメーション中はスナップショット位置を使用
+                const basePosition = teleportPositionSnapshotRef.current || targetPosition;
+                if (teleportPhase !== 3) {
+                    modelRef.current.position.copy(basePosition);
+                    modelRef.current.position.y = basePosition.y + teleportYOffsetRef.current;
+                }
+                
+                // 不透明度を適用
+                modelRef.current.traverse((child) => {
+                    if (child instanceof THREE.Mesh && child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(mat => {
+                                mat.transparent = true;
+                                mat.opacity = teleportOpacityRef.current;
+                            });
+                        } else {
+                            child.material.transparent = true;
+                            child.material.opacity = teleportOpacityRef.current;
+                        }
+                    }
+                });
+                
+                // 回転は常に適用
                 modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
+                
+            } else {
+                // ★ 通常の移動処理（既存のロジック）
+                // ★ 修正: 一定速度で移動（アニメーション非依存）
+                const moveSpeed = 0.8;
+                const rotateSpeed = 4.0;
+                
+                // 目標位置との距離を計算
+                const distance = modelRef.current.position.distanceTo(targetPosition);
+                
+                // テレポート完了直後（1500ms以内）は瞬間移動をスキップ
+                if (justFinishedTeleportRef.current) {
+                    const timeSinceTeleport = performance.now() - teleportFinishTimeRef.current;
+                    if (timeSinceTeleport > 1500) {
+                        justFinishedTeleportRef.current = false;
+                    }
+                }
+                
+                // ★ リセット検出: 距離が1マス（0.5）以上離れている場合、またはアニメーション停止中は瞬間移動
+                // ただし、テレポート完了直後はスキップ
+                if ((distance > 0.75 || currentCommandIndex === -1) && !justFinishedTeleportRef.current) {
+                    // リセットなど大きな移動 → 瞬間移動
+                    modelRef.current.position.copy(targetPosition);
+                    modelRef.current.quaternion.copy(targetQuaternion);
+                } else {
+                    // ★ 位置の移動（距離がある場合のみ）
+                    if (distance > 0.01) {
+                        // 通常の移動: 一定速度で移動
+                        const maxMove = moveSpeed * delta;
+                        const moveAmount = Math.min(distance, maxMove);
+                        
+                        // 目標位置に向かって移動
+                        const direction = new THREE.Vector3()
+                            .subVectors(targetPosition, modelRef.current.position)
+                            .normalize();
+                        modelRef.current.position.add(direction.multiplyScalar(moveAmount));
+                    } else {
+                        // 到達したら正確に目標位置に設定
+                        modelRef.current.position.copy(targetPosition);
+                    }
+                    
+                    // ★ 回転処理（位置の移動とは独立）
+                    // 常に目標の回転に向かって補間
+                    modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
+                }
             }
         }
         if (mixer) mixer.update(delta);

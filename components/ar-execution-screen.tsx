@@ -118,6 +118,9 @@ export function ARExecutionScreen() {
     // ★★★★★ バグ修正 ★★★★★
     // 迷路の最新状態を Ref にも保持する
     const mazeRef = useRef<MazeData | null>(null);
+    
+    // ★ テレポート検出用のRef
+    const isTeleportingRef = useRef<boolean>(false);
     // ★★★★★ 修正終了 ★★★★★
 
 
@@ -419,6 +422,7 @@ export function ARExecutionScreen() {
                         if (currentZ < latestMaze.layers.length - 1) {
                             newState = { ...prevState, x: newX, y: newY, z: currentZ + 1 };
                             setMoveCount((prev) => prev + 1);
+                            isTeleportingRef.current = true; // ★ テレポートフラグ
                         } else {
                             executionErrorRef.current = "これより上の階層はありません！";
                             return prevState;
@@ -427,6 +431,7 @@ export function ARExecutionScreen() {
                         if (currentZ > 0) {
                             newState = { ...prevState, x: newX, y: newY, z: currentZ - 1 };
                             setMoveCount((prev) => prev + 1);
+                            isTeleportingRef.current = true; // ★ テレポートフラグ
                         } else {
                             executionErrorRef.current = "これより下の階層はありません！";
                             return prevState;
@@ -478,6 +483,18 @@ export function ARExecutionScreen() {
                 return; // インデックスを進めずに終了
             }
             // ★★★★★ 修正 終了 ★★★★★
+            
+            // ★ テレポート後の待機時間
+            if (isTeleportingRef.current) {
+                isTeleportingRef.current = false; // フラグをリセット
+                await new Promise<void>((resolve) => {
+                    const id = window.setTimeout(() => {
+                        resolve();
+                    }, 1100); // テレポートアニメーション完了まで待機（1.0秒 + 余裕0.1秒）
+                    timerIdRef.current = id;
+                });
+                timerIdRef.current = null;
+            }
             
             // 次のコマンドインデックスに進む
             setCurrentCommandIndex((prev) => prev + 1);
