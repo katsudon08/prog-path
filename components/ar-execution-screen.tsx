@@ -36,6 +36,7 @@ interface InsertionPoint {
 
 import { CommandStack } from "@/components/command-stack";
 import { MazeView3D } from "@/components/maze-view-3d";
+import { MinimapView } from "@/components/minimap-view";
 
 // flattenCommands 関数は変更なし
 function flattenCommands(commands: Command[]): Command[] {
@@ -853,6 +854,17 @@ export function ARExecutionScreen() {
                             currentCommandIndex={currentCommandIndex} // -1 が渡されるとアニメーションが停止する
                             flattenedCommands={flattenedCommands} 
                         />
+                        
+                        {/* Minimap View */}
+                        {maze && (
+                            <div className="absolute top-10 right-10 w-48 h-48 border-2 border-neon-cyan/50 rounded-lg overflow-hidden bg-space-dark/80 backdrop-blur-sm shadow-lg shadow-neon-cyan/30 z-20">
+                                <MinimapView
+                                    maze={maze}
+                                    robotState={robotState}
+                                />
+                            </div>
+                        )}
+
 
                         {/* Success Message Overlay */}
                         {gameStatus === "success" && (
