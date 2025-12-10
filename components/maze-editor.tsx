@@ -99,6 +99,55 @@ export function MazeEditor() {
     };
 
     const handleTileClick = (row: number, col: number) => {
+        // バリデーションチェック
+        const isInvalidDestination = (type: TileType) => {
+             return ["wall", "hole", "teleportUp", "teleportDown"].includes(type);
+        };
+
+        if (selectedTile === "teleportUp") {
+            if (currentLayer >= layers.length - 1) {
+                alert("上の階層が存在しません。階層を追加してください。");
+                return;
+            }
+            const upperTile = layers[currentLayer + 1][row][col];
+            if (isInvalidDestination(upperTile)) {
+                alert("真上のマスに壁や穴、テレポートがあるため、上へのテレポートは設置できません。");
+                return;
+            }
+        }
+        
+        if (selectedTile === "teleportDown") {
+             if (currentLayer <= 0) {
+                alert("下の階層が存在しません。");
+                return;
+            }
+            const lowerTile = layers[currentLayer - 1][row][col];
+             if (isInvalidDestination(lowerTile)) {
+                alert("真下のマスに壁や穴、テレポートがあるため、下へのテレポートは設置できません。");
+                return;
+            }
+        }
+
+        // 壁、穴、テレポートを置く場合、他の階層からのテレポート先になっていないかチェック
+        if (isInvalidDestination(selectedTile)) {
+             // 下からのテレポート先になっていないか
+             if (currentLayer > 0) {
+                 const lowerTile = layers[currentLayer - 1][row][col];
+                 if (lowerTile === "teleportUp") {
+                     alert("下の階層に上へのテレポートがあるため、この場所には設置できません。");
+                     return;
+                 }
+             }
+             // 上からのテレポート先になっていないか
+             if (currentLayer < layers.length - 1) {
+                 const upperTile = layers[currentLayer + 1][row][col];
+                 if (upperTile === "teleportDown") {
+                     alert("上の階層に下へのテレポートがあるため、この場所には設置できません。");
+                     return;
+                 }
+             }
+        }
+
         let newLayers = [...layers];
         
         // スタートタイルを配置する場合、既存のスタートタイルを削除
