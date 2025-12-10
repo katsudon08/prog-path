@@ -14,6 +14,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "floor"],
             ]],
             currentLayer: 0,
+            category: "順次処理",
         },
         {
             id: "maze2",
@@ -27,6 +28,7 @@ export function getInitialMazes(): MazeData[] {
                 ["wall", "wall", "wall", "wall", "floor"],
             ]],
             currentLayer: 0,
+            category: "順次処理",
         },
         {
             id: "maze3",
@@ -40,6 +42,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "goal"],
             ]],
             currentLayer: 0,
+            category: "繰り返し",
         },
         {
             id: "maze4",
@@ -53,6 +56,7 @@ export function getInitialMazes(): MazeData[] {
                 ["wall", "wall", "wall", "wall", "wall"],
             ]],
             currentLayer: 0,
+            category: "繰り返し",
         },
         {
             id: "maze5",
@@ -66,6 +70,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "floor"],
             ]],
             currentLayer: 0,
+            category: "条件分岐",
         },
         {
             id: "maze6",
@@ -79,6 +84,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "floor"],
             ]],
             currentLayer: 0,
+            category: "条件分岐",
         },
         {
             id: "maze7",
@@ -92,6 +98,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "goal"],
             ]],
             currentLayer: 0,
+            category: "応用",
         },
         {
             id: "maze8",
@@ -105,6 +112,7 @@ export function getInitialMazes(): MazeData[] {
                 ["goal", "floor", "floor", "floor", "floor"],
             ]],
             currentLayer: 0,
+            category: "応用",
         },
         {
             id: "maze9",
@@ -118,6 +126,7 @@ export function getInitialMazes(): MazeData[] {
                 ["wall", "wall", "wall", "wall", "wall"],
             ]],
             currentLayer: 0,
+            category: "応用",
         },
         {
             id: "maze10",
@@ -131,6 +140,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "hole", "floor", "hole", "goal"],
             ]],
             currentLayer: 0,
+            category: "応用",
         },
         {
             id: "maze-key-test",
@@ -144,6 +154,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "goal"],
             ]],
             currentLayer: 0,
+            category: "テスト",
         },
     ]
 }

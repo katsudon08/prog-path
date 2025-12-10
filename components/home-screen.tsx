@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, Play, ChevronRight, QrCode, Upload, X, AlertTriangle } from "lucide-react";
+import { Plus, Play, ChevronRight, QrCode, Upload, X, AlertTriangle, ChevronDown, FolderPlus, Folder } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { MazePreview } from "@/components/maze-preview";
 import { useRouter } from "next/navigation";
 import type { MazeData } from "@/lib/types";
@@ -24,7 +25,75 @@ export function HomeScreen() {
     const router = useRouter();
     const [showQRDialog, setShowQRDialog] = useState(false);
     const [qrData, setQRData] = useState("");
-    
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+    // フォルダ・DnD機能用 State
+    const [customCategories, setCustomCategories] = useState<string[]>([]);
+    const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
+    const [newFolderName, setNewFolderName] = useState("");
+    const [draggedMazeId, setDraggedMazeId] = useState<string | null>(null);
+    const [editingCategory, setEditingCategory] = useState<string | null>(null);
+    const [editingName, setEditingName] = useState("");
+
+    // カスタムカテゴリの読み込み
+    useEffect(() => {
+        const storedCategories = localStorage.getItem("progpath_categories");
+        // 初期データ読み込み時はここでstateにセットするため、expandedCategoriesの初期化はデータ読み込みeffectで行う
+
+        if (storedCategories) {
+            try {
+                const parsed = JSON.parse(storedCategories);
+                if (Array.isArray(parsed)) {
+                    setCustomCategories(parsed);
+                }
+            } catch (e) {
+                console.error("Failed to load categories", e);
+            }
+        }
+    }, []);
+
+    // カスタムカテゴリの保存
+    useEffect(() => {
+        localStorage.setItem("progpath_categories", JSON.stringify(customCategories));
+    }, [customCategories]);
+
+    // カテゴリごとに迷路をグループ化
+    const groupedMazes = mazes.reduce((acc, maze) => {
+        const category = maze.category || "未分類";
+        if (!acc[category]) {
+            acc[category] = [];
+        }
+        acc[category].push(maze);
+        return acc;
+    }, customCategories.reduce((acc, cat) => {
+        // 空のカテゴリも初期化
+        acc[cat] = acc[cat] || [];
+        return acc;
+    }, {} as Record<string, MazeData[]>));
+
+    // "未分類" は常に存在させる
+    if (!groupedMazes["未分類"] && !customCategories.includes("未分類")) {
+        // UIロジックで"未分類"が出てくるので、ここではデータとして空配列を入れておく必要はないが、
+        // ロジックの一貫性のために定義してもよい。
+        // reduceの初期値でカバーした方がきれいだが、customCategoriesに依存しない既存ロジックも生かす
+    }
+
+    // カテゴリの開閉を切り替える関数
+    const toggleCategory = (category: string) => {
+        setExpandedCategories(prev => {
+            const next = new Set(prev);
+            if (next.has(category)) {
+                next.delete(category);
+            } else {
+                next.add(category);
+            }
+            return next;
+        });
+    };
+
+    // 初期表示時にすべてのカテゴリを開くロジックは、データ読み込み時に移動
+
+
     // QR読み込み用のstate
     const [showImportDialog, setShowImportDialog] = useState(false);
     const [isStreamReady, setIsStreamReady] = useState(false);
@@ -37,7 +106,7 @@ export function HomeScreen() {
     const migrateMazeData = (maze: any): MazeData => {
         // 既に新形式の場合はそのまま返す
         if (maze.layers) return maze as MazeData;
-        
+
         // 旧形式の場合は変換
         return {
             ...maze,
@@ -71,6 +140,19 @@ export function HomeScreen() {
                 "progpath_mazes",
                 JSON.stringify(loadedMazes)
             );
+            // 初期表示：全カテゴリ展開
+            const categories = new Set(loadedMazes.map(m => m.category || "未分類"));
+            // customCategoriesも含める
+            const storedCategories = localStorage.getItem("progpath_categories");
+            if (storedCategories) {
+                try {
+                    const parsedCat = JSON.parse(storedCategories);
+                    if (Array.isArray(parsedCat)) {
+                        parsedCat.forEach(c => categories.add(c));
+                    }
+                } catch(e) {}
+            }
+            setExpandedCategories(categories);
         } else {
             // localStorage がない、または空配列の場合
             const initialMazes = getInitialMazes();
@@ -79,6 +161,9 @@ export function HomeScreen() {
                 "progpath_mazes",
                 JSON.stringify(initialMazes)
             );
+            // 初期表示：全カテゴリ展開
+            const categories = new Set(initialMazes.map(m => m.category || "未分類"));
+            setExpandedCategories(categories);
             if (initialMazes.length > 0) {
                 setSelectedMaze(initialMazes[0]);
             }
@@ -109,6 +194,113 @@ export function HomeScreen() {
         } catch (error) {
             alert("QRコードの生成に失敗しました");
         }
+    };
+
+    // フォルダ作成
+    const handleCreateFolder = () => {
+        if (!newFolderName.trim()) return;
+        if (customCategories.includes(newFolderName)) {
+            alert("同名のフォルダが既に存在します");
+            return;
+        }
+        setCustomCategories([...customCategories, newFolderName]);
+        setExpandedCategories(prev => new Set(prev).add(newFolderName));
+        setShowNewFolderDialog(false);
+        setNewFolderName("");
+    };
+
+    // フォルダ名変更
+    const handleRenameStart = (category: string) => {
+        setEditingCategory(category);
+        setEditingName(category);
+    };
+
+    const handleRenameSave = () => {
+        if (!editingCategory || !editingName.trim()) {
+            setEditingCategory(null);
+            return;
+        }
+        
+        const oldName = editingCategory;
+        const newName = editingName.trim();
+
+        if (oldName === newName) {
+            setEditingCategory(null);
+            return;
+        }
+
+        if (customCategories.includes(newName) || ["順次処理", "繰り返し", "条件分岐", "応用", "テスト", "未分類"].includes(newName)) {
+            alert("その名前のフォルダは既に存在するか、予約されています");
+            return;
+        }
+
+        // 1. customCategoriesの更新
+        const newCategories = customCategories.map(cat => cat === oldName ? newName : cat);
+        setCustomCategories(newCategories);
+
+        // 2. mazesの更新
+        const updatedMazes = mazes.map(maze => {
+            if (maze.category === oldName) {
+                return { ...maze, category: newName };
+            }
+            return maze;
+        });
+        setMazes(updatedMazes);
+        localStorage.setItem("progpath_mazes", JSON.stringify(updatedMazes));
+
+        // 3. expandedCategoriesの更新
+        setExpandedCategories(prev => {
+            const next = new Set(prev);
+            if (next.has(oldName)) {
+                next.delete(oldName);
+                next.add(newName);
+            }
+            return next;
+        });
+
+        // 完了
+        setEditingCategory(null);
+    };
+
+    const handleRenameCancel = () => {
+        setEditingCategory(null);
+    };
+
+    // DnDハンドラー
+    const handleDragStart = (e: React.DragEvent, mazeId: string) => {
+        e.dataTransfer.setData("text/plain", mazeId);
+        setDraggedMazeId(mazeId);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault(); // ドロップを許可
+        e.currentTarget.classList.add("bg-neon-blue/20"); // ハイライト
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.currentTarget.classList.remove("bg-neon-blue/20");
+    };
+
+    const handleDrop = (e: React.DragEvent, targetCategory: string) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove("bg-neon-blue/20");
+
+        const mazeId = draggedMazeId;
+        if (!mazeId) return;
+
+        const updatedMazes = mazes.map(m => {
+            if (m.id === mazeId) {
+                return { ...m, category: targetCategory };
+            }
+            return m;
+        });
+
+        setMazes(updatedMazes);
+        localStorage.setItem("progpath_mazes", JSON.stringify(updatedMazes));
+        setDraggedMazeId(null);
+
+        // ターゲットカテゴリを開く
+        setExpandedCategories(prev => new Set(prev).add(targetCategory));
     };
 
     // カメラ起動ロジック
@@ -177,7 +369,7 @@ export function HomeScreen() {
 
         return () => {
             clearTimeout(timer);
-            
+
             if (stream) {
                 stream.getTracks().forEach((track) => track.stop());
                 console.log("🛑 Webcam stream stopped.");
@@ -242,7 +434,7 @@ export function HomeScreen() {
                 if (code && code.data) {
                     const qrCodeData = code.data;
                     console.log("🔍 QR Code detected:", qrCodeData);
-                    
+
                     // 迷路QRコードのチェック
                     if (isMazeQRCode(qrCodeData)) {
                         console.log("✅ Valid maze QR code");
@@ -295,18 +487,24 @@ export function HomeScreen() {
                             </h2>
                             <Button
                                 onClick={handleCreateNew}
-                                className="w-full bg-neon-cyan text-space-dark hover:bg-neon-cyan/90"
+                                className="w-full bg-neon-cyan text-space-dark hover:bg-neon-cyan/80"
                             >
                                 <Plus className="mr-2 h-5 w-5" />
                                 新規作成
                             </Button>
                             <Button
-                                onClick={handleImportMaze}
-                                variant="outline"
-                                className="w-full mt-2 border-neon-purple text-neon-purple hover:bg-neon-purple/10"
+                                className="w-full mt-2 border border-neon-purple text-neon-purple bg-neon-purple/10 hover:bg-neon-purple/30"
                             >
                                 <Upload className="mr-2 h-5 w-5" />
                                 迷路を読み込む
+                            </Button>
+                            <Button
+                                onClick={() => setShowNewFolderDialog(true)}
+                                variant="outline"
+                                className="w-full mt-2 border-neon-green text-neon-green hover:text-neon-green bg-neon-green/10 hover:bg-neon-green/30"
+                            >
+                                <FolderPlus className="mr-2 h-5 w-5" />
+                                フォルダ作成
                             </Button>
                         </div>
                     </div>
@@ -314,27 +512,103 @@ export function HomeScreen() {
                     {/* Scrollable List */}
                     <div className="flex-1 overflow-y-auto bg-space-dark">
                         <div>
-                            {mazes.map((maze) => (
-                                <button
-                                    key={maze.id}
-                                    onClick={() => setSelectedMaze(maze)}
-                                    className={`w-full border-b border-neon-blue/20 p-4 text-left transition-all hover:bg-neon-blue/10 ${
-                                        selectedMaze?.id === maze.id
-                                            ? "bg-neon-blue/20 border-l-4 border-l-neon-cyan"
-                                            : ""
-                                    }`}
+                            {Object.entries(groupedMazes).sort((a, b) => {
+                                // カテゴリの並び順定義
+                                const order = ["順次処理", "繰り返し", "条件分岐", "応用", "テスト", "未分類"];
+                                // カスタムカテゴリは最後の方に
+                                const indexA = order.indexOf(a[0]);
+                                const indexB = order.indexOf(b[0]);
+                                if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                                if (indexA !== -1) return -1;
+                                if (indexB !== -1) return 1;
+                                return a[0].localeCompare(b[0]);
+                            }).map(([category, categoryMazes]) => (
+                                <div 
+                                    key={category} 
+                                    className="border-b border-neon-blue/20 transition-colors duration-200"
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={(e) => handleDrop(e, category)}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-medium text-neon-cyan">
-                                            {maze.name}
-                                        </span>
-                                        <ChevronRight className="h-5 w-5 text-neon-blue" />
+                                    <div
+                                        onClick={() => toggleCategory(category)}
+                                        className="flex w-full items-center justify-between bg-space-dark/80 p-3 text-left hover:bg-neon-blue/10 cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <Folder className="h-4 w-4 text-neon-purple shrink-0" />
+                                            {editingCategory === category ? (
+                                                <Input
+                                                    value={editingName}
+                                                    onChange={(e) => setEditingName(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter") {
+                                                            e.stopPropagation();
+                                                            handleRenameSave();
+                                                        } else if (e.key === "Escape") {
+                                                            e.stopPropagation();
+                                                            handleRenameCancel();
+                                                        }
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onBlur={handleRenameSave}
+                                                    autoFocus
+                                                    className="h-6 py-0 text-sm bg-space-dark border-neon-blue/50 text-white"
+                                                />
+                                            ) : (
+                                                <span 
+                                                    className="font-semibold text-neon-purple text-sm select-none"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onDoubleClick={(e) => {
+                                                        e.stopPropagation();
+                                                        // カスタムカテゴリのみ変更可能にするチェックを入れることも可能だが、
+                                                        // 一旦すべてのカテゴリで変更可能にする（ただし予約語チェックはある）
+                                                        // もしシステムカテゴリを変更させたくない場合はここにガードを入れる
+                                                        if (["順次処理", "繰り返し", "条件分岐", "応用", "テスト", "未分類"].includes(category) && !customCategories.includes(category)) {
+                                                            return;
+                                                        }
+                                                        handleRenameStart(category);
+                                                    }}
+                                                >
+                                                    {category}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {expandedCategories.has(category) ? (
+                                            <ChevronDown className="h-4 w-4 text-neon-purple" />
+                                        ) : (
+                                            <ChevronRight className="h-4 w-4 text-neon-purple" />
+                                        )}
                                     </div>
-                                    <div className="mt-1 text-sm text-muted-foreground">
-                                        {maze.layers[0]?.length || 0}×
-                                        {maze.layers[0]?.[0]?.length || 0} グリッド
-                                    </div>
-                                </button>
+                                    
+                                    {expandedCategories.has(category) && (
+                                        <div className="min-h-[10px]">
+                                            {categoryMazes.length === 0 && (
+                                                <div className="p-3 pl-10 text-xs text-muted-foreground italic">
+                                                    迷路をドラッグして移動
+                                                </div>
+                                            )}
+                                            {categoryMazes.map((maze) => (
+                                                <button
+                                                    key={maze.id}
+                                                    draggable
+                                                    onDragStart={(e) => handleDragStart(e, maze.id)}
+                                                    onClick={() => setSelectedMaze(maze)}
+                                                    className={`w-full border-t border-neon-blue/10 p-3 pl-6 text-left transition-all hover:bg-neon-blue/10 cursor-move ${
+                                                        selectedMaze?.id === maze.id
+                                                            ? "bg-neon-blue/20 border-l-4 border-l-neon-cyan"
+                                                            : "border-l-4 border-l-transparent"
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className={`text-sm ${selectedMaze?.id === maze.id ? "font-bold text-neon-cyan" : "text-gray-300"}`}>
+                                                            {maze.name}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -458,7 +732,7 @@ export function HomeScreen() {
                     </div>
                 </DialogContent>
             </Dialog>
-            
+
             {/* QRコード読み込みダイアログ */}
             <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
                 <DialogContent className="sm:max-w-2xl border-neon-purple/30 bg-space-dark">
@@ -495,7 +769,7 @@ export function HomeScreen() {
                                 />
                                 {/* QRコードスキャン用の枠線 */}
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <div 
+                                    <div
                                         className="border-4 border-neon-cyan rounded-lg shadow-lg"
                                         style={{
                                             width: '60%',
@@ -518,6 +792,32 @@ export function HomeScreen() {
                     </p>
                 </DialogContent>
             </Dialog>
+            {/* フォルダ作成ダイアログ */}
+            <Dialog open={showNewFolderDialog} onOpenChange={setShowNewFolderDialog}>
+                <DialogContent className="sm:max-w-md border-neon-green/30 bg-space-dark">
+                    <DialogHeader>
+                        <DialogTitle className="text-neon-cyan">
+                            新しいフォルダを作成
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-4 p-4">
+                        <Input
+                            placeholder="フォルダ名を入力"
+                            value={newFolderName}
+                            onChange={(e) => setNewFolderName(e.target.value)}
+                            className="bg-space-darker border-neon-blue/50 text-white"
+                        />
+                        <Button 
+                            onClick={handleCreateFolder}
+                            className="bg-neon-green text-space-dark hover:bg-neon-green/80"
+                        >
+                            <FolderPlus className="mr-2 h-4 w-4" />
+                            作成
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
