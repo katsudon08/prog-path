@@ -743,6 +743,33 @@ export function ARExecutionScreen() {
 
     // Function to remove a command (no changes)
     const handleRemoveCommand = (index: number) => {
+        // ★ 修正: ループ構築中の削除処理
+        if (isBuildingLoop) {
+            if (buildingLoopIndex === index) {
+                // 構築中のループ自体が削除された -> キャンセル
+                setIsBuildingLoop(false);
+                setBuildingLoopIndex(null);
+                setTempLoopCommand(null);
+                // 挿入位置をリセット（ルートの末尾へ）
+                setInsertionPoint({
+                    parentIndex: null,
+                    childIndex: Math.max(0, commands.length - 1)
+                });
+            } else if (buildingLoopIndex !== null && index < buildingLoopIndex) {
+                // 構築中のループより前の要素が削除された -> インデックス調整
+                const newLoopIndex = buildingLoopIndex - 1;
+                setBuildingLoopIndex(newLoopIndex);
+                
+                // もし挿入位置がそのループ内であれば、親インデックスも更新
+                if (insertionPoint.parentIndex === buildingLoopIndex) {
+                     setInsertionPoint(prev => ({
+                         ...prev,
+                         parentIndex: newLoopIndex
+                     }));
+                }
+            }
+        }
+
         setCommands(commands.filter((_, i) => i !== index));
 
         // ★ 追加: 削除時のフィードバックメッセージ
