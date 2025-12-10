@@ -493,6 +493,7 @@ export function HomeScreen() {
                                 新規作成
                             </Button>
                             <Button
+                                onClick={handleImportMaze}
                                 className="w-full mt-2 border border-neon-purple text-neon-purple bg-neon-purple/10 hover:bg-neon-purple/30"
                             >
                                 <Upload className="mr-2 h-5 w-5" />
