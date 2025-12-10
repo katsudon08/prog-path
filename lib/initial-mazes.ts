@@ -14,7 +14,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "floor"],
             ]],
             currentLayer: 0,
-            category: "順次処理",
+            category: "未分類",
         },
         {
             id: "maze2",
@@ -28,7 +28,7 @@ export function getInitialMazes(): MazeData[] {
                 ["wall", "wall", "wall", "wall", "floor"],
             ]],
             currentLayer: 0,
-            category: "順次処理",
+            category: "未分類",
         },
         {
             id: "maze3",
@@ -42,7 +42,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "goal"],
             ]],
             currentLayer: 0,
-            category: "繰り返し",
+            category: "未分類",
         },
         {
             id: "maze4",
@@ -56,7 +56,7 @@ export function getInitialMazes(): MazeData[] {
                 ["wall", "wall", "wall", "wall", "wall"],
             ]],
             currentLayer: 0,
-            category: "繰り返し",
+            category: "未分類",
         },
         {
             id: "maze5",
@@ -70,7 +70,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "floor"],
             ]],
             currentLayer: 0,
-            category: "条件分岐",
+            category: "未分類",
         },
         {
             id: "maze6",
@@ -84,7 +84,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "floor"],
             ]],
             currentLayer: 0,
-            category: "条件分岐",
+            category: "未分類",
         },
         {
             id: "maze7",
@@ -98,7 +98,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "floor", "floor", "floor", "goal"],
             ]],
             currentLayer: 0,
-            category: "応用",
+            category: "未分類",
         },
         {
             id: "maze8",
@@ -112,7 +112,7 @@ export function getInitialMazes(): MazeData[] {
                 ["goal", "floor", "floor", "floor", "floor"],
             ]],
             currentLayer: 0,
-            category: "応用",
+            category: "未分類",
         },
         {
             id: "maze9",
@@ -126,7 +126,7 @@ export function getInitialMazes(): MazeData[] {
                 ["wall", "wall", "wall", "wall", "wall"],
             ]],
             currentLayer: 0,
-            category: "応用",
+            category: "未分類",
         },
         {
             id: "maze10",
@@ -140,21 +140,7 @@ export function getInitialMazes(): MazeData[] {
                 ["floor", "hole", "floor", "hole", "goal"],
             ]],
             currentLayer: 0,
-            category: "応用",
-        },
-        {
-            id: "maze-key-test",
-            name: "鍵+ゴールテスト",
-            size: 5,
-            layers: [[
-                ["start", "floor", "key", "floor", "floor"],
-                ["floor", "wall", "wall", "wall", "floor"],
-                ["key", "wall", "floor", "floor", "floor"],
-                ["floor", "wall", "floor", "wall", "floor"],
-                ["floor", "floor", "floor", "floor", "goal"],
-            ]],
-            currentLayer: 0,
-            category: "テスト",
+            category: "未分類",
         },
     ]
 }
