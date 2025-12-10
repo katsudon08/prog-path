@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, Play, ChevronRight, QrCode, Upload, X, AlertTriangle, ChevronDown, FolderPlus, Folder } from "lucide-react";
+import { Plus, Play, ChevronRight, QrCode, Upload, X, AlertTriangle, ChevronDown, FolderPlus, Folder, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MazePreview } from "@/components/maze-preview";
 import { useRouter } from "next/navigation";
@@ -44,7 +44,11 @@ export function HomeScreen() {
             try {
                 const parsed = JSON.parse(storedCategories);
                 if (Array.isArray(parsed)) {
-                    setCustomCategories(parsed);
+                    // 廃止されたカテゴリを除外
+                    const filtered = parsed.filter(c => 
+                        !["順次処理", "繰り返し", "条件分岐", "応用", "テスト"].includes(c)
+                    );
+                    setCustomCategories(filtered);
                 }
             } catch (e) {
                 console.error("Failed to load categories", e);
@@ -132,7 +136,13 @@ export function HomeScreen() {
         }
 
         if (loadedMazes.length > 0) {
-            // 既存データがある場合
+            // 既存の迷路データ内の廃止カテゴリを "未分類" に移動
+            loadedMazes = loadedMazes.map(m => {
+                if (["順次処理", "繰り返し", "条件分岐", "応用", "テスト"].includes(m.category || "")) {
+                    return { ...m, category: "未分類" };
+                }
+                return m;
+            });
             setMazes(loadedMazes);
             setSelectedMaze(loadedMazes[0]);
             // マイグレーション後のデータを保存
@@ -209,6 +219,34 @@ export function HomeScreen() {
         setNewFolderName("");
     };
 
+    // フォルダ削除
+    const handleDeleteFolder = (category: string) => {
+        if (!confirm(`フォルダ「${category}」を削除しますか？\n中にある迷路は「未分類」に移動されます。`)) {
+            return;
+        }
+
+        // 1. mazesの更新 (未分類に移動)
+        const updatedMazes = mazes.map(maze => {
+            if (maze.category === category) {
+                return { ...maze, category: "未分類" };
+            }
+            return maze;
+        });
+        setMazes(updatedMazes);
+        localStorage.setItem("progpath_mazes", JSON.stringify(updatedMazes));
+
+        // 2. customCategoriesから削除
+        const newCategories = customCategories.filter(c => c !== category);
+        setCustomCategories(newCategories);
+
+        // 3. expandedCategoriesから削除
+        setExpandedCategories(prev => {
+            const next = new Set(prev);
+            next.delete(category);
+            return next;
+        });
+    };
+
     // フォルダ名変更
     const handleRenameStart = (category: string) => {
         setEditingCategory(category);
@@ -229,7 +267,7 @@ export function HomeScreen() {
             return;
         }
 
-        if (customCategories.includes(newName) || ["順次処理", "繰り返し", "条件分岐", "応用", "テスト", "未分類"].includes(newName)) {
+        if (customCategories.includes(newName) || ["未分類"].includes(newName)) {
             alert("その名前のフォルダは既に存在するか、予約されています");
             return;
         }
@@ -493,6 +531,7 @@ export function HomeScreen() {
                                 新規作成
                             </Button>
                             <Button
+                                onClick={handleImportMaze}
                                 className="w-full mt-2 border border-neon-purple text-neon-purple bg-neon-purple/10 hover:bg-neon-purple/30"
                             >
                                 <Upload className="mr-2 h-5 w-5" />
@@ -514,13 +553,20 @@ export function HomeScreen() {
                         <div>
                             {Object.entries(groupedMazes).sort((a, b) => {
                                 // カテゴリの並び順定義
-                                const order = ["順次処理", "繰り返し", "条件分岐", "応用", "テスト", "未分類"];
+                                // カテゴリの並び順定義
+                                const order = ["未分類"]; 
                                 // カスタムカテゴリは最後の方に
                                 const indexA = order.indexOf(a[0]);
                                 const indexB = order.indexOf(b[0]);
                                 if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                                if (indexA !== -1) return -1;
-                                if (indexB !== -1) return 1;
+                                if (indexA !== -1) return 1; // 未分類は最後にしたい場合? いえ、未分類は先頭か最後か.. 通常「未分類」は最後
+                                // "未分類" を末尾にするなら indexA !== -1 return 1 ですが、
+                                // 元のコードは order にあるものを先に表示していました。
+                                // ここでは "未分類" のみ特別扱いし、他は名前順にします。
+                                
+                                if (a[0] === "未分類") return 1;
+                                if (b[0] === "未分類") return -1;
+                                
                                 return a[0].localeCompare(b[0]);
                             }).map(([category, categoryMazes]) => (
                                 <div 
@@ -534,7 +580,12 @@ export function HomeScreen() {
                                         onClick={() => toggleCategory(category)}
                                         className="flex w-full items-center justify-between bg-space-dark/80 p-3 text-left hover:bg-neon-blue/10 cursor-pointer"
                                     >
-                                        <div className="flex items-center gap-2 flex-1">
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            {expandedCategories.has(category) ? (
+                                                <ChevronDown className="h-4 w-4 text-neon-purple shrink-0" />
+                                            ) : (
+                                                <ChevronRight className="h-4 w-4 text-neon-purple shrink-0" />
+                                            )}
                                             <Folder className="h-4 w-4 text-neon-purple shrink-0" />
                                             {editingCategory === category ? (
                                                 <Input
@@ -556,14 +607,14 @@ export function HomeScreen() {
                                                 />
                                             ) : (
                                                 <span 
-                                                    className="font-semibold text-neon-purple text-sm select-none"
+                                                    className="font-semibold text-neon-purple text-sm select-none truncate"
                                                     onClick={(e) => e.stopPropagation()}
                                                     onDoubleClick={(e) => {
                                                         e.stopPropagation();
                                                         // カスタムカテゴリのみ変更可能にするチェックを入れることも可能だが、
                                                         // 一旦すべてのカテゴリで変更可能にする（ただし予約語チェックはある）
                                                         // もしシステムカテゴリを変更させたくない場合はここにガードを入れる
-                                                        if (["順次処理", "繰り返し", "条件分岐", "応用", "テスト", "未分類"].includes(category) && !customCategories.includes(category)) {
+                                                        if (["未分類"].includes(category) && !customCategories.includes(category)) {
                                                             return;
                                                         }
                                                         handleRenameStart(category);
@@ -573,11 +624,21 @@ export function HomeScreen() {
                                                 </span>
                                             )}
                                         </div>
-                                        {expandedCategories.has(category) ? (
-                                            <ChevronDown className="h-4 w-4 text-neon-purple" />
-                                        ) : (
-                                            <ChevronRight className="h-4 w-4 text-neon-purple" />
-                                        )}
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            {customCategories.includes(category) && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteFolder(category);
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                     
                                     {expandedCategories.has(category) && (
