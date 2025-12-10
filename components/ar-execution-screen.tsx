@@ -122,6 +122,7 @@ export function ARExecutionScreen() {
     
     // ★ テレポート検出用のRef
     const isTeleportingRef = useRef<boolean>(false);
+    const isTeleportDestinationGoalRef = useRef<boolean>(false); // ★ テレポート先がゴールかどうかのフラグ
     // ★★★★★ 修正終了 ★★★★★
 
 
@@ -279,6 +280,7 @@ export function ARExecutionScreen() {
         // 実行開始時にエラーフラグをリセット
         if (isExecuting && currentCommandIndex === 0) {
             executionErrorRef.current = null;
+            isTeleportDestinationGoalRef.current = false;
         }
 
         const executeCommand = async () => {
@@ -430,18 +432,30 @@ export function ARExecutionScreen() {
                     // 4. テレポート床チェック
                     if (targetTile === "teleportUp") {
                         if (currentZ < latestMaze.layers.length - 1) {
-                            newState = { ...prevState, x: newX, y: newY, z: currentZ + 1 };
+                            const nextZ = currentZ + 1;
+                            newState = { ...prevState, x: newX, y: newY, z: nextZ };
                             setMoveCount((prev) => prev + 1);
                             isTeleportingRef.current = true; // ★ テレポートフラグ
+
+                            // テレポート先がゴールかチェック
+                            if (latestMaze.layers[nextZ][newY][newX] === "goal") {
+                                isTeleportDestinationGoalRef.current = true;
+                            }
                         } else {
                             executionErrorRef.current = "これより上の階層はありません！";
                             return prevState;
                         }
                     } else if (targetTile === "teleportDown") {
                         if (currentZ > 0) {
-                            newState = { ...prevState, x: newX, y: newY, z: currentZ - 1 };
+                            const nextZ = currentZ - 1;
+                            newState = { ...prevState, x: newX, y: newY, z: nextZ };
                             setMoveCount((prev) => prev + 1);
                             isTeleportingRef.current = true; // ★ テレポートフラグ
+
+                             // テレポート先がゴールかチェック
+                             if (latestMaze.layers[nextZ][newY][newX] === "goal") {
+                                isTeleportDestinationGoalRef.current = true;
+                            }
                         } else {
                             executionErrorRef.current = "これより下の階層はありません！";
                             return prevState;
@@ -549,6 +563,39 @@ export function ARExecutionScreen() {
                     timerIdRef.current = id;
                 });
                 timerIdRef.current = null;
+
+                // ★ テレポート先がゴールだった場合の処理
+                if (isTeleportDestinationGoalRef.current) {
+                    isTeleportDestinationGoalRef.current = false; // フラグはリセット
+
+                    // 鍵チェック
+                    let hasKeyRemaining = false;
+                    const mazeToCheck = mazeRef.current;
+                    if (mazeToCheck && mazeToCheck.layers) {
+                        for (const layer of mazeToCheck.layers) {
+                            for (const row of layer) {
+                                if (row.includes("key")) {
+                                    hasKeyRemaining = true;
+                                    break;
+                                }
+                            }
+                            if (hasKeyRemaining) break;
+                        }
+                    }
+
+                    if (hasKeyRemaining) {
+                        setGameStatus("failed");
+                        setErrorMessage("鍵をすべて集めてください！");
+                        setIsExecuting(false);
+                        setCurrentCommandIndex(-1);
+                        return;
+                    }
+
+                    setGameStatus("success");
+                    setIsExecuting(false);
+                    setCurrentCommandIndex(-1);
+                    return;
+                }
             }
             
             // 次のコマンドインデックスに進む

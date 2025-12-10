@@ -791,6 +791,26 @@ export function MazeView3D({
     const isCoolingDownRef = useRef<boolean>(false);
 
     const [isStreamReady, setIsStreamReady] = useState<boolean>(false);
+    
+    // ★ 表示用のZ座標 (テレポート演出用に遅延させる)
+    const [renderingZ, setRenderingZ] = useState(robotState.z);
+
+    useEffect(() => {
+        if (robotState.z === renderingZ) return;
+
+        // リセット時や初期化時は即時更新
+        if (currentCommandIndex === -1) {
+            setRenderingZ(robotState.z);
+            return;
+        }
+
+        // テレポート時は遅延更新 (アニメーションのフェーズ3に合わせて500ms)
+        const timer = setTimeout(() => {
+            setRenderingZ(robotState.z);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [robotState.z, renderingZ, currentCommandIndex]);
     const [debugInfo, setDebugInfo] = useState<string>("");
 
     // デバッグ情報表示 (変更なし)
@@ -988,7 +1008,7 @@ export function MazeView3D({
     }, [isStreamReady, onMarkerDetected]);
 
     // --- 現在のタイルを計算 ---
-    const currentLayer = robotState.z >= 0 && robotState.z < maze.layers.length ? maze.layers[robotState.z] : null;
+    const currentLayer = renderingZ >= 0 && renderingZ < maze.layers.length ? maze.layers[renderingZ] : null;
     const robotTile =
         currentLayer && currentLayer[robotState.y] && currentLayer[robotState.y][robotState.x]
             ? currentLayer[robotState.y][robotState.x]
@@ -1007,7 +1027,7 @@ export function MazeView3D({
             {/* 層番号表示 */}
             <div className="absolute top-10 left-2 z-10 bg-black/70 px-3 py-2 rounded border border-neon-cyan/50">
                 <div className="text-sm font-bold text-neon-cyan">
-                    Layer {robotState.z + 1} / {maze.layers.length}
+                    Layer {renderingZ + 1} / {maze.layers.length}
                 </div>
             </div>
 
@@ -1076,7 +1096,7 @@ export function MazeView3D({
                         {/* 複数層の表示 */}
                         {maze.layers.map((layer, layerIndex) => {
                             // ロボットの現在の層
-                            const currentZ = robotState.z;
+                            const currentZ = renderingZ;
 
                             // 透明度を計算（すべての層を表示）
                             let layerOpacity = 1.0;
