@@ -672,7 +672,7 @@ export function HomeScreen() {
                                         onClick={() => handleShareMaze(selectedMaze)}
                                         variant="outline"
                                         size="lg"
-                                        className="border-neon-purple text-neon-purple hover:bg-neon-purple/10"
+                                        className="border-neon-purple text-neon-purple hover:text-neon-purple hover:bg-neon-purple/10"
                                     >
                                         <QrCode className="mr-2 h-5 w-5" />
                                         QRコード
