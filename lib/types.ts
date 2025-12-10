@@ -6,6 +6,7 @@ export interface MazeData {
     layers: TileType[][][] // 複数階層対応（grid → layers）
     size: number
     currentLayer?: number // エディター用の現在表示階層
+    category?: string // 迷路のカテゴリ
 }
 
 export type CommandType = "forward" | "turnRight" | "turnLeft" | "ifHole" | "loop"
