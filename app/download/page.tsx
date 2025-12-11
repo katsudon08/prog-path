@@ -8,6 +8,9 @@ import { useEffect, useState } from "react";
 
 export default function DownloadPage() {
     const [isElectron, setIsElectron] = useState<boolean | null>(null);
+    const [downloadUrl, setDownloadUrl] = useState("https://github.com/katsudon08/prog-path/releases/download/0.1.0/prog-path.Setup.0.1.0.exe");
+    const [version, setVersion] = useState("0.1.0");
+    const [fileSize, setFileSize] = useState("約 180 MB");
 
     useEffect(() => {
         // Electronアプリ内かどうかを判定
@@ -17,16 +20,38 @@ export default function DownloadPage() {
                 typeof (window as any).__TAURI__ !== "undefined" ||
                 navigator.userAgent.includes("Electron"));
         setIsElectron(isElectronApp);
+
+        // GitHub APIから最新リリースを取得
+        const fetchLatestRelease = async () => {
+            try {
+                const response = await fetch("https://api.github.com/repos/katsudon08/prog-path/releases/latest");
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                // バージョン更新 (v0.1.1 -> 0.1.1)
+                const ver = data.tag_name.replace(/^v/, "");
+                setVersion(ver);
+
+                // アセットから.exeを探す
+                const asset = data.assets.find((a: any) => a.name.endsWith(".exe"));
+                if (asset) {
+                    setDownloadUrl(asset.browser_download_url);
+                    // サイズ計算 (bytes -> MB)
+                    const sizeMB = (asset.size / (1024 * 1024)).toFixed(1);
+                    setFileSize(`約 ${sizeMB} MB`);
+                }
+            } catch (err) {
+                console.error("Failed to fetch release info", err);
+            }
+        };
+
+        fetchLatestRelease();
     }, []);
 
     const handleDownload = async () => {
         if (isElectron) {
             return;
         }
-
-        // GitHubリリースページへのURL
-        const downloadUrl =
-            "https://github.com/katsudon08/prog-path/releases/download/0.1.0/prog-path.Setup.0.1.0.exe";
         window.open(downloadUrl, "_blank");
     };
 
@@ -102,13 +127,13 @@ export default function DownloadPage() {
                                 <div className="flex justify-between">
                                     <span>バージョン:</span>
                                     <span className="text-neon-cyan">
-                                        0.1.0
+                                        {version}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>ファイルサイズ:</span>
                                     <span className="text-neon-cyan">
-                                        約 150 MB
+                                        {fileSize}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
