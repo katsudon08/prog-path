@@ -99,7 +99,7 @@ function TeleportTile({
         }
     });
 
-    const color = isUp ? "#60a5fa" : "#a78bfa"; // 青 vs 紫
+    const color = isUp ? "#60a5fa" : "#ec4899"; // 青 vs ピンク
     const arrowRotation = isUp ? 0 : Math.PI; // 上向き vs 下向き
 
     return (
@@ -451,8 +451,7 @@ function RobotModel({
         if (
             robotState.z !== prevZRef.current &&
             !isTeleporting &&
-            currentCommandIndex !== -1 &&  // リセット時はスキップ
-            robotState.z !== 0  // スタート位置への移動はスキップ
+            currentCommandIndex !== -1  // リセット時はスキップ
         ) {
             // テレポート開始
             const direction = robotState.z > prevZRef.current ? 'up' : 'down';
@@ -604,15 +603,12 @@ function RobotModel({
                 const elapsed = performance.now() - teleportStartTimeRef.current;
 
                 switch (teleportPhase) {
-                    case 1: // 上昇/降下
+                    case 1: // 上昇（共通）
                         const phase1Duration = 300;
                         const phase1Progress = Math.min(elapsed / phase1Duration, 1);
 
-                        if (teleportDirection === 'up') {
-                            teleportYOffsetRef.current = 0.3 * phase1Progress;
-                        } else {
-                            teleportYOffsetRef.current = -0.3 * phase1Progress;
-                        }
+                        // 方向に関わらず上昇させる
+                        teleportYOffsetRef.current = 0.3 * phase1Progress;
 
                         if (phase1Progress >= 1) {
                             setTeleportPhase(2);
@@ -653,15 +649,12 @@ function RobotModel({
                         }
                         break;
 
-                    case 5: // 降下/上昇（元の高さに戻る）
+                    case 5: // 降下（元の高さに戻る）（共通）
                         const phase5Duration = 300;
                         const phase5Progress = Math.min(elapsed / phase5Duration, 1);
 
-                        if (teleportDirection === 'up') {
-                            teleportYOffsetRef.current = 0.3 * (1 - phase5Progress);
-                        } else {
-                            teleportYOffsetRef.current = -0.3 * (1 - phase5Progress);
-                        }
+                        // 方向に関わらず降下させる
+                        teleportYOffsetRef.current = 0.3 * (1 - phase5Progress);
 
                         if (phase5Progress >= 1) {
                             setIsTeleporting(false);

@@ -13,13 +13,13 @@ function getTileColor(tile: TileType): string {
         case 'goal':
             return '#ff0000'; // 赤
         case 'wall':
-            return '#333333'; // 黒
+            return '#4a90e2'; // ネオンブルー (壁)
         case 'hole':
-            return '#000000'; // 完全な黒
+            return '#a855f7'; // ネオンパープル (穴)
         case 'teleportUp':
-            return '#60a5fa'; // 青
+            return '#3b82f6'; // 青 (上へ)
         case 'teleportDown':
-            return '#a78bfa'; // 紫
+            return '#ec4899'; // ピンク (下へ)
         default:
             return '#888888'; // グレー（通常のタイル）
     }

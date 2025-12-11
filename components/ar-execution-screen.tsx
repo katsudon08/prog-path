@@ -115,6 +115,7 @@ export function ARExecutionScreen() {
     const tempLoopCommandRef = useRef(tempLoopCommand);
     const buildingLoopIndexRef = useRef<number | null>(null); // ★ 追加: buildingLoopIndexのRef
     const isExecutingRef = useRef(isExecuting);
+    const robotStateRef = useRef(robotState); // ★ robotStateRef を追加
 
     // ★★★★★ バグ修正 ★★★★★
     // 迷路の最新状態を Ref にも保持する
@@ -137,6 +138,10 @@ export function ARExecutionScreen() {
     useEffect(() => {
         isBuildingLoopRef.current = isBuildingLoop;
     }, [isBuildingLoop]);
+    
+    useEffect(() => {
+        robotStateRef.current = robotState;
+    }, [robotState]);
 
     useEffect(() => {
         tempLoopCommandRef.current = tempLoopCommand;
@@ -336,12 +341,14 @@ export function ARExecutionScreen() {
             if (!currentMaze) return; // maze が null なら実行しない
             // ★★★★★ 修正終了 ★★★★★
 
+            // 現在のロボットの状態を取得（Refから）
+            const currentRobotState = robotStateRef.current;
 
             // ifHole ロジック (変更)
             if (command.type === "ifHole") {
-                const checkX = robotState.x + robotState.direction[0];
-                const checkY = robotState.y + robotState.direction[1];
-                const checkZ = robotState.z;
+                const checkX = currentRobotState.x + currentRobotState.direction[0];
+                const checkY = currentRobotState.y + currentRobotState.direction[1];
+                const checkZ = currentRobotState.z;
 
                 if (
                     checkX >= 0 &&
@@ -374,130 +381,127 @@ export function ARExecutionScreen() {
             }
             // --- ifHole 終了 ---
 
-            // setRobotState のコールバック内で移動と衝突判定を完結させる
-            setRobotState((prevState) => {
-                // ★★★ 修正 (レースコンディション対策) ★★★
-                // このスコープ内で isExecuting を再チェック (Ref を使用)
-                if (!isExecutingRef.current) return prevState; 
-                // ★★★ 修正 終了 ★★★
+            // ★ ロジック改善: 先に次の状態を計算する
+            let newState = { ...currentRobotState };
+            let mazeUpdated = false;
+            let nextMaze = currentMaze;
+            let isGoalReached = false; // ゴール到達フラグ
 
-                // ★★★★★ バグ修正 ★★★★★
-                // setRobotState のコールバック内でも、
-                // 迷路のチェックは mazeRef.current を使う
-                const latestMaze = mazeRef.current;
-                if (!latestMaze) return prevState; // 念のため
-                // ★★★★★ 修正終了 ★★★★★
+            if (command.type === "forward") {
+                const newX = currentRobotState.x + currentRobotState.direction[0];
+                const newY = currentRobotState.y + currentRobotState.direction[1];
+                const currentZ = currentRobotState.z;
 
-                let newState = { ...prevState };
-                
-                if (command.type === "forward") {
-                    const newX = prevState.x + prevState.direction[0];
-                    const newY = prevState.y + prevState.direction[1];
-
-                    // 1. 範囲外チェック
-                    if (
-                        newX < 0 ||
-                        newX >= latestMaze.size || // <-- 修正: latestMaze
-                        newY < 0 ||
-                        newY >= latestMaze.size // <-- 修正: latestMaze
-                    ) {
-                        executionErrorRef.current = "迷路の外に出てしまいました！";
-                        return prevState; // 移動しない
-                    }
-                    
-                    // ★★★★★ バグ修正 ★★★★★
-                    // 衝突判定に latestMaze (mazeRef.current) を使用
-                    const currentZ = prevState.z;
-                    if (currentZ < 0 || currentZ >= latestMaze.layers.length) {
-                        executionErrorRef.current = "階層エラーが発生しました！";
-                        return prevState;
-                    }
-                    const targetTile = latestMaze.layers[currentZ][newY][newX];
-                    // ★★★★★ 修正終了 ★★★★★
+                // 1. 範囲外チェック
+                if (
+                    newX < 0 ||
+                    newX >= currentMaze.size ||
+                    newY < 0 ||
+                    newY >= currentMaze.size
+                ) {
+                    executionErrorRef.current = "迷路の外に出てしまいました！";
+                }
+                // 階層チェック
+                else if (currentZ < 0 || currentZ >= currentMaze.layers.length) {
+                    executionErrorRef.current = "階層エラーが発生しました！";
+                } else {
+                    const targetTile = currentMaze.layers[currentZ][newY][newX];
 
                     // 2. 壁チェック
                     if (targetTile === "wall") {
                         executionErrorRef.current = "壁にぶつかりました！";
-                        return prevState; // 移動しない
                     }
-
-                    // 3. 穴チェック (ここで "floor" になっているはず)
-                    if (targetTile === "hole") {
-                        newState = { ...prevState, x: newX, y: newY }; // 穴に移動
+                    // 3. 穴チェック
+                    else if (targetTile === "hole") {
+                        newState = { ...newState, x: newX, y: newY };
                         setMoveCount((prev) => prev + 1);
                         executionErrorRef.current = "穴に落ちてしまいました！";
-                        return newState; // 移動する
                     }
-
                     // 4. テレポート床チェック
-                    if (targetTile === "teleportUp") {
-                        if (currentZ < latestMaze.layers.length - 1) {
+                    else if (targetTile === "teleportUp") {
+                        if (currentZ < currentMaze.layers.length - 1) {
                             const nextZ = currentZ + 1;
-                            newState = { ...prevState, x: newX, y: newY, z: nextZ };
+                            newState = { ...newState, x: newX, y: newY, z: nextZ };
                             setMoveCount((prev) => prev + 1);
-                            isTeleportingRef.current = true; // ★ テレポートフラグ
+                            isTeleportingRef.current = true;
 
-                            // テレポート先がゴールかチェック
-                            if (latestMaze.layers[nextZ][newY][newX] === "goal") {
+                            const destTile = currentMaze.layers[nextZ][newY][newX];
+                            if (destTile === "goal") {
                                 isTeleportDestinationGoalRef.current = true;
+                            } else if (destTile === "key") {
+                                const newLayers = nextMaze.layers.map((layer, idx) =>
+                                    idx === nextZ
+                                        ? layer.map((row, rIdx) => 
+                                            rIdx === newY 
+                                                ? row.map((tile, cIdx) => cIdx === newX ? "floor" : tile)
+                                                : row
+                                          )
+                                        : layer
+                                );
+                                mazeUpdated = true;
+                                nextMaze = { ...nextMaze, layers: newLayers };
                             }
                         } else {
-                            executionErrorRef.current = "これより上の階層はありません！";
-                            return prevState;
+                           executionErrorRef.current = "これより上の階層はありません！";
                         }
                     } else if (targetTile === "teleportDown") {
                         if (currentZ > 0) {
                             const nextZ = currentZ - 1;
-                            newState = { ...prevState, x: newX, y: newY, z: nextZ };
+                            newState = { ...newState, x: newX, y: newY, z: nextZ };
                             setMoveCount((prev) => prev + 1);
-                            isTeleportingRef.current = true; // ★ テレポートフラグ
+                            isTeleportingRef.current = true;
 
-                             // テレポート先がゴールかチェック
-                             if (latestMaze.layers[nextZ][newY][newX] === "goal") {
+                            const destTile = currentMaze.layers[nextZ][newY][newX];
+                            if (destTile === "goal") {
                                 isTeleportDestinationGoalRef.current = true;
+                            } else if (destTile === "key") {
+                                const newLayers = nextMaze.layers.map((layer, idx) =>
+                                    idx === nextZ
+                                        ? layer.map((row, rIdx) => 
+                                            rIdx === newY 
+                                                ? row.map((tile, cIdx) => cIdx === newX ? "floor" : tile)
+                                                : row
+                                          )
+                                        : layer
+                                );
+                                mazeUpdated = true;
+                                nextMaze = { ...nextMaze, layers: newLayers };
                             }
                         } else {
                             executionErrorRef.current = "これより下の階層はありません！";
-                            return prevState;
                         }
+                    }
                     // 5. ゴールチェック
-                    } else if (targetTile === "goal") {
-                        // ★ 鍵チェック: 迷路全体（全階層）に鍵が残っていないか確認
-                        let hasKeyRemaining = false;
-                        if (latestMaze && latestMaze.layers) {
-                            for (const layer of latestMaze.layers) {
-                                for (const row of layer) {
-                                    if (row.includes("key")) {
-                                        hasKeyRemaining = true;
-                                        break;
-                                    }
-                                }
-                                if (hasKeyRemaining) break;
-                            }
-                        }
+                    else if (targetTile === "goal") {
+                         // ★ 鍵チェック
+                         let hasKeyRemaining = false;
+                         if (currentMaze && currentMaze.layers) {
+                             for (const layer of currentMaze.layers) {
+                                 for (const row of layer) {
+                                     if (row.includes("key")) {
+                                         hasKeyRemaining = true;
+                                         break;
+                                     }
+                                 }
+                                 if (hasKeyRemaining) break;
+                             }
+                         }
 
-                        if (hasKeyRemaining) {
-                            executionErrorRef.current = "鍵をすべて集めてください！";
-                            // return prevState; // 削除: 移動を許可する
-                        }
+                         if (hasKeyRemaining) {
+                             executionErrorRef.current = "鍵をすべて集めてください！";
+                         }
 
-                        newState = { ...prevState, x: newX, y: newY }; // ゴールに移動
-                        setMoveCount((prev) => prev + 1);
-                        
-                        // エラーがある場合はここでリターン（移動は反映される）
-                        if (hasKeyRemaining) {
-                             return newState;
-                        }
+                         newState = { ...newState, x: newX, y: newY };
+                         setMoveCount((prev) => prev + 1);
 
-                        // ゴールはエラーではない
-                        setGameStatus("success");
-                        setIsExecuting(false); // 実行停止 (これは即時反映される)
-                        setCurrentCommandIndex(-1); // アニメーション停止
-                        return newState; // 移動する
-                    } else if (targetTile === "key") {
+                         if (!hasKeyRemaining) {
+                             isGoalReached = true;
+                         }
+                    }
+                    // 鍵タイルの場合
+                    else if (targetTile === "key") {
                          // ★ 鍵取得処理
-                         // 迷路データを更新して鍵を床に変える
-                         const newLayers = latestMaze.layers.map((layer, idx) =>
+                         const newLayers = currentMaze.layers.map((layer, idx) =>
                             idx === currentZ
                                 ? layer.map((row, rIdx) => 
                                     rIdx === newY 
@@ -507,95 +511,102 @@ export function ARExecutionScreen() {
                                 : layer
                         );
                         
-                        setMaze(
-                            (prevMaze) =>
-                                prevMaze ? { ...prevMaze, layers: newLayers } : null
-                        );
+                        // 迷路更新フラグを立てる
+                        mazeUpdated = true;
+                        nextMaze = { ...currentMaze, layers: newLayers };
 
-                        newState = { ...prevState, x: newX, y: newY };
-                        setMoveCount((prev) => prev + 1);
-                    } else {
-                        // 6. 安全な移動 (床)
-                        newState = { ...prevState, x: newX, y: newY };
+                        newState = { ...newState, x: newX, y: newY };
                         setMoveCount((prev) => prev + 1);
                     }
-
-                } else if (command.type === "turnRight") {
-                    // (回転の向き修正済み)
-                    // 時計回り
-                    newState = { ...prevState, direction: [
-                        -prevState.direction[1],
-                        prevState.direction[0],
-                    ]};
-                } else if (command.type === "turnLeft") {
-                    // (回転の向き修正済み)
-                    // 反時計回り
-                    newState = { ...prevState, direction: [
-                        prevState.direction[1],
-                        -prevState.direction[0],
-                    ]};
+                    // 6. 安全な移動 (床)
+                    else {
+                        newState = { ...newState, x: newX, y: newY };
+                        setMoveCount((prev) => prev + 1);
+                    }
                 }
-                
-                return newState;
-            });
-            
-            // ★★★★★ 修正 ★★★★★
-            // setRobotState が (同期的に) 実行された直後にエラーRefをチェック
+            } else if (command.type === "turnRight") {
+                newState.direction = [
+                    -currentRobotState.direction[1],
+                    currentRobotState.direction[0],
+                ];
+            } else if (command.type === "turnLeft") {
+                newState.direction = [
+                    currentRobotState.direction[1],
+                    -currentRobotState.direction[0],
+                ];
+            }
+
+            // ★ エラーがあれば即中断
             if (executionErrorRef.current) {
-                // エラーがセットされた (例: 壁にぶつかった)
                 setGameStatus("failed");
                 setErrorMessage(executionErrorRef.current);
-                setIsExecuting(false); 
-                
-                // ★ 2. アニメーションを停止するためにインデックスをリセット
-                setCurrentCommandIndex(-1); 
-                return; // インデックスを進めずに終了
+                setIsExecuting(false);
+                setCurrentCommandIndex(-1);
+                // 必要であれば、エラー発生地点への移動は反映する（穴に落ちた場合など）
+                setRobotState(newState); 
+                return;
             }
-            // ★★★★★ 修正 終了 ★★★★★
-            
-            // ★ テレポート後の待機時間
+
+            // ★ 状態更新
+            setRobotState(newState);
+            // robotStateRef は useEffect で更新されるが、即時反映のためここでも更新しておく
+            robotStateRef.current = newState;
+
+            // ★ アニメーション待機
+            let animationDuration = 500; // デフォルト（通常移動）
             if (isTeleportingRef.current) {
-                isTeleportingRef.current = false; // フラグをリセット
-                await new Promise<void>((resolve) => {
-                    const id = window.setTimeout(() => {
-                        resolve();
-                    }, 1100); // テレポートアニメーション完了まで待機（1.0秒 + 余裕0.1秒）
-                    timerIdRef.current = id;
-                });
-                timerIdRef.current = null;
+                animationDuration = 1100; // テレポート
+            } else if (command.type === "turnRight" || command.type === "turnLeft") {
+                animationDuration = 300; // 回転
+            }
+            
+            await new Promise<void>((resolve) => {
+                const id = window.setTimeout(() => {
+                    resolve();
+                }, animationDuration);
+                timerIdRef.current = id;
+            });
+            timerIdRef.current = null;
+            isTeleportingRef.current = false; // フラグをリセット
 
-                // ★ テレポート先がゴールだった場合の処理
-                if (isTeleportDestinationGoalRef.current) {
-                    isTeleportDestinationGoalRef.current = false; // フラグはリセット
+            // ★ アニメーション終了後に迷路（鍵）を更新
+            if (mazeUpdated) {
+                setMaze(nextMaze);
+            }
+            
+            // ★ テレポート先がゴールだった場合、または通常移動でゴールした場合の処理
+            if (isTeleportDestinationGoalRef.current || isGoalReached) {
+                isTeleportDestinationGoalRef.current = false; // フラグはリセット
 
-                    // 鍵チェック
-                    let hasKeyRemaining = false;
-                    const mazeToCheck = mazeRef.current;
-                    if (mazeToCheck && mazeToCheck.layers) {
-                        for (const layer of mazeToCheck.layers) {
-                            for (const row of layer) {
-                                if (row.includes("key")) {
-                                    hasKeyRemaining = true;
-                                    break;
-                                }
+                // 鍵チェック (再確認)
+                let hasKeyRemaining = false;
+                // 最新の迷路を使う
+                const mazeToCheck = mazeUpdated ? nextMaze : currentMaze;
+
+                if (mazeToCheck && mazeToCheck.layers) {
+                    for (const layer of mazeToCheck.layers) {
+                        for (const row of layer) {
+                            if (row.includes("key")) {
+                                hasKeyRemaining = true;
+                                break;
                             }
-                            if (hasKeyRemaining) break;
                         }
+                        if (hasKeyRemaining) break;
                     }
+                }
 
-                    if (hasKeyRemaining) {
-                        setGameStatus("failed");
-                        setErrorMessage("鍵をすべて集めてください！");
-                        setIsExecuting(false);
-                        setCurrentCommandIndex(-1);
-                        return;
-                    }
-
-                    setGameStatus("success");
+                if (hasKeyRemaining) {
+                    setGameStatus("failed");
+                    setErrorMessage("鍵をすべて集めてください！");
                     setIsExecuting(false);
                     setCurrentCommandIndex(-1);
                     return;
                 }
+
+                setGameStatus("success");
+                setIsExecuting(false);
+                setCurrentCommandIndex(-1);
+                return;
             }
             
             // 次のコマンドインデックスに進む
