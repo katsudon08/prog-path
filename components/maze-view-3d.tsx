@@ -168,32 +168,65 @@ function KeyTile({
 
     return (
         <group ref={groupRef} position={[position[0], 0.3, position[2]]}>
-            {/* 鍵本体（リング） */}
-            <mesh rotation={[0, 0, 0]}>
-                <torusGeometry args={[0.15, 0.04, 16, 32]} />
-                <meshStandardMaterial
-                    color="#ffd700" // ゴールド
-                    emissive="#ffd700"
-                    emissiveIntensity={0.6 * opacity}
-                    metalness={0.8}
-                    roughness={0.2}
-                    opacity={opacity}
-                    transparent={opacity < 1}
-                />
-            </mesh>
-            {/* 鍵の軸 */}
-            <mesh position={[0, -0.15, 0]} rotation={[0, 0, Math.PI / 2]}>
-                 <cylinderGeometry args={[0.03, 0.03, 0.2, 8]} />
-                 <meshStandardMaterial
-                    color="#ffd700"
-                    emissive="#ffd700"
-                    emissiveIntensity={0.6 * opacity}
-                    metalness={0.8}
-                    roughness={0.2}
-                    opacity={opacity}
-                    transparent={opacity < 1}
-                />
-            </mesh>
+            {/* 内部グループで傾き（45度）を与える */}
+            <group rotation={[0, 0, Math.PI / 4]}>
+                {/* 鍵の持ち手 (リング) - 太くする */}
+                <mesh position={[0, 0.18, 0]}>
+                    <torusGeometry args={[0.07, 0.035, 16, 32]} />
+                    <meshStandardMaterial
+                        color="#ffd700"
+                        emissive="#ffd700"
+                        emissiveIntensity={0.6 * opacity}
+                        metalness={0.9}
+                        roughness={0.1}
+                        opacity={opacity}
+                        transparent={opacity < 1}
+                    />
+                </mesh>
+
+                {/* 鍵の軸 (シリンダー) - 太くする */}
+                <mesh position={[0, -0.05, 0]}>
+                    <cylinderGeometry args={[0.035, 0.035, 0.45, 12]} />
+                    <meshStandardMaterial
+                        color="#ffd700"
+                        emissive="#ffd700"
+                        emissiveIntensity={0.6 * opacity}
+                        metalness={0.9}
+                        roughness={0.1}
+                        opacity={opacity}
+                        transparent={opacity < 1}
+                    />
+                </mesh>
+
+                {/* 鍵の歯 (ボックス) - 太く大きくする */}
+                <group position={[0.05, -0.2, 0]}>
+                    <mesh position={[0, 0.025, 0]}>
+                        <boxGeometry args={[0.08, 0.04, 0.03]} />
+                        <meshStandardMaterial
+                            color="#ffd700"
+                            emissive="#ffd700"
+                            emissiveIntensity={0.6 * opacity}
+                            metalness={0.9}
+                            roughness={0.1}
+                            opacity={opacity}
+                            transparent={opacity < 1}
+                        />
+                    </mesh>
+                    <mesh position={[0, -0.045, 0]}>
+                        <boxGeometry args={[0.08, 0.03, 0.03]} />
+                        <meshStandardMaterial
+                            color="#ffd700"
+                            emissive="#ffd700"
+                            emissiveIntensity={0.6 * opacity}
+                            metalness={0.9}
+                            roughness={0.1}
+                            opacity={opacity}
+                            transparent={opacity < 1}
+                        />
+                    </mesh>
+                </group>
+            </group>
+
              {/* 床の光 */}
             <mesh position={[0, -0.3, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <circleGeometry args={[0.2, 32]} />
