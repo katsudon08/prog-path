@@ -34,7 +34,7 @@ export function MazePreview({ grid, layers, layerIndex }: MazePreviewProps) {
             case "teleportUp":
                 return "bg-blue-500 border border-blue-300"; // 上への階段
             case "teleportDown":
-                return "bg-purple-500 border border-purple-300"; // 下への階段
+                return "bg-pink-500 border border-pink-300"; // 下への階段
             case "key":
                 return "bg-yellow-400 border border-yellow-600"; // 鍵
             default:

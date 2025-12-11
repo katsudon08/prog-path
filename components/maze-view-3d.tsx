@@ -99,7 +99,7 @@ function TeleportTile({
         }
     });
 
-    const color = isUp ? "#60a5fa" : "#a78bfa"; // 青 vs 紫
+    const color = isUp ? "#60a5fa" : "#ec4899"; // 青 vs ピンク
     const arrowRotation = isUp ? 0 : Math.PI; // 上向き vs 下向き
 
     return (
@@ -168,32 +168,65 @@ function KeyTile({
 
     return (
         <group ref={groupRef} position={[position[0], 0.3, position[2]]}>
-            {/* 鍵本体（リング） */}
-            <mesh rotation={[0, 0, 0]}>
-                <torusGeometry args={[0.15, 0.04, 16, 32]} />
-                <meshStandardMaterial
-                    color="#ffd700" // ゴールド
-                    emissive="#ffd700"
-                    emissiveIntensity={0.6 * opacity}
-                    metalness={0.8}
-                    roughness={0.2}
-                    opacity={opacity}
-                    transparent={opacity < 1}
-                />
-            </mesh>
-            {/* 鍵の軸 */}
-            <mesh position={[0, -0.15, 0]} rotation={[0, 0, Math.PI / 2]}>
-                 <cylinderGeometry args={[0.03, 0.03, 0.2, 8]} />
-                 <meshStandardMaterial
-                    color="#ffd700"
-                    emissive="#ffd700"
-                    emissiveIntensity={0.6 * opacity}
-                    metalness={0.8}
-                    roughness={0.2}
-                    opacity={opacity}
-                    transparent={opacity < 1}
-                />
-            </mesh>
+            {/* 内部グループで傾き（45度）を与える */}
+            <group rotation={[0, 0, Math.PI / 4]}>
+                {/* 鍵の持ち手 (リング) - 太くする */}
+                <mesh position={[0, 0.18, 0]}>
+                    <torusGeometry args={[0.07, 0.035, 16, 32]} />
+                    <meshStandardMaterial
+                        color="#ffd700"
+                        emissive="#ffd700"
+                        emissiveIntensity={0.6 * opacity}
+                        metalness={0.9}
+                        roughness={0.1}
+                        opacity={opacity}
+                        transparent={opacity < 1}
+                    />
+                </mesh>
+
+                {/* 鍵の軸 (シリンダー) - 太くする */}
+                <mesh position={[0, -0.05, 0]}>
+                    <cylinderGeometry args={[0.035, 0.035, 0.45, 12]} />
+                    <meshStandardMaterial
+                        color="#ffd700"
+                        emissive="#ffd700"
+                        emissiveIntensity={0.6 * opacity}
+                        metalness={0.9}
+                        roughness={0.1}
+                        opacity={opacity}
+                        transparent={opacity < 1}
+                    />
+                </mesh>
+
+                {/* 鍵の歯 (ボックス) - 太く大きくする */}
+                <group position={[0.05, -0.2, 0]}>
+                    <mesh position={[0, 0.025, 0]}>
+                        <boxGeometry args={[0.08, 0.04, 0.03]} />
+                        <meshStandardMaterial
+                            color="#ffd700"
+                            emissive="#ffd700"
+                            emissiveIntensity={0.6 * opacity}
+                            metalness={0.9}
+                            roughness={0.1}
+                            opacity={opacity}
+                            transparent={opacity < 1}
+                        />
+                    </mesh>
+                    <mesh position={[0, -0.045, 0]}>
+                        <boxGeometry args={[0.08, 0.03, 0.03]} />
+                        <meshStandardMaterial
+                            color="#ffd700"
+                            emissive="#ffd700"
+                            emissiveIntensity={0.6 * opacity}
+                            metalness={0.9}
+                            roughness={0.1}
+                            opacity={opacity}
+                            transparent={opacity < 1}
+                        />
+                    </mesh>
+                </group>
+            </group>
+
              {/* 床の光 */}
             <mesh position={[0, -0.3, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <circleGeometry args={[0.2, 32]} />
@@ -451,8 +484,7 @@ function RobotModel({
         if (
             robotState.z !== prevZRef.current &&
             !isTeleporting &&
-            currentCommandIndex !== -1 &&  // リセット時はスキップ
-            robotState.z !== 0  // スタート位置への移動はスキップ
+            currentCommandIndex !== -1  // リセット時はスキップ
         ) {
             // テレポート開始
             const direction = robotState.z > prevZRef.current ? 'up' : 'down';
@@ -604,15 +636,12 @@ function RobotModel({
                 const elapsed = performance.now() - teleportStartTimeRef.current;
 
                 switch (teleportPhase) {
-                    case 1: // 上昇/降下
+                    case 1: // 上昇（共通）
                         const phase1Duration = 300;
                         const phase1Progress = Math.min(elapsed / phase1Duration, 1);
 
-                        if (teleportDirection === 'up') {
-                            teleportYOffsetRef.current = 0.3 * phase1Progress;
-                        } else {
-                            teleportYOffsetRef.current = -0.3 * phase1Progress;
-                        }
+                        // 方向に関わらず上昇させる
+                        teleportYOffsetRef.current = 0.3 * phase1Progress;
 
                         if (phase1Progress >= 1) {
                             setTeleportPhase(2);
@@ -653,15 +682,12 @@ function RobotModel({
                         }
                         break;
 
-                    case 5: // 降下/上昇（元の高さに戻る）
+                    case 5: // 降下（元の高さに戻る）（共通）
                         const phase5Duration = 300;
                         const phase5Progress = Math.min(elapsed / phase5Duration, 1);
 
-                        if (teleportDirection === 'up') {
-                            teleportYOffsetRef.current = 0.3 * (1 - phase5Progress);
-                        } else {
-                            teleportYOffsetRef.current = -0.3 * (1 - phase5Progress);
-                        }
+                        // 方向に関わらず降下させる
+                        teleportYOffsetRef.current = 0.3 * (1 - phase5Progress);
 
                         if (phase5Progress >= 1) {
                             setIsTeleporting(false);

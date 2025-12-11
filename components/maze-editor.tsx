@@ -27,7 +27,7 @@ const TILE_TYPES: { type: TileType; label: string; color: string }[] = [
     { type: "start", label: "スタート", color: "bg-neon-green" },
     { type: "goal", label: "ゴール", color: "bg-neon-red" },
     { type: "teleportUp", label: "上へ", color: "bg-blue-500 border border-blue-300" },
-    { type: "teleportDown", label: "下へ", color: "bg-purple-500 border border-purple-300" },
+    { type: "teleportDown", label: "下へ", color: "bg-pink-500 border border-pink-300" },
     { type: "key", label: "鍵", color: "bg-yellow-400 border border-yellow-600" },
 ];
 
@@ -233,6 +233,7 @@ export function MazeEditor() {
             const index = mazes.findIndex((m) => m.id === mazeId);
             if (index !== -1) {
                 mazes[index] = {
+                    ...mazes[index],
                     id: mazeId,
                     name: mazeName,
                     size: gridSize,

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { MazeData, RobotState, TileType } from '@/lib/types';
 
@@ -13,13 +13,13 @@ function getTileColor(tile: TileType): string {
         case 'goal':
             return '#ff0000'; // 赤
         case 'wall':
-            return '#333333'; // 黒
+            return '#4a90e2'; // ネオンブルー (壁)
         case 'hole':
-            return '#000000'; // 完全な黒
+            return '#a855f7'; // ネオンパープル (穴)
         case 'teleportUp':
-            return '#60a5fa'; // 青
+            return '#3b82f6'; // 青 (上へ)
         case 'teleportDown':
-            return '#a78bfa'; // 紫
+            return '#ec4899'; // ピンク (下へ)
         default:
             return '#888888'; // グレー（通常のタイル）
     }
@@ -141,6 +141,41 @@ function MinimapMaze({
     );
 }
 
+// カメラ調整コンポーネント
+function CameraAdjuster({ mazeSize }: { mazeSize: number }) {
+    const { camera, size } = useThree();
+
+    React.useEffect(() => {
+        if (!(camera instanceof THREE.PerspectiveCamera)) return;
+
+        const tileSize = 0.5;
+        const totalSize = mazeSize * tileSize;
+        const padding = 1.3; // 30% 余白
+
+        // 必要な表示範囲 (高さ) = totalSize * padding
+        // 2 * dist * tan(fov / 2) >= requiredHeight
+        const fovRad = (camera.fov * Math.PI) / 180;
+        
+        const aspect = size.width / size.height;
+
+        // 縦方向に収めるための距離
+        const distVertical = (totalSize * padding) / (2 * Math.tan(fovRad / 2));
+        
+        // 横方向に収めるための距離 (width = height * aspect)
+        const distHorizontal = (totalSize * padding) / (2 * Math.tan(fovRad / 2) * aspect);
+
+        // 両方を満たす最大距離を採用
+        // ただし、最小値は 5.0 (既存のデフォルト) とする
+        const dist = Math.max(5.0, distVertical, distHorizontal);
+
+        camera.position.y = dist;
+        camera.updateProjectionMatrix();
+
+    }, [camera, size, mazeSize]);
+
+    return null;
+}
+
 // メインミニマップビュー
 export function MinimapView({
     maze,
@@ -168,6 +203,9 @@ export function MinimapView({
             <ambientLight intensity={0.7} />
             <directionalLight position={[2, 5, 2]} intensity={1} />
             
+            {/* カメラ位置調整 */}
+            <CameraAdjuster mazeSize={mazeSize} />
+
             {/* 現在の層のみを描画 */}
             <MinimapMaze
                 layer={currentLayer}
