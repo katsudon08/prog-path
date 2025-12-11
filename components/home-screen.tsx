@@ -34,6 +34,7 @@ export function HomeScreen() {
     const [draggedMazeId, setDraggedMazeId] = useState<string | null>(null);
     const [editingCategory, setEditingCategory] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
+    const [isCategoriesLoaded, setIsCategoriesLoaded] = useState(false);
 
     // カスタムカテゴリの読み込み
     useEffect(() => {
@@ -54,12 +55,14 @@ export function HomeScreen() {
                 console.error("Failed to load categories", e);
             }
         }
+        setIsCategoriesLoaded(true);
     }, []);
 
     // カスタムカテゴリの保存
     useEffect(() => {
+        if (!isCategoriesLoaded) return;
         localStorage.setItem("progpath_categories", JSON.stringify(customCategories));
-    }, [customCategories]);
+    }, [customCategories, isCategoriesLoaded]);
 
     // カテゴリごとに迷路をグループ化
     const groupedMazes = mazes.reduce((acc, maze) => {

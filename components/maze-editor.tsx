@@ -233,6 +233,7 @@ export function MazeEditor() {
             const index = mazes.findIndex((m) => m.id === mazeId);
             if (index !== -1) {
                 mazes[index] = {
+                    ...mazes[index],
                     id: mazeId,
                     name: mazeName,
                     size: gridSize,
