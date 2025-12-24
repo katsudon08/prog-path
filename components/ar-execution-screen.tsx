@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react"; // useCallback をインポート
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input"; // Inputをインポート
+import { Button } from "@shared/ui";
+import { Card } from "@shared/ui";
+import { Input } from "@shared/ui";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
     DialogFooter,
-} from "@/components/ui/dialog"; // Dialog関連をインポート
+} from "@shared/ui";
 import {
     ArrowLeft,
     Play,
@@ -20,23 +20,22 @@ import {
     AlertTriangle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-// RobotState と DirectionVector を lib/types からインポート
+import type { MazeData } from "@entities/maze";
 import type {
-    MazeData,
     Command,
     CommandType,
     RobotState,
     DirectionVector,
-} from "@/lib/types";
+} from "@entities/robot";
 
 interface InsertionPoint {
     parentIndex: number | null;
     childIndex: number;
 }
 
-import { CommandStack } from "@/components/command-stack";
-import { MazeView3D } from "@/components/maze-view-3d";
-import { MinimapView } from "@/components/minimap-view";
+import { CommandStack } from "./command-stack";
+import { MazeView3D } from "./maze-view-3d";
+import { MinimapView } from "./minimap-view";
 
 // flattenCommands 関数は変更なし
 function flattenCommands(commands: Command[]): Command[] {

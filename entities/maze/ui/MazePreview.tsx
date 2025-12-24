@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import type { TileType } from "../model/types"
 import { getTileColor } from "../lib/tile-colors"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -8,21 +8,62 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 interface MazePreviewProps {
     grid?: TileType[][] // 単一階層のグリッド（後方互換性のため残す）
     layers?: TileType[][][] // 複数階層対応
-    layerIndex?: number // オプション：階層番号を表示用
+    layerIndex?: number // オプション：初期階層
+    cellSize?: number // セルサイズ（ピクセル）デフォルト: 24
+    showNavigation?: boolean // レイヤーナビゲーション表示 デフォルト: true
+    compact?: boolean // コンパクトモード（ミニマップ用） デフォルト: false
+    maxWidth?: number // 最大幅（ピクセル）- 超える場合は自動縮小
+    maxHeight?: number // 最大高さ（ピクセル）- 超える場合は自動縮小
 }
 
 /**
  * 迷路プレビューコンポーネント
  * 迷路の2D表示と階層ナビゲーションを提供
  */
-export function MazePreview({ grid, layers, layerIndex }: MazePreviewProps) {
+export function MazePreview({ 
+    grid, 
+    layers, 
+    layerIndex, 
+    cellSize = 24,
+    showNavigation = true,
+    compact = false,
+    maxWidth,
+    maxHeight,
+}: MazePreviewProps) {
     // 複数階層がある場合は layers を使用、なければ grid を配列化
     const allLayers = layers || (grid ? [grid] : [])
-    const [currentLayerIndex, setCurrentLayerIndex] = useState(layerIndex || 0)
+    const [currentLayerIndex, setCurrentLayerIndex] = useState(layerIndex ?? 0)
     
     // 表示する階層を決定
     const displayLayer = allLayers[currentLayerIndex] || []
     const hasMultipleLayers = allLayers.length > 1
+
+    // グリッドサイズを取得
+    const rows = displayLayer.length
+    const cols = displayLayer[0]?.length || 0
+
+    // 適切なセルサイズを計算（maxWidth/maxHeightを考慮）
+    const effectiveCellSize = useMemo(() => {
+        let size = cellSize
+        const gap = compact ? 1 : 2 // gap-px = 1px, gap-0.5 = 2px
+        const padding = compact ? 8 : 16 // p-1 = 8px, p-2 = 16px
+
+        if (maxWidth && cols > 0) {
+            const maxCellWidth = (maxWidth - padding - (cols - 1) * gap) / cols
+            size = Math.min(size, maxCellWidth)
+        }
+
+        if (maxHeight && rows > 0) {
+            // ナビゲーションの高さを考慮（約50px）
+            const navHeight = showNavigation && hasMultipleLayers ? 50 : 0
+            const availableHeight = maxHeight - navHeight - padding
+            const maxCellHeight = (availableHeight - (rows - 1) * gap) / rows
+            size = Math.min(size, maxCellHeight)
+        }
+
+        // 最小1pxを保証
+        return Math.max(1, Math.floor(size))
+    }, [cellSize, maxWidth, maxHeight, rows, cols, compact, showNavigation, hasMultipleLayers])
 
     const handlePrevLayer = () => {
         setCurrentLayerIndex((prev) => Math.max(0, prev - 1))
@@ -32,10 +73,19 @@ export function MazePreview({ grid, layers, layerIndex }: MazePreviewProps) {
         setCurrentLayerIndex((prev) => Math.min(allLayers.length - 1, prev + 1))
     }
 
+    // コンパクトモード用のスタイル
+    const cellStyle = {
+        width: `${effectiveCellSize}px`,
+        height: `${effectiveCellSize}px`
+    }
+    
+    const gapClass = compact ? "gap-px" : "gap-0.5"
+    const paddingClass = compact ? "p-1" : "p-2"
+
     return (
         <div className="flex flex-col gap-2 items-center">
             {/* 階層ナビゲーション */}
-            {hasMultipleLayers && (
+            {showNavigation && hasMultipleLayers && (
                 <div className="flex items-center justify-between bg-space-dark/50 rounded-lg p-2 border border-neon-blue/30">
                     <button
                         onClick={handlePrevLayer}
@@ -58,13 +108,14 @@ export function MazePreview({ grid, layers, layerIndex }: MazePreviewProps) {
             )}
             
             {/* グリッド表示 */}
-            <div className="inline-flex flex-col gap-0.5 rounded-lg border border-neon-blue bg-space-dark p-2">
+            <div className={`inline-flex flex-col ${gapClass} rounded-lg border border-neon-blue bg-space-dark ${paddingClass}`}>
                 {displayLayer.map((row, rowIndex) => (
-                    <div key={rowIndex} className="flex gap-0.5">
+                    <div key={rowIndex} className={`flex ${gapClass}`}>
                         {row.map((tile, colIndex) => (
                             <div
                                 key={`${rowIndex}-${colIndex}`}
-                                className={`h-6 w-6 rounded-sm ${getTileColor(tile)}`}
+                                className={`rounded-sm ${getTileColor(tile)}`}
+                                style={cellStyle}
                             />
                         ))}
                     </div>

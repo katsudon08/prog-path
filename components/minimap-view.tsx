@@ -3,7 +3,8 @@
 import React from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { MazeData, RobotState, TileType } from '@/lib/types';
+import type { MazeData, TileType } from '@entities/maze';
+import type { RobotState } from '@entities/robot';
 
 // タイルの色を取得
 function getTileColor(tile: TileType): string {

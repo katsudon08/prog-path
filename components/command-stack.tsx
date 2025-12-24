@@ -2,9 +2,9 @@
 
 import type React from "react";
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@shared/ui";
+import { Card } from "@shared/ui";
+import { Input } from "@shared/ui";
 import {
     ArrowUp,
     RotateCw,
@@ -16,7 +16,7 @@ import {
     ChevronDown,
     ChevronRight,
 } from "lucide-react";
-import type { Command, CommandType } from "@/lib/types";
+import type { Command, CommandType } from "@entities/robot";
 
 interface InsertionPoint {
     parentIndex: number | null;

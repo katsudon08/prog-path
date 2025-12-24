@@ -18,10 +18,11 @@ import {
     Center,
 } from "@react-three/drei";
 import * as THREE from "three";
-import type { MazeData, RobotState, TileType, Command } from "@/lib/types";
+import type { MazeData, TileType } from "@entities/maze";
+import type { RobotState, Command } from "@entities/robot";
 // 1. jsQR をインポート
 import jsQR from "jsqr";
-import { isMazeQRCode, decodeMazeFromQR } from "@/lib/maze-encoder";
+import { isMazeQRCode, decodeMazeFromQR } from "@features/maze-serialization";
 
 // 2. AR.js 関連の型定義を削除
 

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Orbitron, Michroma } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@widgets/navbar";
 
 const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" });
 const michroma = Michroma({
@@ -27,6 +27,7 @@ export default function RootLayout({
         <html lang="ja" suppressHydrationWarning>
             <body
                 className={`${orbitron.variable} ${michroma.variable} font-sans antialiased`}
+                suppressHydrationWarning
             >
                 <Navbar />
                 {children}

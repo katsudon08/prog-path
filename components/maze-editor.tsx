@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@shared/ui";
+import { Card } from "@shared/ui";
+import { Input } from "@shared/ui";
+import { Label } from "@shared/ui";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
+} from "@shared/ui";
 import { Save, ArrowLeft, Trash2, ArrowUp, ArrowDown, Plus, Minus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { MazeData, TileType } from "@/lib/types";
-import { getInitialMazes } from "@/lib/initial-mazes";
+import type { MazeData, TileType } from "@entities/maze";
+import { getInitialMazes } from "@entities/maze";
 
 const TILE_TYPES: { type: TileType; label: string; color: string }[] = [
     { type: "floor", label: "床", color: "bg-space-blue/30" },
