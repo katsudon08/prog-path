@@ -4,7 +4,7 @@ import { Button } from "@shared/ui";
 import { Card } from "@shared/ui";
 import { Plus, Play, ChevronRight, QrCode, Upload, AlertTriangle, ChevronDown, FolderPlus, Folder, Trash2 } from "lucide-react";
 import { Input } from "@shared/ui";
-import { MazePreview } from "@entities/maze";
+import { MazePreview, findStartPosition } from "@entities/maze";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/ui";
 import { QRCodeSVG } from "qrcode.react";
 import { useHomePortalState } from "@features/home-portal-state";
@@ -152,7 +152,7 @@ export function HomePortalWidget() {
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-16 h-16 rounded bg-space-darker flex items-center justify-center overflow-hidden">
                                                             <MazePreview
-                                                                grid={maze.layers[maze.currentLayer ?? 0]}
+                                                                grid={maze.layers[findStartPosition(maze)?.z ?? 0]}
                                                                 cellSize={4}
                                                                 showNavigation={false}
                                                                 compact={true}
