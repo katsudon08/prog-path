@@ -137,15 +137,12 @@ function RobotMarker({
     else if (direction[0] === 0 && direction[1] === 1) rotation = 180;// South
     else if (direction[0] === -1 && direction[1] === 0) rotation = -90;// West
 
-    // 座標計算
-    // offset = padding + (index * (cellSize + gap))
-    const left = padding + (x * (cellSize + gap));
-    const top = padding + (y * (cellSize + gap));
-    const size = cellSize * 0.7; // セルサイズの70%
-    
-    // 中央配置のためのオフセット
-    // (cellSize - size) / 2
-    const centerOffset = (cellSize - size) / 2;
+    // 座標計算 - タイルの中央座標を計算
+    // タイル左上 = padding + (index * (cellSize + gap))
+    // タイル中央 = タイル左上 + cellSize / 2
+    const tileCenterX = padding + (x * (cellSize + gap)) + (cellSize / 2);
+    const tileCenterY = padding + (y * (cellSize + gap)) + (cellSize / 2);
+    const size = cellSize * 0.8; // セルサイズの80%
 
     // リセット時はトランジションを無効化
     const transitionClass = isResetting 
@@ -158,9 +155,9 @@ function RobotMarker({
             style={{
                 width: size,
                 height: size,
-                left: left + centerOffset,
-                top: top + centerOffset,
-                transform: `rotate(${rotation}deg)`,
+                left: tileCenterX,
+                top: tileCenterY,
+                transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
             }}
         >
             <img 
