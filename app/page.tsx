@@ -1,5 +1,5 @@
-import { HomeScreen } from "@/components/home-screen";
+import { HomePortalWidget } from "@widgets/home-portal"
 
 export default function Page() {
-    return <HomeScreen />;
+    return <HomePortalWidget />
 }

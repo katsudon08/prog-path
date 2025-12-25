@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { Suspense } from "react";
-import { MazeEditor } from "@/components/maze-editor";
+import { Suspense } from "react"
+import { MazeEditorWidget } from "@widgets/maze-editor"
 
 export default function EditorPage() {
     return (
@@ -12,7 +12,7 @@ export default function EditorPage() {
                 </div>
             }
         >
-            <MazeEditor />
+            <MazeEditorWidget />
         </Suspense>
-    );
+    )
 }

@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { Suspense } from "react";
-import { ARExecutionScreen } from "@/components/ar-execution-screen";
+import { Suspense } from "react"
+import { ARExecutionWidget } from "@widgets/ar-execution"
 
 export default function ARPage() {
     return (
@@ -12,7 +12,7 @@ export default function ARPage() {
                 </div>
             }
         >
-            <ARExecutionScreen />
+            <ARExecutionWidget />
         </Suspense>
-    );
+    )
 }
