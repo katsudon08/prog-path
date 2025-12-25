@@ -32,8 +32,7 @@ export function RobotModel({
     const { actions, names, mixer } = useAnimations(animations, scene);
     const modelRef = useRef<THREE.Group>(null!);
 
-    // 現在再生中のアニメーション名を保持する Ref
-    const currentActionRef = useRef<string | null>(null);
+
 
     // 落下状態（=移動不能）かどうか
     const isImmobilizedRef = useRef<boolean>(false);
@@ -43,7 +42,7 @@ export function RobotModel({
     // テレポートアニメーション用の状態管理
     const [isTeleporting, setIsTeleporting] = useState(false);
     const [teleportPhase, setTeleportPhase] = useState(0); // 0-5
-    const [teleportDirection, setTeleportDirection] = useState<'up' | 'down'>('up');
+
 
     // テレポートアニメーション用のタイマーとオフセット
     const teleportStartTimeRef = useRef<number>(0);
@@ -108,10 +107,8 @@ export function RobotModel({
             !isTeleporting &&
             currentCommandIndex !== -1
         ) {
-            const direction = robotState.z > prevZRef.current ? 'up' : 'down';
             setIsTeleporting(true);
             setTeleportPhase(1);
-            setTeleportDirection(direction);
             teleportStartTimeRef.current = performance.now();
             teleportPositionSnapshotRef.current = targetPosition.clone();
         }
@@ -190,7 +187,6 @@ export function RobotModel({
         }
 
         // アニメーションを再生
-        currentActionRef.current = actionName || null;
         const activeAction = actionName ? actions[actionName] : null;
 
         if (activeAction) {
@@ -337,7 +333,12 @@ export function RobotModel({
                     }
                 }
 
-                if ((distance > 0.75) && !justFinishedTeleportRef.current) {
+                // リセット時（currentCommandIndex === -1）または大きな距離の移動は瞬間移動
+                const shouldInstantMove = 
+                    currentCommandIndex === -1 || 
+                    ((distance > 0.75) && !justFinishedTeleportRef.current);
+
+                if (shouldInstantMove) {
                     modelRef.current.position.copy(targetPosition);
                     modelRef.current.quaternion.copy(targetQuaternion);
                 } else {

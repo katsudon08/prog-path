@@ -204,7 +204,11 @@ export function ARExecutionWidget() {
 
                             {/* Minimap View */}
                             <div className="absolute top-2 right-2 w-44 h-44 border-2 border-neon-cyan/50 rounded-lg overflow-hidden bg-space-dark/80 backdrop-blur-sm shadow-lg shadow-neon-cyan/30 z-20">
-                                <MinimapViewWidget maze={runner.maze} robotState={runner.robotState} />
+                                <MinimapViewWidget 
+                                    maze={runner.maze} 
+                                    robotState={runner.robotState} 
+                                    isResetting={runner.currentCommandIndex === -1}
+                                />
                             </div>
                         </MazeView3DWidget>
 

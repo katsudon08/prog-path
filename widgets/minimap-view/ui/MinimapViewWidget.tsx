@@ -8,6 +8,7 @@ import { getTileColor } from '@entities/maze';
 interface MinimapViewProps {
     maze: MazeData;
     robotState: RobotState;
+    isResetting?: boolean;
 }
 
 /**
@@ -15,7 +16,7 @@ interface MinimapViewProps {
  * ホーム画面の迷路プレビューと同じ2Dスタイル
  * アイコンの動きをスムーズにアニメーション化
  */
-export function MinimapView({ maze, robotState }: MinimapViewProps) {
+export function MinimapView({ maze, robotState, isResetting = false }: MinimapViewProps) {
     // ロボットの現在の階層を表示
     const currentLayer = maze.layers[robotState.z] || maze.layers[0];
     const [layerIndex, setLayerIndex] = useState(robotState.z);
@@ -87,6 +88,7 @@ export function MinimapView({ maze, robotState }: MinimapViewProps) {
                         cellSize={cellSize}
                         padding={4} // p-1 = 4px
                         gap={1} // gap-px = 1px
+                        isResetting={isResetting}
                     />
                 )}
             </div>
@@ -104,7 +106,8 @@ function RobotMarker({
     y,
     cellSize,
     padding,
-    gap
+    gap,
+    isResetting = false
 }: { 
     direction: [number, number]; 
     x: number;
@@ -112,6 +115,7 @@ function RobotMarker({
     cellSize: number;
     padding: number;
     gap: number;
+    isResetting?: boolean;
 }) {
     // 方向から回転角度を計算 (画像の上方向を基準に合わせる)
     // direction: [0, 1] (North/Up) -> 0 deg (assuming image points up)
@@ -143,9 +147,14 @@ function RobotMarker({
     // (cellSize - size) / 2
     const centerOffset = (cellSize - size) / 2;
 
+    // リセット時はトランジションを無効化
+    const transitionClass = isResetting 
+        ? "" 
+        : "transition-all duration-500 ease-in-out";
+
     return (
         <div
-            className="absolute flex items-center justify-center pointer-events-none transition-all duration-500 ease-in-out"
+            className={`absolute flex items-center justify-center pointer-events-none ${transitionClass}`}
             style={{
                 width: size,
                 height: size,
