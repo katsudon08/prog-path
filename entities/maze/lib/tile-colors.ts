@@ -2,6 +2,7 @@ import type { TileType } from '../model/types'
 
 /**
  * タイルタイプに対応する色クラスを返す
+ * アイコン付きタイル（スタート、ゴール、鍵、テレポート）は床と同じ背景色
  */
 export function getTileColor(tile: TileType): string {
     switch (tile) {
@@ -12,15 +13,15 @@ export function getTileColor(tile: TileType): string {
         case "hole":
             return "bg-neon-purple border border-purple-900"
         case "start":
-            return "bg-neon-green"
+            return "bg-space-blue/30"
         case "goal":
-            return "bg-neon-red"
+            return "bg-space-blue/30"
         case "teleportUp":
-            return "bg-blue-500 border border-blue-300"
+            return "bg-space-blue/30"
         case "teleportDown":
-            return "bg-pink-500 border border-pink-300"
+            return "bg-space-blue/30"
         case "key":
-            return "bg-yellow-400 border border-yellow-600"
+            return "bg-space-blue/30"
         default:
             return "bg-space-blue/30"
     }

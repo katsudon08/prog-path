@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { MazeData, TileType } from '@entities/maze';
 import type { RobotState } from '@entities/robot';
 import { getTileColor } from '@entities/maze';
+import { getTileIcon } from '@features/tile-palette';
 
 interface MinimapViewProps {
     maze: MazeData;
@@ -52,6 +53,9 @@ export function MinimapView({ maze, robotState, isResetting = false }: MinimapVi
         return Math.max(8, Math.min(size, 32));
     }, [rows, cols, maze.layers.length]);
 
+    // アイコンサイズ（セルサイズに応じて調整）
+    const iconSize = Math.max(6, Math.floor(cellSize * 0.65));
+
     // ロボットが現在の階層にいるかどうか
     const isRobotOnCurrentLayer = layerIndex === robotState.z;
 
@@ -69,13 +73,18 @@ export function MinimapView({ maze, robotState, isResetting = false }: MinimapVi
                 {/* タイルグリッド */}
                 {displayLayer.map((row, rowIndex) => (
                     <div key={rowIndex} className="flex gap-px">
-                        {row.map((tile, colIndex) => (
-                            <div
-                                key={`${rowIndex}-${colIndex}`}
-                                className={`rounded-sm ${getTileColor(tile)}`}
-                                style={{ width: cellSize, height: cellSize }}
-                            />
-                        ))}
+                        {row.map((tile, colIndex) => {
+                            const icon = getTileIcon(tile, iconSize);
+                            return (
+                                <div
+                                    key={`${rowIndex}-${colIndex}`}
+                                    className={`rounded-sm flex items-center justify-center ${getTileColor(tile)}`}
+                                    style={{ width: cellSize, height: cellSize }}
+                                >
+                                    {icon}
+                                </div>
+                            );
+                        })}
                     </div>
                 ))}
 

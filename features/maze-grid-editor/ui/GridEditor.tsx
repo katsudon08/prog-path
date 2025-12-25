@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react"
 import type { TileType } from "@entities/maze"
-import { getTileEditorColor } from "@features/tile-palette"
+import { getTileEditorColor, getTileIcon } from "@features/tile-palette"
 
 interface GridEditorProps {
     grid: TileType[][]
@@ -48,6 +48,9 @@ export function GridEditor({ grid, onTileClick, maxWidth, maxHeight }: GridEdito
         return Math.max(MIN_CELL_SIZE, Math.floor(size))
     }, [grid, maxWidth, maxHeight])
 
+    // アイコンサイズ（セルサイズに応じて調整）
+    const iconSize = Math.max(12, Math.floor(cellSize * 0.6))
+
     const handleMouseDown = useCallback((row: number, col: number) => {
         setIsDrawing(true)
         onTileClick(row, col)
@@ -79,16 +82,21 @@ export function GridEditor({ grid, onTileClick, maxWidth, maxHeight }: GridEdito
         >
             {grid?.map((row, rowIndex) => (
                 <div key={rowIndex} className="flex gap-1">
-                    {row.map((tile, colIndex) => (
-                        <button
-                            key={`${rowIndex}-${colIndex}`}
-                            style={cellStyle}
-                            className={`rounded border-2 border-neon-blue/20 transition-all hover:border-neon-cyan hover:scale-105 ${getTileEditorColor(tile)}`}
-                            onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
-                            onMouseUp={handleMouseUp}
-                            onMouseEnter={() => handleMouseEnter(rowIndex, colIndex)}
-                        />
-                    ))}
+                    {row.map((tile, colIndex) => {
+                        const icon = getTileIcon(tile, iconSize)
+                        return (
+                            <button
+                                key={`${rowIndex}-${colIndex}`}
+                                style={cellStyle}
+                                className={`rounded border-2 border-neon-blue/20 transition-all hover:border-neon-cyan hover:scale-105 flex items-center justify-center ${getTileEditorColor(tile)}`}
+                                onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
+                                onMouseUp={handleMouseUp}
+                                onMouseEnter={() => handleMouseEnter(rowIndex, colIndex)}
+                            >
+                                {icon}
+                            </button>
+                        )
+                    })}
                 </div>
             ))}
         </div>

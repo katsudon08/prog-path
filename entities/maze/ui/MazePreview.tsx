@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import type { TileType } from "../model/types"
 import { getTileColor } from "../lib/tile-colors"
+import { getTileIcon } from "@features/tile-palette"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface MazePreviewProps {
@@ -67,6 +68,9 @@ export function MazePreview({
         return Math.max(1, Math.floor(size))
     }, [cellSize, maxWidth, maxHeight, rows, cols, compact, showNavigation, hasMultipleLayers])
 
+    // アイコンサイズ（セルサイズに応じて調整）
+    const iconSize = Math.max(8, Math.floor(effectiveCellSize * 0.65))
+
     const handlePrevLayer = () => {
         setCurrentLayerIndex((prev) => Math.max(0, prev - 1))
     }
@@ -113,13 +117,18 @@ export function MazePreview({
             <div className={`inline-flex flex-col ${gapClass} rounded-lg border border-neon-blue bg-space-dark ${paddingClass}`}>
                 {displayLayer.map((row, rowIndex) => (
                     <div key={rowIndex} className={`flex ${gapClass}`}>
-                        {row.map((tile, colIndex) => (
-                            <div
-                                key={`${rowIndex}-${colIndex}`}
-                                className={`rounded-sm ${getTileColor(tile)}`}
-                                style={cellStyle}
-                            />
-                        ))}
+                        {row.map((tile, colIndex) => {
+                            const icon = getTileIcon(tile, iconSize)
+                            return (
+                                <div
+                                    key={`${rowIndex}-${colIndex}`}
+                                    className={`rounded-sm flex items-center justify-center ${getTileColor(tile)}`}
+                                    style={cellStyle}
+                                >
+                                    {icon}
+                                </div>
+                            )
+                        })}
                     </div>
                 ))}
             </div>
