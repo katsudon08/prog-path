@@ -1,16 +1,25 @@
 "use client";
 
-import React, { useEffect, useRef, useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Html, Preload, OrbitControls, Text3D, Center } from "@react-three/drei";
 import * as THREE from "three";
-import jsQR from "jsqr";
 
 import type { MazeData } from "@entities/maze";
 import type { RobotState, Command } from "@entities/robot";
 import { isMazeQRCode, decodeMazeFromQR } from "@features/maze-serialization";
 import { MazeMap } from "@entities/maze-3d";
 import { RobotModel } from "@entities/robot-3d";
+import { useCameraQRScanner } from "@features/camera-qr-scanner";
+
+// QRコードの文字列とコマンドのマッピング
+const qrCodeToCommand: { [key: string]: Command } = {
+    forward: { type: "forward" },
+    turnRight: { type: "turnRight" },
+    turnLeft: { type: "turnLeft" },
+    ifHole: { type: "ifHole" },
+    loop: { type: "loop" },
+};
 
 interface MazeView3DProps {
     maze: MazeData;
@@ -22,37 +31,10 @@ interface MazeView3DProps {
     children?: React.ReactNode;
 }
 
-// QRコードのデコード関数
-const scanQRCodeWithJsQR = (imageData: ImageData): string | null => {
-    if (!jsQR) {
-        console.warn("jsQR library not available");
-        return null;
-    }
-    try {
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "dontInvert",
-        });
-        if (code && code.data) {
-            return code.data;
-        }
-    } catch (error) {
-        console.error("QR code scan error:", error);
-    }
-    return null;
-};
-
-// QRコードの文字列とコマンドのマッピング
-const qrCodeToCommand: { [key: string]: Command } = {
-    forward: { type: "forward" },
-    turnRight: { type: "turnRight" },
-    turnLeft: { type: "turnLeft" },
-    ifHole: { type: "ifHole" },
-    loop: { type: "loop" },
-};
-
 /**
  * MazeView3DWidget
  * 3D迷路表示とQRコードスキャンを統合したウィジェット
+ * カメラ/QRスキャンロジックは useCameraQRScanner フックに委譲
  */
 export function MazeView3D({
     maze,
@@ -63,11 +45,6 @@ export function MazeView3D({
     flattenedCommands,
     children,
 }: MazeView3DProps) {
-    const videoElementRef = useRef<HTMLVideoElement | null>(null);
-    const scanCanvasRef = useRef<HTMLCanvasElement | null>(null);
-    const isCoolingDownRef = useRef<boolean>(false);
-
-    const [isStreamReady, setIsStreamReady] = useState<boolean>(false);
     const [renderingZ, setRenderingZ] = useState(robotState.z);
 
     // Z座標の遅延更新（テレポート演出用）
@@ -86,145 +63,37 @@ export function MazeView3D({
         return () => clearTimeout(timer);
     }, [robotState.z, renderingZ, currentCommandIndex]);
 
-    // カメラ起動ロジック
-    useEffect(() => {
-        const video = videoElementRef.current;
-        if (!video) return;
+    // QRコード検出時のコールバック
+    const handleQRCodeDetected = useCallback((qrCodeData: string) => {
+        // 迷路QRコードの場合はインポート
+        if (isMazeQRCode(qrCodeData)) {
+            const importedMaze = decodeMazeFromQR(qrCodeData);
+            if (importedMaze) {
+                const stored = localStorage.getItem("progpath_mazes");
+                const mazes: MazeData[] = stored ? JSON.parse(stored) : [];
 
-        let stream: MediaStream | null = null;
-
-        const startWebcam = async () => {
-            try {
-                console.log("📹 Starting webcam...");
-                stream = await navigator.mediaDevices.getUserMedia({
-                    audio: false,
-                    video: {
-                        facingMode: "environment",
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                    },
-                });
-                video.srcObject = stream;
-                console.log("✅ Webcam stream attached.");
-
-                video.onloadedmetadata = () => {
-                    console.log("✅ Video metadata loaded.");
-                    video.play()
-                        .then(() => console.log("✅ Video playback started."))
-                        .catch((err) => console.error("❌ Video play failed:", err));
-                };
-
-                video.onplaying = () => {
-                    console.log("✅ Video stream is now playing.");
-                    if (video.readyState >= 2) {
-                        setIsStreamReady(true);
-                    }
-                };
-
-                video.oncanplay = () => {
-                    console.log("✅ Video can play (readyState >= 2).");
-                    setIsStreamReady(true);
-                };
-            } catch (err) {
-                console.error("❌ Failed to get webcam stream:", err);
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                alert(`カメラの起動に失敗: ${errorMessage}`);
-            }
-        };
-
-        startWebcam();
-
-        return () => {
-            if (stream) {
-                stream.getTracks().forEach((track) => track.stop());
-                console.log("🛑 Webcam stream stopped.");
-            }
-            if (video && video.srcObject) {
-                video.srcObject = null;
-                video.onplaying = null;
-                video.oncanplay = null;
-            }
-            setIsStreamReady(false);
-        };
-    }, []);
-
-    // QRコードスキャンループ
-    useEffect(() => {
-        if (!isStreamReady || !videoElementRef.current || !scanCanvasRef.current) {
-            return;
-        }
-
-        let scanInterval: number | null = null;
-
-        const video = videoElementRef.current;
-        const canvas = scanCanvasRef.current;
-        const ctx = canvas.getContext("2d");
-
-        if (!ctx) {
-            console.error("Failed to get 2D context for scanning");
-            return;
-        }
-
-        console.log("🚀 Starting QR scanner loop...");
-
-        const scanLoop = () => {
-            scanInterval = window.setTimeout(scanLoop, 300);
-
-            if (video.readyState < 2) return;
-
-            try {
-                const videoWidth = video.videoWidth;
-                const videoHeight = video.videoHeight;
-
-                if (videoWidth === 0 || videoHeight === 0) return;
-
-                canvas.width = videoWidth;
-                canvas.height = videoHeight;
-
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const qrCodeData = scanQRCodeWithJsQR(imageData);
-
-                if (qrCodeData) {
-                    if (isMazeQRCode(qrCodeData)) {
-                        const importedMaze = decodeMazeFromQR(qrCodeData);
-                        if (importedMaze) {
-                            const stored = localStorage.getItem("progpath_mazes");
-                            const mazes: MazeData[] = stored ? JSON.parse(stored) : [];
-
-                            if (!mazes.find(m => m.id === importedMaze.id)) {
-                                mazes.push(importedMaze);
-                                localStorage.setItem("progpath_mazes", JSON.stringify(mazes));
-                                console.log("✅ 迷路をインポート:", importedMaze.name);
-                            }
-                        }
-                    } else {
-                        const command = qrCodeToCommand[qrCodeData];
-
-                        if (command && !isCoolingDownRef.current) {
-                            console.log(`🎯 QR Code detected: ${qrCodeData}`, command);
-                            onMarkerDetected(command);
-
-                            isCoolingDownRef.current = true;
-                            setTimeout(() => {
-                                isCoolingDownRef.current = false;
-                            }, 1500);
-                        }
-                    }
+                if (!mazes.find(m => m.id === importedMaze.id)) {
+                    mazes.push(importedMaze);
+                    localStorage.setItem("progpath_mazes", JSON.stringify(mazes));
+                    console.log("✅ 迷路をインポート:", importedMaze.name);
                 }
-            } catch (err) {
-                console.error("Error in scan loop:", err);
             }
-        };
+            return;
+        }
 
-        scanLoop();
+        // コマンドQRコードの場合
+        const command = qrCodeToCommand[qrCodeData];
+        if (command) {
+            onMarkerDetected(command);
+        }
+    }, [onMarkerDetected]);
 
-        return () => {
-            console.log("🛑 Stopping QR scanner loop...");
-            if (scanInterval) clearTimeout(scanInterval);
-            isCoolingDownRef.current = false;
-        };
-    }, [isStreamReady, onMarkerDetected]);
+    // カメラ/QRスキャナーフック（自動起動、1.5秒クールダウン）
+    const { videoRef, canvasRef } = useCameraQRScanner({
+        onQRCodeDetected: handleQRCodeDetected,
+        autoStart: true,
+        cooldownMs: 1500,
+    });
 
     // 現在のタイルを計算
     const currentLayer = renderingZ >= 0 && renderingZ < maze.layers.length ? maze.layers[renderingZ] : null;
@@ -235,12 +104,11 @@ export function MazeView3D({
 
     return (
         <div className="relative w-full h-full overflow-hidden rounded-lg border-2 border-neon-cyan/30 bg-transparent">
-            <canvas ref={scanCanvasRef} style={{ display: "none" }} />
-
+            <canvas ref={canvasRef} style={{ display: "none" }} />
 
             <video
                 id="arjs-video"
-                ref={videoElementRef}
+                ref={videoRef}
                 autoPlay
                 playsInline
                 webkit-playsinline="true"
@@ -364,3 +232,6 @@ export function MazeView3D({
         </div>
     );
 }
+
+// エクスポートエイリアス
+export const MazeView3DWidget = MazeView3D;

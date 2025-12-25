@@ -8,6 +8,10 @@ export interface UseCameraQRScannerOptions {
     scanInterval?: number
     /** QRコード検出時のコールバック */
     onQRCodeDetected: (data: string) => void
+    /** マウント時に自動起動するか（デフォルト: false） */
+    autoStart?: boolean
+    /** 検出後のクールダウン時間（ミリ秒、デフォルト: 0 = 無効） */
+    cooldownMs?: number
 }
 
 export interface UseCameraQRScannerResult {
@@ -27,16 +31,23 @@ export interface UseCameraQRScannerResult {
 
 /**
  * カメラを使ったQRコードスキャナーのカスタムフック
+ * ホーム画面（迷路インポート）とAR実行画面（コマンドスキャン）の両方で使用
  */
 export function useCameraQRScanner(
     options: UseCameraQRScannerOptions
 ): UseCameraQRScannerResult {
-    const { scanInterval = 300, onQRCodeDetected } = options
+    const { 
+        scanInterval = 300, 
+        onQRCodeDetected, 
+        autoStart = false,
+        cooldownMs = 0 
+    } = options
 
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const streamRef = useRef<MediaStream | null>(null)
     const scanIntervalRef = useRef<number | null>(null)
+    const isCoolingDownRef = useRef<boolean>(false)
 
     const [isStreamReady, setIsStreamReady] = useState(false)
     const [cameraError, setCameraError] = useState("")
@@ -58,6 +69,7 @@ export function useCameraQRScanner(
             video.oncanplay = null
         }
         setIsStreamReady(false)
+        isCoolingDownRef.current = false
     }, [])
 
     // カメラを開始
@@ -70,6 +82,7 @@ export function useCameraQRScanner(
 
         try {
             setCameraError("")
+            console.log("📹 Starting webcam...")
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: false,
                 video: {
@@ -80,28 +93,42 @@ export function useCameraQRScanner(
             })
             streamRef.current = stream
             video.srcObject = stream
+            console.log("✅ Webcam stream attached.")
 
             video.onloadedmetadata = () => {
+                console.log("✅ Video metadata loaded.")
                 video.play().catch(err => {
-                    console.error("Video play failed:", err)
+                    console.error("❌ Video play failed:", err)
                 })
             }
 
             video.onplaying = () => {
+                console.log("✅ Video stream is now playing.")
                 if (video.readyState >= 2) {
                     setIsStreamReady(true)
                 }
             }
 
             video.oncanplay = () => {
+                console.log("✅ Video can play (readyState >= 2).")
                 setIsStreamReady(true)
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : String(err)
             setCameraError(errorMessage)
-            console.error("Failed to get webcam stream:", err)
+            console.error("❌ Failed to get webcam stream:", err)
         }
     }, [])
+
+    // 自動起動
+    useEffect(() => {
+        if (autoStart) {
+            startCamera()
+        }
+        return () => {
+            stopCamera()
+        }
+    }, [autoStart, startCamera, stopCamera])
 
     // QRコードスキャンループ
     useEffect(() => {
@@ -117,6 +144,8 @@ export function useCameraQRScanner(
             console.error("Failed to get 2D context for scanning")
             return
         }
+
+        console.log("🚀 Starting QR scanner loop...")
 
         const scanLoop = () => {
             scanIntervalRef.current = window.setTimeout(scanLoop, scanInterval)
@@ -139,7 +168,21 @@ export function useCameraQRScanner(
                 })
 
                 if (code && code.data) {
+                    // クールダウン中はスキップ
+                    if (cooldownMs > 0 && isCoolingDownRef.current) {
+                        return
+                    }
+
+                    console.log(`🎯 QR Code detected: ${code.data}`)
                     onQRCodeDetected(code.data)
+
+                    // クールダウン開始
+                    if (cooldownMs > 0) {
+                        isCoolingDownRef.current = true
+                        setTimeout(() => {
+                            isCoolingDownRef.current = false
+                        }, cooldownMs)
+                    }
                 }
             } catch (err) {
                 console.error("Error scanning QR code:", err)
@@ -149,18 +192,12 @@ export function useCameraQRScanner(
         scanLoop()
 
         return () => {
+            console.log("🛑 Stopping QR scanner loop...")
             if (scanIntervalRef.current) {
                 clearTimeout(scanIntervalRef.current)
             }
         }
-    }, [isStreamReady, scanInterval, onQRCodeDetected])
-
-    // クリーンアップ
-    useEffect(() => {
-        return () => {
-            stopCamera()
-        }
-    }, [stopCamera])
+    }, [isStreamReady, scanInterval, onQRCodeDetected, cooldownMs])
 
     return {
         videoRef,
