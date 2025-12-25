@@ -5,7 +5,7 @@ import { Button } from "@shared/ui"
 import { Card } from "@shared/ui"
 import { Input } from "@shared/ui"
 import { Label } from "@shared/ui"
-import { Save, ArrowLeft, Trash2 } from "lucide-react"
+import { Save, ArrowLeft } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import type { TileType } from "@entities/maze"
 import { getInitialMazes } from "@entities/maze"
@@ -49,14 +49,13 @@ export function MazeEditorWidget() {
         gridSize,
     })
 
-    const { handleSave, handleDelete } = useMazePersistence({
+    const { handleSave } = useMazePersistence({
         mazeId,
         mazeName,
         gridSize,
         layers,
         currentLayer,
         onSaveSuccess: () => router.push("/"),
-        onDeleteSuccess: () => router.push("/"),
     })
 
     // 初期化（mazeIdのみに依存）
@@ -122,17 +121,6 @@ export function MazeEditorWidget() {
                     </div>
                     
                     <div className="flex gap-2">
-                        {mazeId && (
-                            <Button
-                                onClick={handleDelete}
-                                variant="outline"
-                                size="sm"
-                                className="border-neon-red hover:bg-neon-red/80 text-neon-red bg-transparent"
-                            >
-                                <Trash2 className="mr-1 h-4 w-4" />
-                                削除
-                            </Button>
-                        )}
                         <Button
                             onClick={handleSave}
                             size="sm"

@@ -62,6 +62,16 @@ export function useHomePortalState() {
         setExpandedCategories(categories)
     }, [])
 
+    // mazesが変更されたときに自動保存
+    const [isInitialized, setIsInitialized] = useState(false)
+    useEffect(() => {
+        if (!isInitialized) {
+            setIsInitialized(true)
+            return
+        }
+        saveMazes(mazes)
+    }, [mazes, isInitialized])
+
     // カテゴリごとにグループ化
     const groupedMazes = useMemo(() => {
         return mazes.reduce((acc, maze) => {
@@ -119,6 +129,17 @@ export function useHomePortalState() {
 
         // 迷路選択
         selectMaze: (maze: MazeData) => setSelectedMaze(maze),
+
+        // 迷路削除
+        deleteMaze: (id: string) => {
+            if (!confirm("この迷路を削除しますか？")) return
+            const updated = mazes.filter(m => m.id !== id)
+            setMazes(updated)
+            // 削除した迷路が選択中だった場合、別の迷路を選択
+            if (selectedMaze?.id === id) {
+                setSelectedMaze(updated.length > 0 ? updated[0] : null)
+            }
+        },
 
         // カテゴリ開閉
         toggleCategory: (category: string) => {

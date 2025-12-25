@@ -2,7 +2,7 @@
 
 import { Button } from "@shared/ui";
 import { Card } from "@shared/ui";
-import { Plus, Play, ChevronRight, QrCode, Upload, X, AlertTriangle, ChevronDown, FolderPlus, Folder, Trash2 } from "lucide-react";
+import { Plus, Play, ChevronRight, QrCode, Upload, AlertTriangle, ChevronDown, FolderPlus, Folder, Trash2 } from "lucide-react";
 import { Input } from "@shared/ui";
 import { MazePreview } from "@entities/maze";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/ui";
@@ -189,9 +189,9 @@ export function HomePortalWidget() {
                                             {selectedMaze.name}
                                         </h1>
                                         <p className="text-muted-foreground mt-1">
+                                            レイヤー: {selectedMaze.layers.length} <br/>
                                             サイズ: {selectedMaze.layers[selectedMaze.currentLayer ?? 0].length}×
-                                            {selectedMaze.layers[selectedMaze.currentLayer ?? 0][0]?.length || 0} <br/>
-                                            レイヤー: {selectedMaze.layers.length}
+                                            {selectedMaze.layers[selectedMaze.currentLayer ?? 0][0]?.length || 0}
                                         </p>
                                     </div>
                                     <div className="flex gap-2">
@@ -210,6 +210,14 @@ export function HomePortalWidget() {
                                         >
                                             <ChevronRight className="mr-2 h-4 w-4" />
                                             編集
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => handlers.deleteMaze(selectedMaze.id)}
+                                            className="border-red-500 text-red-500 hover:bg-red-500/20"
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            削除
                                         </Button>
                                         <Button
                                             onClick={() => handlers.runAR(selectedMaze.id)}

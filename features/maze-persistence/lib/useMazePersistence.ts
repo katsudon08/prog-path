@@ -9,7 +9,7 @@ interface UseMazePersistenceProps {
     layers: TileType[][][]
     currentLayer: number
     onSaveSuccess: () => void
-    onDeleteSuccess: () => void
+    onDeleteSuccess?: () => void
 }
 
 const STORAGE_KEY = "progpath_mazes"
@@ -87,7 +87,7 @@ export function useMazePersistence({
             localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
         }
         
-        onDeleteSuccess()
+        onDeleteSuccess?.()
         return true
     }, [mazeId, onDeleteSuccess])
 
