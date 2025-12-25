@@ -249,7 +249,7 @@ export function useMazeRunner(): UseMazeRunnerReturn {
                 timerIdRef.current = null
             }
         }
-    }, [isExecuting, currentCommandIndex, flattenedCommands, maze, robotState.x, robotState.y, robotState.z])
+    }, [isExecuting, currentCommandIndex, flattenedCommands])
 
     const toggleExecution = useCallback((commands: Command[]) => {
         if (!maze) return

@@ -13,6 +13,7 @@ interface MinimapViewProps {
 /**
  * ミニマップビューコンポーネント
  * ホーム画面の迷路プレビューと同じ2Dスタイル
+ * アイコンの動きをスムーズにアニメーション化
  */
 export function MinimapView({ maze, robotState }: MinimapViewProps) {
     // ロボットの現在の階層を表示
@@ -50,6 +51,9 @@ export function MinimapView({ maze, robotState }: MinimapViewProps) {
         return Math.max(8, Math.min(size, 32));
     }, [rows, cols, maze.layers.length]);
 
+    // ロボットが現在の階層にいるかどうか
+    const isRobotOnCurrentLayer = layerIndex === robotState.z;
+
     return (
         <div className="w-full h-full flex flex-col items-center justify-center p-2">
             {/* 階層表示 */}
@@ -59,36 +63,32 @@ export function MinimapView({ maze, robotState }: MinimapViewProps) {
                 </div>
             )}
 
-            {/* グリッド表示 */}
-            <div className="inline-flex flex-col gap-px rounded border border-neon-blue/50 bg-space-dark p-1">
+            {/* グリッドコンテナ */}
+            <div className="relative inline-flex flex-col gap-px rounded border border-neon-blue/50 bg-space-dark p-1">
+                {/* タイルグリッド */}
                 {displayLayer.map((row, rowIndex) => (
                     <div key={rowIndex} className="flex gap-px">
-                        {row.map((tile, colIndex) => {
-                            const isRobotHere = 
-                                colIndex === robotState.x && 
-                                rowIndex === robotState.y && 
-                                layerIndex === robotState.z;
-
-                            return (
-                                <div
-                                    key={`${rowIndex}-${colIndex}`}
-                                    className={`relative rounded-sm ${getTileColor(tile)}`}
-                                    style={{ width: cellSize, height: cellSize }}
-                                >
-                                    {/* ロボット表示 */}
-                                    {isRobotHere && (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <RobotMarker 
-                                                direction={robotState.direction} 
-                                                size={cellSize * 0.7}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                        {row.map((tile, colIndex) => (
+                            <div
+                                key={`${rowIndex}-${colIndex}`}
+                                className={`rounded-sm ${getTileColor(tile)}`}
+                                style={{ width: cellSize, height: cellSize }}
+                            />
+                        ))}
                     </div>
                 ))}
+
+                {/* ロボットマーカー（絶対配置でアニメーション） */}
+                {isRobotOnCurrentLayer && (
+                    <RobotMarker
+                        direction={robotState.direction}
+                        x={robotState.x}
+                        y={robotState.y}
+                        cellSize={cellSize}
+                        padding={4} // p-1 = 4px
+                        gap={1} // gap-px = 1px
+                    />
+                )}
             </div>
         </div>
     );
@@ -96,40 +96,70 @@ export function MinimapView({ maze, robotState }: MinimapViewProps) {
 
 /**
  * ロボットマーカー（方向を示す矢印）
+ * CSS transitionでスムーズに移動・回転
  */
 function RobotMarker({ 
     direction, 
-    size 
+    x,
+    y,
+    cellSize,
+    padding,
+    gap
 }: { 
     direction: [number, number]; 
-    size: number;
+    x: number;
+    y: number;
+    cellSize: number;
+    padding: number;
+    gap: number;
 }) {
-    // 方向から回転角度を計算
-    const rotation = Math.atan2(direction[0], -direction[1]) * (180 / Math.PI);
+    // 方向から回転角度を計算 (画像の上方向を基準に合わせる)
+    // direction: [0, 1] (North/Up) -> 0 deg (assuming image points up)
+    // 座標系: xは右、yは下(Gridなので)。direction=[dx, dy]
+    // 北(Up): [0, -1] -> 0 deg
+    // 東(Right): [1, 0] -> 90 deg
+    // 南(Down): [0, 1] -> 180 deg
+    // 西(Left): [-1, 0] -> 270 deg / -90 deg
+    
+    // Math.atan2(y, x) なので atan2(dy, dx)
+    // 北を0度とするため、少し調整が必要だが、
+    // ここでは単純に座標変換を行う。
+    // 北 [0, -1] => -90度 (atan2) => +90度して0度？
+    // シンプルにマッピングする方が確実かも。
+    
+    let rotation = 0;
+    if (direction[0] === 0 && direction[1] === -1) rotation = 0;      // North
+    else if (direction[0] === 1 && direction[1] === 0) rotation = 90; // East
+    else if (direction[0] === 0 && direction[1] === 1) rotation = 180;// South
+    else if (direction[0] === -1 && direction[1] === 0) rotation = -90;// West
+
+    // 座標計算
+    // offset = padding + (index * (cellSize + gap))
+    const left = padding + (x * (cellSize + gap));
+    const top = padding + (y * (cellSize + gap));
+    const size = cellSize * 0.7; // セルサイズの70%
+    
+    // 中央配置のためのオフセット
+    // (cellSize - size) / 2
+    const centerOffset = (cellSize - size) / 2;
 
     return (
         <div
-            className="relative"
+            className="absolute flex items-center justify-center pointer-events-none transition-all duration-500 ease-in-out"
             style={{
                 width: size,
                 height: size,
+                left: left + centerOffset,
+                top: top + centerOffset,
                 transform: `rotate(${rotation}deg)`,
             }}
         >
-            {/* 矢印形状 (SVG) */}
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="w-full h-full"
-            >
-                {/* 矢印の本体 */}
-                <path
-                    d="M12 4 L18 16 L12 13 L6 16 Z"
-                    fill="white"
-                    stroke="#0ff"
-                    strokeWidth="1"
-                />
-            </svg>
+            <img 
+                src="/assets/minimap-arrow.svg" 
+                alt="Robot" 
+                className="w-full h-full object-contain"
+                style={{ filter: "drop-shadow(0 0 4px rgba(0, 255, 255, 0.5))" }}
+            />
         </div>
     );
 }
