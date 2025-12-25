@@ -39,7 +39,7 @@ export function LayerNavigator({
                 onClick={onRemoveLayer}
                 variant="outline"
                 size="sm"
-                className="border-neon-red text-neon-red h-8 w-8 p-0"
+                className="border-neon-red text-neon-red hover:bg-neon-red/80 h-8 w-8 p-0"
                 disabled={!canRemoveLayer}
                 title="階層を削除"
             >
@@ -80,7 +80,7 @@ export function LayerNavigator({
                 onClick={onAddLayer}
                 variant="outline"
                 size="sm"
-                className="border-neon-green text-neon-green h-8 w-8 p-0"
+                className="border-neon-green text-neon-green hover:bg-neon-green/80 h-8 w-8 p-0"
                 disabled={!canAddLayer}
                 title="階層を追加"
             >

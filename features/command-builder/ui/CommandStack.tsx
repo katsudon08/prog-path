@@ -86,6 +86,19 @@ export function CommandStack({
         new Set()
     );
 
+    // ループコマンドが追加されたら自動的に展開状態にする
+    useEffect(() => {
+        const loopIndices = commands
+            .map((cmd, idx) => (cmd.type === "loop" ? idx : -1))
+            .filter((idx) => idx !== -1);
+        
+        setExpandedCommands((prev) => {
+            const newSet = new Set(prev);
+            loopIndices.forEach((idx) => newSet.add(idx));
+            return newSet;
+        });
+    }, [commands]);
+
     // ループ回数編集中の一時的な文字列を保持
     const [editingLoopCounts, setEditingLoopCounts] = useState<Record<number, string>>({});
 
@@ -147,13 +160,13 @@ export function CommandStack({
     };
 
     return (
-        <Card className="border-neon-blue/30 bg-space-dark/50 p-6">
-            <h3 className="mb-4 text-lg font-bold text-neon-cyan">
+        <Card className="border-neon-blue/30 bg-space-dark/50 p-4 flex flex-col h-full min-h-0">
+            <h3 className="mb-3 text-lg font-bold text-neon-cyan flex-shrink-0">
                 コマンドスタック
             </h3>
 
             {/* Command List */}
-            <div className="space-y-2 h-72 overflow-y-auto p-2 border border-neon-blue/20 rounded-lg" ref={listContainerRef}>
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 border border-neon-blue/20 rounded-lg space-y-2" ref={listContainerRef}>
                 {commands.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-neon-blue/30 p-8 text-center">
                         <p className="text-sm text-muted-foreground">
@@ -257,20 +270,6 @@ export function CommandStack({
                                     </Button>
                                 </div>
 
-                                {/* 挿入位置選択ボタン */}
-                                <button
-                                    onClick={() => onSetInsertionPoint?.({ parentIndex: null, childIndex: index + 1 })}
-                                    className={`w-full mt-1 py-1 px-2 text-xs rounded border transition-all ${
-                                        insertionPoint?.parentIndex === null && insertionPoint?.childIndex === index + 1
-                                            ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan font-medium'
-                                            : 'border-gray-600 text-gray-500 hover:border-gray-400 hover:text-gray-300'
-                                    }`}
-                                    disabled={disabled}
-                                >
-                                    {insertionPoint?.parentIndex === null && insertionPoint?.childIndex === index + 1
-                                        ? '✓ 選択中（次はここに挿入）'
-                                        : 'ここを選択'}
-                                </button>
 
                                 {/* Nested Commands */}
                                 {hasChildren && isExpanded && (
@@ -340,6 +339,21 @@ export function CommandStack({
                                         )}
                                     </div>
                                 )}
+
+                                {/* 挿入位置選択ボタン（一番下に配置） */}
+                                <button
+                                    onClick={() => onSetInsertionPoint?.({ parentIndex: null, childIndex: index + 1 })}
+                                    className={`w-full mt-1 py-1 px-2 text-xs rounded border transition-all ${
+                                        insertionPoint?.parentIndex === null && insertionPoint?.childIndex === index + 1
+                                            ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan font-medium'
+                                            : 'border-gray-600 text-gray-500 hover:border-gray-400 hover:text-gray-300'
+                                    }`}
+                                    disabled={disabled}
+                                >
+                                    {insertionPoint?.parentIndex === null && insertionPoint?.childIndex === index + 1
+                                        ? '✓ 選択中（次はここに挿入）'
+                                        : 'ここを選択'}
+                                </button>
                             </div>
                         );
                     })
