@@ -13,7 +13,7 @@ export interface TileTypeDefinition {
 export const TILE_TYPES: TileTypeDefinition[] = [
     { type: "floor", label: "床", color: "bg-space-blue/30" },
     { type: "wall", label: "壁", color: "bg-neon-blue/50" },
-    { type: "hole", label: "穴", color: "bg-neon-purple border border-purple-900" },
+    { type: "hole", label: "穴", color: "bg-space-blue/30" },
     { type: "start", label: "スタート", color: "bg-space-blue/30" },
     { type: "goal", label: "ゴール", color: "bg-space-blue/30" },
     { type: "teleportUp", label: "上へ", color: "bg-space-blue/30" },

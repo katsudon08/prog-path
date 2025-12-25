@@ -116,6 +116,60 @@ export function TeleportDownIcon({ size = 16, className = "" }: TileIconProps) {
 }
 
 /**
+ * 穴アイコン（宇宙テーマのブラックホール風）
+ */
+export function HoleIcon({ size = 16, className = "" }: TileIconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            className={className}
+        >
+            <defs>
+                <filter id="glow-hole" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
+                    <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+                <radialGradient id="hole-gradient" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#000000" />
+                    <stop offset="50%" stopColor="#1a1a1a" />
+                    <stop offset="100%" stopColor="#f97316" />
+                </radialGradient>
+            </defs>
+            {/* 外側の発光リング（降着円盤） */}
+            <circle
+                cx="12"
+                cy="12"
+                r="9"
+                fill="none"
+                stroke="#f97316"
+                strokeWidth="2"
+                opacity="0.7"
+                filter="url(#glow-hole)"
+            />
+            {/* ブラックホールの中心 */}
+            <circle
+                cx="12"
+                cy="12"
+                r="6"
+                fill="url(#hole-gradient)"
+            />
+            {/* 内側の暗いリング */}
+            <circle
+                cx="12"
+                cy="12"
+                r="4"
+                fill="#000000"
+            />
+        </svg>
+    )
+}
+
+/**
  * タイルタイプに対応するアイコンコンポーネントを取得
  */
 export function getTileIcon(tile: TileType, size?: number): React.ReactNode | null {
@@ -130,6 +184,8 @@ export function getTileIcon(tile: TileType, size?: number): React.ReactNode | nu
             return <TeleportUpIcon size={size} />
         case "teleportDown":
             return <TeleportDownIcon size={size} />
+        case "hole":
+            return <HoleIcon size={size} />
         default:
             return null
     }

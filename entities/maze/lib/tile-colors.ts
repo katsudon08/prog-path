@@ -11,7 +11,7 @@ export function getTileColor(tile: TileType): string {
         case "floor":
             return "bg-space-blue/30"
         case "hole":
-            return "bg-neon-purple border border-purple-900"
+            return "bg-space-blue/30"
         case "start":
             return "bg-space-blue/30"
         case "goal":
