@@ -262,19 +262,30 @@ export function useMazeRunner(): UseMazeRunnerReturn {
             const flattened = flattenCommands(commands)
             setFlattenedCommands(flattened)
 
-            if (gameStatus === 'success' || gameStatus === 'failed') {
-                // リセットして再実行
+            // 一時停止からの再開か、新規実行かを判定
+            // gameStatusが'running'の場合は一時停止からの再開
+            if (gameStatus === 'running' && currentCommandIndex >= 0) {
+                // 一時停止からの再開 - 現在位置から継続
+                setIsExecuting(true)
+            } else {
+                // 新規実行 - 初期位置にリセットしてから開始
                 setRobotState(initialRobotState)
                 setGameStatus('idle')
                 setErrorMessage('')
                 setMoveCount(0)
-            }
 
-            setCurrentCommandIndex(0)
-            setIsExecuting(true)
-            setGameStatus('running')
+                // 瞬間移動のため一度-1にしてから、次のフレームで0に設定
+                setCurrentCommandIndex(-1)
+                
+                // 次のフレームで実行開始
+                setTimeout(() => {
+                    setCurrentCommandIndex(0)
+                    setIsExecuting(true)
+                    setGameStatus('running')
+                }, 50)
+            }
         }
-    }, [maze, isExecuting, gameStatus, initialRobotState])
+    }, [maze, isExecuting, gameStatus, currentCommandIndex, initialRobotState])
 
     const reset = useCallback(() => {
         setRobotState(initialRobotState)
