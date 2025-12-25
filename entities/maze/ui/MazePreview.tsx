@@ -46,18 +46,20 @@ export function MazePreview({
     const effectiveCellSize = useMemo(() => {
         let size = cellSize
         const gap = compact ? 1 : 2 // gap-px = 1px, gap-0.5 = 2px
-        const padding = compact ? 8 : 16 // p-1 = 8px, p-2 = 16px
+        const gridPadding = compact ? 8 : 16 // p-1 = 8px, p-2 = 16px
+        const containerPadding = 24 // 外側のパディング（上下左右各12px）
 
         if (maxWidth && cols > 0) {
-            const maxCellWidth = (maxWidth - padding - (cols - 1) * gap) / cols
+            const availableWidth = maxWidth - containerPadding
+            const maxCellWidth = (availableWidth - gridPadding - (cols - 1) * gap) / cols
             size = Math.min(size, maxCellWidth)
         }
 
         if (maxHeight && rows > 0) {
-            // ナビゲーションの高さを考慮（約50px）
-            const navHeight = showNavigation && hasMultipleLayers ? 50 : 0
-            const availableHeight = maxHeight - navHeight - padding
-            const maxCellHeight = (availableHeight - (rows - 1) * gap) / rows
+            // ナビゲーションの高さ + gap を考慮
+            const navHeight = showNavigation && hasMultipleLayers ? 60 : 0
+            const availableHeight = maxHeight - navHeight - containerPadding
+            const maxCellHeight = (availableHeight - gridPadding - (rows - 1) * gap) / rows
             size = Math.min(size, maxCellHeight)
         }
 

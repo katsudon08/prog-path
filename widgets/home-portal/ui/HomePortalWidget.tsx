@@ -35,7 +35,7 @@ export function HomePortalWidget() {
     } = useHomePortalState();
 
     return (
-        <div className="fixed inset-0 top-16 bg-background">
+        <div className="fixed inset-x-0 top-16 bottom-0 bg-background h-[calc(100dvh-4rem)]">
             <div className="flex h-full">
                 {/* Left Sidebar - Maze List */}
                 <div className="flex flex-col w-80 border-r border-neon-blue/30">
@@ -222,20 +222,14 @@ export function HomePortalWidget() {
                                 </div>
                             </div>
                             <div className="flex-1 flex items-center justify-center p-4 min-h-0 overflow-hidden">
-                                <div className="relative w-full h-full flex items-center justify-center">
+                                <div className="relative flex items-center justify-center max-w-full max-h-full">
                                     <div className="absolute -inset-4 bg-gradient-to-r from-neon-cyan/20 via-neon-purple/20 to-neon-green/20 blur-xl"></div>
-                                    <div 
-                                        className="relative bg-space-darker p-4 rounded-lg border border-neon-blue/50 overflow-hidden"
-                                        style={{ 
-                                            maxWidth: 'min(450px, calc(100vw - 480px))', 
-                                            maxHeight: 'min(300px, calc(100vh - 350px))',
-                                        }}
-                                    >
+                                    <div className="relative bg-space-darker p-4 rounded-lg border border-neon-blue/50 max-w-full max-h-full overflow-hidden">
                                         <MazePreview
                                             layers={selectedMaze.layers}
                                             layerIndex={selectedMaze.currentLayer ?? 0}
-                                            maxWidth={400}
-                                            maxHeight={250}
+                                            maxWidth={380}
+                                            maxHeight={200}
                                         />
                                     </div>
                                 </div>
