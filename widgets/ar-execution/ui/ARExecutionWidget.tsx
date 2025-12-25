@@ -195,7 +195,7 @@ export function ARExecutionWidget() {
                         />
 
                         {/* Minimap View */}
-                        <div className="absolute top-10 right-10 w-48 h-48 border-2 border-neon-cyan/50 rounded-lg overflow-hidden bg-space-dark/80 backdrop-blur-sm shadow-lg shadow-neon-cyan/30 z-20">
+                        <div className="absolute top-8 right-8 w-44 h-44 border-2 border-neon-cyan/50 rounded-lg overflow-hidden bg-space-dark/80 backdrop-blur-sm shadow-lg shadow-neon-cyan/30 z-20">
                             <MinimapViewWidget maze={runner.maze} robotState={runner.robotState} />
                         </div>
 

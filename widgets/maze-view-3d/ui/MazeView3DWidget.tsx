@@ -235,12 +235,6 @@ export function MazeView3D({
         <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-neon-cyan/30 bg-transparent">
             <canvas ref={scanCanvasRef} style={{ display: "none" }} />
 
-            {/* 層番号表示 */}
-            <div className="absolute top-2 left-2 z-10 bg-black/70 px-3 py-2 rounded border border-neon-cyan/50">
-                <div className="text-sm font-bold text-neon-cyan">
-                    Layer {renderingZ + 1} / {maze.layers.length}
-                </div>
-            </div>
 
             <video
                 id="arjs-video"
