@@ -184,7 +184,7 @@ export function ARExecutionWidget() {
                 {/* Main Content Grid */}
                 <div className="grid gap-4 lg:grid-cols-[1fr_320px] flex-1 min-h-0">
                     {/* Left Panel: 3D Maze View */}
-                    <Card className="relative border-neon-blue/30 bg-space-dark/50 p-4 flex flex-col min-h-0">
+                    <Card className="relative border-neon-blue/30 bg-space-dark/50 p-4 flex flex-col min-h-0 overflow-hidden">
                         <MazeView3DWidget
                             maze={runner.maze}
                             robotState={runner.robotState}
@@ -192,12 +192,21 @@ export function ARExecutionWidget() {
                             detectedCommandName={detectedCommandName}
                             currentCommandIndex={runner.currentCommandIndex}
                             flattenedCommands={runner.flattenedCommands}
-                        />
+                        >
+                            {/* Move Count Display - Top Left */}
+                            <div className="absolute top-2 left-2 z-20">
+                                <div className="rounded-lg border border-neon-blue/50 bg-space-dark/80 backdrop-blur-sm px-3 py-1.5 shadow-lg">
+                                    <p className="text-sm text-muted-foreground">
+                                        移動回数: <span className="font-bold text-neon-cyan">{runner.moveCount}</span>
+                                    </p>
+                                </div>
+                            </div>
 
-                        {/* Minimap View */}
-                        <div className="absolute top-8 right-8 w-44 h-44 border-2 border-neon-cyan/50 rounded-lg overflow-hidden bg-space-dark/80 backdrop-blur-sm shadow-lg shadow-neon-cyan/30 z-20">
-                            <MinimapViewWidget maze={runner.maze} robotState={runner.robotState} />
-                        </div>
+                            {/* Minimap View */}
+                            <div className="absolute top-2 right-2 w-44 h-44 border-2 border-neon-cyan/50 rounded-lg overflow-hidden bg-space-dark/80 backdrop-blur-sm shadow-lg shadow-neon-cyan/30 z-20">
+                                <MinimapViewWidget maze={runner.maze} robotState={runner.robotState} />
+                            </div>
+                        </MazeView3DWidget>
 
                         {/* Success Message Overlay */}
                         {runner.gameStatus === "success" && (
@@ -220,15 +229,6 @@ export function ARExecutionWidget() {
                                 </div>
                             </div>
                         )}
-
-                        {/* Status Display */}
-                        <div className="mt-4 flex items-center justify-center">
-                            <div className="rounded-lg border border-neon-blue/30 bg-space-blue/20 px-4 py-2">
-                                <p className="text-sm text-muted-foreground">
-                                    移動回数: <span className="font-bold text-neon-cyan">{runner.moveCount}</span>
-                                </p>
-                            </div>
-                        </div>
                     </Card>
 
                     {/* Right Panel: Command Stack */}

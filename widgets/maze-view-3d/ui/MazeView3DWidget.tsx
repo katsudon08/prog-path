@@ -19,6 +19,7 @@ interface MazeView3DProps {
     detectedCommandName: string | null;
     currentCommandIndex: number;
     flattenedCommands: Command[];
+    children?: React.ReactNode;
 }
 
 // QRコードのデコード関数
@@ -60,6 +61,7 @@ export function MazeView3D({
     detectedCommandName,
     currentCommandIndex,
     flattenedCommands,
+    children,
 }: MazeView3DProps) {
     const videoElementRef = useRef<HTMLVideoElement | null>(null);
     const scanCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -232,7 +234,7 @@ export function MazeView3D({
             : "floor";
 
     return (
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-neon-cyan/30 bg-transparent">
+        <div className="relative w-full h-full overflow-hidden rounded-lg border-2 border-neon-cyan/30 bg-transparent">
             <canvas ref={scanCanvasRef} style={{ display: "none" }} />
 
 
@@ -356,6 +358,9 @@ export function MazeView3D({
                     target={new THREE.Vector3(0, 0.7, -1.8)}
                 />
             </Canvas>
+
+            {/* Overlay elements passed as children */}
+            {children}
         </div>
     );
 }
