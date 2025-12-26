@@ -243,6 +243,15 @@ export function useMazeRunner(): UseMazeRunnerReturn {
 
             // エラーチェック（穴落下など）
             if (executionErrorRef.current) {
+                // 穴に落ちた場合は落下アニメーション用の追加待機
+                if (executionErrorRef.current === '穴に落ちてしまいました！') {
+                    await new Promise<void>((resolve) => {
+                        const id = window.setTimeout(() => resolve(), 1200) // 落下アニメーション待機
+                        timerIdRef.current = id
+                    })
+                    timerIdRef.current = null
+                }
+                
                 setGameStatus('failed')
                 setErrorMessage(executionErrorRef.current)
                 setIsExecuting(false)
