@@ -2,7 +2,7 @@
 
 import React, { useEffect, useCallback, useRef } from "react";
 import { Button, Card, Input, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@shared/ui";
-import { ArrowLeft, Play, Pause, RotateCcw, Trophy, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Play, RotateCcw, Trophy, AlertTriangle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MazeData } from "@entities/maze";
 import type { Command } from "@entities/robot";
@@ -58,7 +58,8 @@ export function ARExecutionWidget() {
 
     // --- QR Command Detection Handler ---
     const handleMarkerDetected = useCallback((detectedCommand: Command) => {
-        if (runner.isExecuting) return;
+        // 実行中またはループ回数入力中はQR読み込みを無視
+        if (runner.isExecuting || commandBuilder.loopPopupOpen) return;
 
         const now = Date.now();
         const lastAdded = lastAddedCommandRef.current;
@@ -167,16 +168,12 @@ export function ARExecutionWidget() {
                         <Button
                             onClick={handleExecute}
                             className={runner.isExecuting
-                                ? "bg-neon-red text-space-dark hover:bg-neon-red/90"
+                                ? "bg-neon-green/50 text-space-dark/50 cursor-not-allowed"
                                 : "bg-neon-green text-space-dark hover:bg-neon-green/90"
                             }
-                            disabled={commandBuilder.commands.length === 0}
+                            disabled={commandBuilder.commands.length === 0 || runner.isExecuting}
                         >
-                            {runner.isExecuting ? (
-                                <><Pause className="mr-2 h-4 w-4" />一時停止</>
-                            ) : (
-                                <><Play className="mr-2 h-4 w-4" />実行</>
-                            )}
+                            <Play className="mr-2 h-4 w-4" />実行
                         </Button>
                     </div>
                 </div>

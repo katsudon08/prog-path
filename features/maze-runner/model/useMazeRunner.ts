@@ -53,7 +53,8 @@ const DEFAULT_DIRECTION: DirectionVector = [0, 1]
  * 迷路実行用カスタムフック
  */
 export function useMazeRunner(): UseMazeRunnerReturn {
-    const [maze, setMaze] = useState<MazeData | null>(null)
+    const [maze, setMazeState] = useState<MazeData | null>(null)
+    const [initialMaze, setInitialMaze] = useState<MazeData | null>(null)
     const [robotState, setRobotState] = useState<RobotState>({
         x: 0,
         y: 0,
@@ -72,6 +73,17 @@ export function useMazeRunner(): UseMazeRunnerReturn {
     const [gameStatus, setGameStatus] = useState<GameStatus>('idle')
     const [errorMessage, setErrorMessage] = useState<string>('')
     const [moveCount, setMoveCount] = useState(0)
+
+    // 外部からのsetMaze呼び出し用（初期状態を保存）
+    const setMaze = useCallback((newMaze: MazeData | null) => {
+        setMazeState(newMaze)
+        // 初期迷路状態をディープコピーして保存
+        if (newMaze) {
+            setInitialMaze(JSON.parse(JSON.stringify(newMaze)))
+        } else {
+            setInitialMaze(null)
+        }
+    }, [])
 
     // Refs for stable callbacks
     const mazeRef = useRef<MazeData | null>(null)
@@ -94,11 +106,13 @@ export function useMazeRunner(): UseMazeRunnerReturn {
         isExecutingRef.current = isExecuting
     }, [isExecuting])
 
-    // 迷路がセットされたらスタート位置を検索
+    // 迷路が外部から新規セットされたらスタート位置を検索
+    // 注: initialMazeを監視することで、setMaze()経由での新規セット時のみ動作
+    // 実行中のsetMazeState()による迷路更新では動作しない
     useEffect(() => {
-        if (!maze) return
+        if (!initialMaze) return
 
-        const startPos = findStartPosition(maze)
+        const startPos = findStartPosition(initialMaze)
         if (startPos) {
             const newState: RobotState = {
                 x: startPos.x,
@@ -109,7 +123,7 @@ export function useMazeRunner(): UseMazeRunnerReturn {
             setRobotState(newState)
             setInitialRobotState(newState)
         }
-    }, [maze])
+    }, [initialMaze])
 
     // コマンド実行effect
     useEffect(() => {
@@ -214,9 +228,9 @@ export function useMazeRunner(): UseMazeRunnerReturn {
             timerIdRef.current = null
             isTeleportingRef.current = false
 
-            // 迷路更新（鍵取得など）
+            // 迷路更新（鍵取得など） - 内部状態のみ更新（初期状態は変更しない）
             if (result.newMaze) {
-                setMaze(result.newMaze)
+                setMazeState(result.newMaze)
             }
 
             // ゴール到達チェック
@@ -229,6 +243,15 @@ export function useMazeRunner(): UseMazeRunnerReturn {
 
             // エラーチェック（穴落下など）
             if (executionErrorRef.current) {
+                // 穴に落ちた場合は落下アニメーション用の追加待機
+                if (executionErrorRef.current === '穴に落ちてしまいました！') {
+                    await new Promise<void>((resolve) => {
+                        const id = window.setTimeout(() => resolve(), 1200) // 落下アニメーション待機
+                        timerIdRef.current = id
+                    })
+                    timerIdRef.current = null
+                }
+                
                 setGameStatus('failed')
                 setErrorMessage(executionErrorRef.current)
                 setIsExecuting(false)
@@ -254,27 +277,33 @@ export function useMazeRunner(): UseMazeRunnerReturn {
     const toggleExecution = useCallback((commands: Command[]) => {
         if (!maze) return
 
-        if (isExecuting) {
-            // 一時停止
-            setIsExecuting(false)
-        } else {
-            // 実行開始
-            const flattened = flattenCommands(commands)
-            setFlattenedCommands(flattened)
+        // 実行中の場合は何もしない（一時停止機能は削除）
+        if (isExecuting) return
 
-            if (gameStatus === 'success' || gameStatus === 'failed') {
-                // リセットして再実行
-                setRobotState(initialRobotState)
-                setGameStatus('idle')
-                setErrorMessage('')
-                setMoveCount(0)
-            }
+        // 常に新規実行 - 初期位置と迷路状態をリセットしてから開始
+        const flattened = flattenCommands(commands)
+        setFlattenedCommands(flattened)
 
+        setRobotState(initialRobotState)
+        setGameStatus('idle')
+        setErrorMessage('')
+        setMoveCount(0)
+
+        // 迷路状態を初期状態にリセット（鍵と穴を復元）
+        if (initialMaze) {
+            setMazeState(JSON.parse(JSON.stringify(initialMaze)))
+        }
+
+        // 瞬間移動のため一度-1にしてから、次のフレームで0に設定
+        setCurrentCommandIndex(-1)
+        
+        // 次のフレームで実行開始
+        setTimeout(() => {
             setCurrentCommandIndex(0)
             setIsExecuting(true)
             setGameStatus('running')
-        }
-    }, [maze, isExecuting, gameStatus, initialRobotState])
+        }, 50)
+    }, [maze, isExecuting, initialRobotState, initialMaze])
 
     const reset = useCallback(() => {
         setRobotState(initialRobotState)
@@ -284,7 +313,11 @@ export function useMazeRunner(): UseMazeRunnerReturn {
         setErrorMessage('')
         setMoveCount(0)
         setFlattenedCommands([])
-    }, [initialRobotState])
+        // 迷路状態を初期状態にリセット（鍵と穴を復元）
+        if (initialMaze) {
+            setMazeState(JSON.parse(JSON.stringify(initialMaze)))
+        }
+    }, [initialRobotState, initialMaze])
 
     const closeSuccessDialog = useCallback(() => {
         setGameStatus('idle')

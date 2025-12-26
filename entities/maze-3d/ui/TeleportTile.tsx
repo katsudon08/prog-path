@@ -13,7 +13,8 @@ interface TeleportTileProps {
 
 /**
  * テレポートタイル用3Dコンポーネント
- * 上階/下階へのテレポートを示すアニメーション付きタイル
+ * 上へ: 発光する水色（シアン）の矢印
+ * 下へ: 発光する紫色の矢印
  */
 export function TeleportTile({
     position,
@@ -42,26 +43,40 @@ export function TeleportTile({
         }
     });
 
-    const color = isUp ? "#60a5fa" : "#ec4899"; // 青 vs ピンク
+    // 2Dアイコンに合わせた色: 水色(上へ) vs 紫(下へ)
+    const color = isUp ? "#22d3ee" : "#a855f7"; // シアン vs 紫
     const arrowRotation = isUp ? 0 : Math.PI; // 上向き vs 下向き
 
     return (
         <group>
             {/* 床タイル */}
             <mesh
-                ref={meshRef}
                 receiveShadow
                 position={position}
                 rotation={[-Math.PI / 2, 0, 0]}
             >
                 <planeGeometry args={[tileSize * 0.98, tileSize * 0.98]} />
                 <meshStandardMaterial
+                    color="#1a2540"
+                    opacity={0.75 * opacity}
+                    transparent
+                    side={THREE.DoubleSide}
+                />
+            </mesh>
+
+            {/* 発光する床の光 */}
+            <mesh
+                ref={meshRef}
+                position={[position[0], 0.001, position[2]]}
+                rotation={[-Math.PI / 2, 0, 0]}
+            >
+                <circleGeometry args={[tileSize * 0.35, 32]} />
+                <meshStandardMaterial
                     color={color}
                     emissive={color}
                     emissiveIntensity={0.5 * opacity}
-                    opacity={0.8 * opacity}
+                    opacity={0.4 * opacity}
                     transparent
-                    side={THREE.DoubleSide}
                 />
             </mesh>
 
@@ -70,8 +85,8 @@ export function TeleportTile({
                 <mesh rotation={[arrowRotation, 0, 0]}>
                     <coneGeometry args={[0.08, 0.15, 3]} />
                     <meshStandardMaterial
-                        color="#ffffff"
-                        emissive="#ffffff"
+                        color={color}
+                        emissive={color}
                         emissiveIntensity={1.5 * opacity}
                         opacity={opacity}
                         transparent
