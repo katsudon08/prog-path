@@ -206,4 +206,14 @@
     .animate-shake {
         animation: shake 0.5s ease-in-out;
     }
+
+    /* Subtle pulse animation for command detection popup */
+    @keyframes subtle-pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.8;
+        }
+    }
 }
