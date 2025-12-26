@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Html, Preload, OrbitControls, Text3D, Center } from "@react-three/drei";
+import { Preload, OrbitControls, Text3D, Center } from "@react-three/drei";
 import * as THREE from "three";
 
 import type { MazeData } from "@entities/maze";
@@ -92,7 +92,7 @@ export function MazeView3D({
     const { videoRef, canvasRef } = useCameraQRScanner({
         onQRCodeDetected: handleQRCodeDetected,
         autoStart: true,
-        cooldownMs: 1500,
+        cooldownMs: 2500,
     });
 
     // 現在のタイルを計算
@@ -208,16 +208,7 @@ export function MazeView3D({
                     </Suspense>
                 </group>
 
-                {detectedCommandName && (
-                    <Html center position={[0, 0.7 + 0.6, -1.5]}>
-                        <div
-                            className="select-none rounded bg-black/60 px-3 py-1 text-xl font-bold text-neon-cyan shadow-lg backdrop-blur-sm"
-                            style={{ textShadow: "0 0 8px #0ff" }}
-                        >
-                            {detectedCommandName.toUpperCase()}
-                        </div>
-                    </Html>
-                )}
+
 
                 <OrbitControls
                     enableZoom={true}
@@ -226,6 +217,22 @@ export function MazeView3D({
                     target={new THREE.Vector3(0, 0.7, -1.8)}
                 />
             </Canvas>
+
+            {/* Detected Command Name Popup - Centered Overlay */}
+            {detectedCommandName && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                    <div
+                        className="select-none rounded-lg bg-black/70 px-6 py-3 text-2xl font-bold text-neon-cyan shadow-lg backdrop-blur-sm"
+                        style={{ 
+                            textShadow: "0 0 12px #0ff",
+                            animation: "subtle-pulse 2s ease-in-out infinite"
+                        }}
+                    >
+                        {detectedCommandName.toUpperCase()}
+                    </div>
+                </div>
+            )}
+
 
             {/* Overlay elements passed as children */}
             {children}

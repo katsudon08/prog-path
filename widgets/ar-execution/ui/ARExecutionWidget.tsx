@@ -75,7 +75,7 @@ export function ARExecutionWidget() {
             : detectedCommand.type;
 
         setDetectedCommandName(commandDisplayName);
-        setTimeout(() => setDetectedCommandName(null), 1500);
+        setTimeout(() => setDetectedCommandName(null), 2000);
 
         if (detectedCommand.type === "loop") {
             if (currentlyBuildingLoop) {
@@ -107,13 +107,13 @@ export function ARExecutionWidget() {
         }
         commandBuilder.removeCommand(index);
         setDetectedCommandName("Command Deleted");
-        setTimeout(() => setDetectedCommandName(null), 1500);
+        setTimeout(() => setDetectedCommandName(null), 1000);
     };
 
     const handleRemoveChildCommand = (parentIndex: number, childIndex: number) => {
         commandBuilder.removeChildCommand(parentIndex, childIndex);
         setDetectedCommandName("Command Deleted");
-        setTimeout(() => setDetectedCommandName(null), 1500);
+        setTimeout(() => setDetectedCommandName(null), 1000);
     };
 
     const handleLoopCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
