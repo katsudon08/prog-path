@@ -60,13 +60,19 @@ export function RobotModel({
 
     // targetPosition の useMemo (リセット対応済み)
     const targetPosition = React.useMemo(() => {
+        // リセット時（currentCommandIndex === -1）は落下状態をクリア
+        if (currentCommandIndex === -1) {
+            isImmobilizedRef.current = false;
+            immobilizedPositionRef.current = null;
+        }
+
         // 落下状態が確定しているかチェック
         if (isImmobilizedRef.current && immobilizedPositionRef.current) {
             // リセット判定ロジック
             const currentLayer = robotState.z >= 0 && robotState.z < maze.layers.length ? maze.layers[robotState.z] : null;
             const currentTile = currentLayer?.[robotState.y]?.[robotState.x];
 
-            if (currentTile === "start") {
+            if (currentTile === "start" || currentCommandIndex === -1) {
                 // リセット操作が検知された
                 isImmobilizedRef.current = false;
                 immobilizedPositionRef.current = null;
@@ -82,7 +88,7 @@ export function RobotModel({
             0.05,
             robotState.y * tileSize + gridOffset
         );
-    }, [robotState.x, robotState.y, tileSize, gridOffset, maze]);
+    }, [robotState.x, robotState.y, tileSize, gridOffset, maze, currentCommandIndex]);
 
     // targetQuaternion の計算
     const targetQuaternion = React.useMemo(
@@ -120,40 +126,15 @@ export function RobotModel({
         const fallActionName = names.find(name => name.toLowerCase() === "fall");
 
         // リセット判定 (最優先)
-        if (robotTile === "start") {
+        if (robotTile === "start" || currentCommandIndex === -1) {
             isImmobilizedRef.current = false;
             immobilizedPositionRef.current = null;
         }
 
         let actionName: string | undefined = undefined;
 
-        // コマンド予測: "forward" で穴に向かうか？
-        if (
-            currentCommandIndex >= 0 &&
-            currentCommandIndex < flattenedCommands.length &&
-            flattenedCommands[currentCommandIndex].type === "forward" &&
-            !isImmobilizedRef.current
-        ) {
-            const nextX = robotState.x + robotState.direction[0];
-            const nextY = robotState.y + robotState.direction[1];
-            let nextTile: TileType = "floor";
-            if (nextY >= 0 && nextY < maze.size && nextX >= 0 && nextX < maze.size) {
-                const nextLayer = robotState.z >= 0 && robotState.z < maze.layers.length ? maze.layers[robotState.z] : null;
-                nextTile = nextLayer?.[nextY]?.[nextX] || "floor";
-            }
-
-            if (nextTile === "hole") {
-                isImmobilizedRef.current = true;
-                immobilizedPositionRef.current = new THREE.Vector3(
-                    robotState.x * tileSize + gridOffset,
-                    0.05,
-                    robotState.y * tileSize + gridOffset
-                );
-                actionName = fallActionName;
-            }
-        }
-
-        // 現状確認: 今穴の上にいるか？
+        // 穴の上にいる場合のみ落下状態を設定
+        // 注意: 予測ロジックは削除（ifHoleで穴を塞いだ場合の問題を防ぐため）
         if (robotTile === "hole") {
             if (!isImmobilizedRef.current) {
                 isImmobilizedRef.current = true;
