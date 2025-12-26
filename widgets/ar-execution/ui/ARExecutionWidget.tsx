@@ -58,7 +58,8 @@ export function ARExecutionWidget() {
 
     // --- QR Command Detection Handler ---
     const handleMarkerDetected = useCallback((detectedCommand: Command) => {
-        if (runner.isExecuting) return;
+        // 実行中またはループ回数入力中はQR読み込みを無視
+        if (runner.isExecuting || commandBuilder.loopPopupOpen) return;
 
         const now = Date.now();
         const lastAdded = lastAddedCommandRef.current;
