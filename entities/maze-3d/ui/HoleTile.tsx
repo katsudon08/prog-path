@@ -65,7 +65,7 @@ export function HoleTile({
             {/* 内側のリング（第1層） */}
             <mesh
                 ref={innerRingRef}
-                position={[position[0], 0.02, position[2]]}
+                position={[position[0], 0.03, position[2]]}
                 rotation={[-Math.PI / 2, 0, 0]}
             >
                 <ringGeometry args={[tileSize * 0.12, tileSize * 0.2, 32]} />
@@ -82,7 +82,7 @@ export function HoleTile({
             {/* 外側の発光リング（第2層 - 降着円盤） */}
             <mesh
                 ref={ringRef}
-                position={[position[0], 0.04, position[2]]}
+                position={[position[0], 0.06, position[2]]}
                 rotation={[-Math.PI / 2, 0, 0]}
             >
                 <ringGeometry args={[tileSize * 0.25, tileSize * 0.38, 32]} />

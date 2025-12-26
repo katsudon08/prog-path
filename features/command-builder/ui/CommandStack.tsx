@@ -7,10 +7,10 @@ import { Card } from "@shared/ui";
 import { Input } from "@shared/ui";
 import {
     ArrowUp,
-    RotateCw,
+    CornerUpRight,
+    CornerUpLeft,
     RotateCcw,
-    Repeat,
-    GitBranch,
+    Sparkles,
     Trash2,
     ChevronDown,
     ChevronRight,
@@ -38,33 +38,33 @@ const COMMAND_INFO: {
 }[] = [
     {
         type: "forward",
-        label: "前進",
+        label: "前にすすむ",
         icon: <ArrowUp className="h-5 w-5" />,
         color: "bg-neon-cyan",
     },
     {
         type: "turnRight",
-        label: "右回転",
-        icon: <RotateCw className="h-5 w-5" />,
+        label: "右にまがる",
+        icon: <CornerUpRight className="h-5 w-5" />,
         color: "bg-neon-blue",
     },
     {
         type: "turnLeft",
-        label: "左回転",
-        icon: <RotateCcw className="h-5 w-5" />,
+        label: "左にまがる",
+        icon: <CornerUpLeft className="h-5 w-5" />,
         color: "bg-neon-blue",
     },
     {
         type: "loop",
         label: "ループ",
-        icon: <Repeat className="h-5 w-5" />,
+        icon: <RotateCcw className="h-5 w-5" />,
         color: "bg-neon-purple",
     },
     {
         type: "ifHole",
-        label: "穴判定",
-        icon: <GitBranch className="h-5 w-5" />,
-        color: "bg-neon-green",
+        label: "穴をうめる",
+        icon: <Sparkles className="h-5 w-5" />,
+        color: "bg-neon-blue",
     },
 ];
 
