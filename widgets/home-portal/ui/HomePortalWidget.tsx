@@ -198,7 +198,7 @@ export function HomePortalWidget() {
                                         <Button
                                             variant="outline"
                                             onClick={() => handlers.shareMaze(selectedMaze)}
-                                            className="border-neon-purple text-neon-purple hover:bg-neon-purple/20"
+                                            className="border-neon-purple text-neon-purple hover:bg-neon-purple/80"
                                         >
                                             <QrCode className="mr-2 h-4 w-4" />
                                             共有
@@ -206,7 +206,7 @@ export function HomePortalWidget() {
                                         <Button
                                             variant="outline"
                                             onClick={() => handlers.editMaze(selectedMaze.id)}
-                                            className="border-neon-cyan text-neon-cyan hover:bg-neon-cyan/20"
+                                            className="border-neon-cyan text-neon-cyan hover:bg-neon-cyan/80"
                                         >
                                             <ChevronRight className="mr-2 h-4 w-4" />
                                             編集
@@ -214,7 +214,7 @@ export function HomePortalWidget() {
                                         <Button
                                             variant="outline"
                                             onClick={() => handlers.deleteMaze(selectedMaze.id)}
-                                            className="border-red-500 text-red-500 hover:bg-red-500/20"
+                                            className="border-red-500 text-red-500 hover:bg-red-500/80 hover:text-space-dark"
                                         >
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             削除
