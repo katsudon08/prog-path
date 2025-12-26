@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Download, User } from "lucide-react";
+import { Home, Monitor, MonitorDown, Laptop, AppWindow } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -39,7 +39,7 @@ export function Navbar() {
                         href="/download"
                         className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-neon-blue/10 hover:text-neon-cyan"
                     >
-                        <Download className="h-5 w-5" />
+                        <Monitor className="h-5 w-5" />
                     </Link>
                 </div>
             </div>
