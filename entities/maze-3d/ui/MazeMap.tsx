@@ -5,6 +5,9 @@ import * as THREE from "three";
 import type { TileType } from "@entities/maze";
 import { TeleportTile } from "./TeleportTile";
 import { KeyTile } from "./KeyTile";
+import { StartTile } from "./StartTile";
+import { GoalTile } from "./GoalTile";
+import { HoleTile } from "./HoleTile";
 
 interface MazeMapProps {
     grid: TileType[][];
@@ -61,22 +64,12 @@ export function MazeMap({
                             );
                         case "hole":
                             return (
-                                <mesh
+                                <HoleTile
                                     key={`${x}-${y}`}
-                                    receiveShadow
-                                    position={[position[0], -0.01, position[2]]}
-                                    rotation={[-Math.PI / 2, 0, 0]}
-                                >
-                                    <planeGeometry
-                                        args={[tileSize * 0.9, tileSize * 0.9]}
-                                    />
-                                    <meshStandardMaterial
-                                        color="#8b5cf6"
-                                        transparent
-                                        opacity={0.6 * opacity}
-                                        side={THREE.DoubleSide}
-                                    />
-                                </mesh>
+                                    position={position}
+                                    tileSize={tileSize}
+                                    opacity={opacity}
+                                />
                             );
                         case "teleportUp":
                         case "teleportDown":
@@ -116,7 +109,23 @@ export function MazeMap({
                                 </group>
                             );
                         case "start":
+                            return (
+                                <StartTile
+                                    key={`${x}-${y}`}
+                                    position={position}
+                                    tileSize={tileSize}
+                                    opacity={opacity}
+                                />
+                            );
                         case "goal":
+                            return (
+                                <GoalTile
+                                    key={`${x}-${y}`}
+                                    position={position}
+                                    tileSize={tileSize}
+                                    opacity={opacity}
+                                />
+                            );
                         case "floor":
                             return (
                                 <mesh
@@ -129,13 +138,7 @@ export function MazeMap({
                                         args={[tileSize * 0.98, tileSize * 0.98]}
                                     />
                                     <meshStandardMaterial
-                                        color={
-                                            tile === "start"
-                                                ? "#4ade80"
-                                                : tile === "goal"
-                                                    ? "#ef4444"
-                                                    : "#1a2540"
-                                        }
+                                        color="#1a2540"
                                         opacity={0.75 * opacity}
                                         transparent
                                         side={THREE.DoubleSide}

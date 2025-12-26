@@ -177,7 +177,7 @@ export function MazeView3D({
                                         rotation={[0, Math.PI / 4, 0]}
                                     >
                                         <Text3D
-                                            font="https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
+                                            font="/fonts/helvetiker_regular.typeface.json"
                                             size={0.5}
                                             height={0.02}
                                             curveSegments={12}
