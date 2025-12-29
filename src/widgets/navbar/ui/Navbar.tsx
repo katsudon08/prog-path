@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Monitor, MonitorDown, Laptop, AppWindow } from "lucide-react";
+import { Home, Monitor } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
