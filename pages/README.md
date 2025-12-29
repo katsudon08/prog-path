@@ -1,0 +1,1 @@
+Next.jsが`src/pages`をPages Routerとして誤認することを防ぐためのREADME
