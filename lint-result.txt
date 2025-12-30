@@ -18,14 +18,14 @@ LI_JS $args
 +   ~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~
     + CategoryInfo    
-          : NotSpeci  
-  fied: ([baseline-   
- brows...ping@late    
-st -D`:String) []    ,
- RemoteException
-    + FullyQualifiedE 
-   rrorId : NativeCo  
-  mmandError
+          : NotSpecifi
+ed: ([baseli    ne-bro
+ws...ping@latest -    
+D`:String) [], RemoteE
+xc    eption
+    + FullyQualifiedEr
+rorId     : NativeComm
+andError
  
 
 C:\dev\app\prog-path\src\entities\maze-3d\ui\MazeMap.tsx
@@ -199,6 +199,10 @@ C:\dev\app\prog-path\src\features\maze-qr-management\lib\qr-scanner.ts
   2:48  error  No rule allowing this dependency was found. File is of type 'features'. Dependency is of type 'features'  boundaries/element-types
   3:27  error  No rule allowing this dependency was found. File is of type 'features'. Dependency is of type 'features'  boundaries/element-types
 
+C:\dev\app\prog-path\src\features\maze-qr-management\lib\useQROperations.ts
+  5:32  error  No rule allowing this dependency was found. File is of type 'features'. Dependency is of type 'features'  boundaries/element-types
+  7:36  error  No rule allowing this dependency was found. File is of type 'features'. Dependency is of type 'features'  boundaries/element-types
+
 C:\dev\app\prog-path\src\features\maze-runner\model\useMazeRunner.ts
   123:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
 
@@ -234,6 +238,76 @@ C:\dev\app\prog-path\src\features\maze-runner\model\useMazeRunner.ts:137:17
   140 |                 if (executionErrorRef.current) {  react-hooks/set-state-in-effect
   275:8   warning  React Hook useEffect has missing dependencies: 'robotState.x', 'robotState.y', and 'robotState.z'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
 
+C:\dev\app\prog-path\src\pages\home\model\MazeContext.tsx
+  39:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\dev\app\prog-path\src\pages\home\model\MazeContext.tsx:39:9
+  37 |     useEffect(() => {
+  38 |         const loaded = loadMazes()
+> 39 |         setMazesState(loaded)
+     |         ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  40 |         if (loaded.length > 0) {
+  41 |             setSelectedMaze(loaded[0])
+  42 |         }  react-hooks/set-state-in-effect
+
+C:\dev\app\prog-path\src\pages\home\model\useCategoryState.ts
+  20:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\dev\app\prog-path\src\pages\home\model\useCategoryState.ts:20:9
+  18 |     useEffect(() => {
+  19 |         const categories = loadCategories()
+> 20 |         setCustomCategories(categories)
+     |         ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  21 |         setExpandedCategories(new Set(categories))
+  22 |         setIsCategoryLoaded(true)
+  23 |     }, [])                                                                                                   react-hooks/set-state-in-effect
+  39:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\dev\app\prog-path\src\pages\home\model\useCategoryState.ts:39:9
+  37 |         if (!isCategoryLoaded || hasSyncedWithMazes.current || mazes.length === 0) return
+  38 |         hasSyncedWithMazes.current = true
+> 39 |         setExpandedCategories(prev => {
+     |         ^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  40 |             const next = new Set(prev)
+  41 |             mazes.forEach(m => next.add(m.category || "譛ｪ蛻・｡・))
+  42 |             return next  react-hooks/set-state-in-effect
+
+C:\dev\app\prog-path\src\pages\home\model\useMazeData.ts
+  19:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\dev\app\prog-path\src\pages\home\model\useMazeData.ts:19:9
+  17 |     useEffect(() => {
+  18 |         const loaded = loadMazes()
+> 19 |         setMazes(loaded)
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  20 |         if (loaded.length > 0) {
+  21 |             setSelectedMaze(loaded[0])
+  22 |         }  react-hooks/set-state-in-effect
+
 C:\dev\app\prog-path\src\widgets\ar-execution\ui\ARExecutionWidget.tsx
    15:34  error    No rule allowing this dependency was found. File is of type 'widgets'. Dependency is of type 'widgets'     boundaries/element-types
    16:35  error    No rule allowing this dependency was found. File is of type 'widgets'. Dependency is of type 'widgets'     boundaries/element-types
@@ -261,33 +335,6 @@ C:\dev\app\prog-path\src\widgets\download\ui\DownloadWidget.tsx:22:9
   24 |     }, [])
   25 |  react-hooks/set-state-in-effect
 
-C:\dev\app\prog-path\src\widgets\home-portal\model\useHomePortalState.ts
-   96:13  error    Error: Cannot access variable before it is declared
-
-`stopCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
-
-C:\dev\app\prog-path\src\widgets\home-portal\model\useHomePortalState.ts:96:13
-  94 |             alert(`霑ｷ霍ｯ縲・{result.maze.name}縲阪ｒ隱ｭ縺ｿ霎ｼ縺ｿ縺ｾ縺励◆・～)
-  95 |             setShowImportDialog(false)
-> 96 |             stopCamera()
-     |             ^^^^^^^^^^ `stopCamera` accessed before it is declared
-  97 |         } else if (result.error && result.error !== "霑ｷ霍ｯ縺ｮQR繧ｳ繝ｼ繝峨〒縺ｯ縺ゅｊ縺ｾ縺帙ｓ") {
-  98 |             alert(result.error)
-  99 |             setShowImportDialog(false)
-
-C:\dev\app\prog-path\src\widgets\home-portal\model\useHomePortalState.ts:111:9
-  109 |         cameraError,
-  110 |         startCamera,
-> 111 |         stopCamera,
-      |         ^^^^^^^^^^ `stopCamera` is declared here
-  112 |     } = useCameraQRScanner({ onQRCodeDetected: handleQRCodeDetected })
-  113 |
-  114 |     // 繧ｫ繝｡繝ｩ繝繧､繧｢繝ｭ繧ｰ騾｣蜍・ react-hooks/immutability
-  102:8   warning  React Hook useCallback has a missing dependency: 'stopCamera'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
-
-C:\dev\app\prog-path\src\widgets\home-portal\ui\HomePortalWidget.tsx
-  18:9  warning  'mazes' is assigned a value but never used  @typescript-eslint/no-unused-vars
-
 C:\dev\app\prog-path\src\widgets\maze-editor\ui\MazeEditorWidget.tsx
   74:17  error  Error: Calling setState synchronously within an effect can trigger cascading renders
 
@@ -305,6 +352,24 @@ C:\dev\app\prog-path\src\widgets\maze-editor\ui\MazeEditorWidget.tsx:74:17
   75 |                 setGridSize(maze.size)
   76 |                 setLayers(maze.layers)
   77 |                 setCurrentLayer(maze.currentLayer || 0)  react-hooks/set-state-in-effect
+
+C:\dev\app\prog-path\src\widgets\maze-list\model\MazeContext.tsx
+  43:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\dev\app\prog-path\src\widgets\maze-list\model\MazeContext.tsx:43:9
+  41 |     useEffect(() => {
+  42 |         const loaded = loadMazes()
+> 43 |         setMazesState(loaded)
+     |         ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  44 |         if (loaded.length > 0) {
+  45 |             setSelectedMaze(loaded[0])
+  46 |         }  react-hooks/set-state-in-effect
 
 C:\dev\app\prog-path\src\widgets\maze-view-3d\ui\MazeView3DWidget.tsx
   55:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
@@ -343,5 +408,5 @@ C:\dev\app\prog-path\src\widgets\minimap-view\ui\MinimapViewWidget.tsx:27:9
   30 |     const displayLayer = maze.layers[layerIndex] || currentLayer;  react-hooks/set-state-in-effect
   172:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @next/next/no-img-element
 
-笨・46 problems (33 errors, 13 warnings)
+笨・50 problems (39 errors, 11 warnings)
 
