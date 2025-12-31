@@ -33,7 +33,7 @@ export interface RenameState {
 /** D&D操作ハンドラー */
 export interface DndHandlers {
     onDragStart: (e: React.DragEvent, mazeId: string) => void;
-    onDragOver: (e: React.DragEvent) => void;
+    onDragOver: (e: React.DragEvent, category: string) => void;
     onDragLeave: (e: React.DragEvent) => void;
     onDrop: (e: React.DragEvent, category: string) => void;
 }
@@ -41,6 +41,7 @@ export interface DndHandlers {
 interface MazeListProps {
     data: MazeListDataProps;
     onSelectMaze: (maze: MazeData) => void;
+    onDeleteMaze: (id: string) => void;
     categoryHandlers: CategoryHandlers;
     renameState: RenameState;
     dndHandlers: DndHandlers;
@@ -52,6 +53,7 @@ interface MazeListProps {
 export function MazeList({
     data,
     onSelectMaze,
+    onDeleteMaze,
     categoryHandlers,
     renameState,
     dndHandlers,
@@ -80,7 +82,7 @@ export function MazeList({
                         <div
                             key={category}
                             {...(mounted && {
-                                onDragOver: onDragOver,
+                                onDragOver: (e: React.DragEvent) => onDragOver(e, category),
                                 onDragLeave: onDragLeave,
                                 onDrop: (e: React.DragEvent) => onDrop(e, category),
                             })}
@@ -144,7 +146,7 @@ export function MazeList({
                                     {categoryMazes.map((maze) => (
                                         <Card
                                             key={maze.id}
-                                            className={`p-3 cursor-pointer border transition-all hover:border-neon-cyan/50 ${
+                                            className={`p-3 cursor-pointer border transition-all hover:border-neon-cyan/50 group ${
                                                 selectedMaze?.id === maze.id
                                                     ? "border-neon-cyan bg-neon-cyan/10"
                                                     : "border-neon-blue/30"
@@ -173,6 +175,16 @@ export function MazeList({
                                                         {maze.layers[maze.currentLayer ?? 0][0]?.length || 0}
                                                     </p>
                                                 </div>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onDeleteMaze(maze.id);
+                                                    }}
+                                                    className="p-2 hover:bg-red-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="迷路を削除"
+                                                >
+                                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                                </button>
                                             </div>
                                         </Card>
                                     ))}

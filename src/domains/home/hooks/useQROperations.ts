@@ -32,20 +32,12 @@ export function useQROperations() {
     }, [])
 
     // カメラQRスキャナー
-    const { videoRef, canvasRef, isStreamReady, cameraError } = useCameraQRScanner({
+    const { videoRef, canvasRef, isStreamReady, cameraError, startCamera, stopCamera } = useCameraQRScanner({
         onQRCodeDetected: handleQRDetected,
         autoStart: false,
     })
 
-    // インポートダイアログ開閉時にカメラ制御
-    useEffect(() => {
-        // ダイアログを閉じたらカメラを停止
-        if (!showImportDialog && videoRef.current?.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream
-            stream.getTracks().forEach(track => track.stop())
-            videoRef.current.srcObject = null
-        }
-    }, [showImportDialog, videoRef])
+    // deleted useEffect
 
     // QRダイアログを開く（共有用）
     const openQRDialog = useCallback((maze: MazeData) => {
@@ -89,5 +81,7 @@ export function useQROperations() {
         canvasRef,
         isStreamReady,
         cameraError,
+        startCamera,
+        stopCamera,
     }
 }

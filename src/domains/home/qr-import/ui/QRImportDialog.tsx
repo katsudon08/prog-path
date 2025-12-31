@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/src/shared/ui";
 import type { DialogProps, CameraState } from "@/src/shared/types";
@@ -16,7 +18,34 @@ export function QRImportDialog({
     onOpenChange,
     camera,
 }: QRImportDialogProps) {
-    const { videoRef, canvasRef, isStreamReady, cameraError } = camera;
+    const { videoRef, canvasRef, isStreamReady, cameraError, startCamera, stopCamera } = camera;
+
+    // ビデオ要素がマウントされたらカメラを開始
+    const setVideoRef = (node: HTMLVideoElement | null) => {
+        // refを更新
+        if (videoRef) {
+            if (typeof videoRef === "function") {
+                videoRef(node);
+            } else {
+                (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node;
+            }
+        }
+
+        // カメラ開始
+        if (node && open) {
+            startCamera();
+        }
+    };
+
+    // クリーンアップ
+    useEffect(() => {
+        if (!open) {
+            stopCamera();
+        }
+        return () => {
+            stopCamera();
+        };
+    }, [open, stopCamera]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,7 +64,7 @@ export function QRImportDialog({
                     )}
                     <div className="relative w-full aspect-video bg-space-darker rounded-lg overflow-hidden flex items-center justify-center">
                         <video
-                            ref={videoRef}
+                            ref={setVideoRef}
                             className="w-full h-full object-cover"
                             style={{ transform: "scaleX(-1)" }}
                             playsInline

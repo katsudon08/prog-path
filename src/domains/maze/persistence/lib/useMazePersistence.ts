@@ -33,8 +33,7 @@ export function useMazePersistence({
         // バリデーション
         const validation = validateMazeForSave(layers)
         if (!validation.valid) {
-            alert(validation.errorMessage)
-            return false
+            return { success: false, errorMessage: validation.errorMessage }
         }
 
         const stored = localStorage.getItem(STORAGE_KEY)
@@ -67,7 +66,7 @@ export function useMazePersistence({
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(mazes))
         onSaveSuccess()
-        return true
+        return { success: true }
     }, [mazeId, mazeName, gridSize, layers, currentLayer, onSaveSuccess])
 
     /**

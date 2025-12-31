@@ -67,7 +67,6 @@ export function MazeProvider({ children }: MazeProviderProps) {
     const selectMaze = (maze: MazeData | null) => setSelectedMaze(maze)
 
     const deleteMaze = (id: string) => {
-        if (!confirm("この迷路を削除しますか？")) return
         const updated = mazes.filter(m => m.id !== id)
         setMazesState(updated)
         if (selectedMaze?.id === id) {

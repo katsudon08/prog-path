@@ -13,6 +13,7 @@ import { loadMazes } from "@shared/lib"
 
 // Features from domains/maze
 import { TilePalette } from "@domains/maze/tile-palette"
+import { ValidationAlertDialog } from "@domains/maze/ui/ValidationAlertDialog"
 import { GridEditor, useMazeGridEditor } from "@domains/maze/grid-editor"
 import { LayerNavigator, useLayerManagement } from "@domains/maze/layer-management"
 import { useMazePersistence } from "@domains/maze/persistence"
@@ -23,7 +24,7 @@ import { useMazePersistence } from "@domains/maze/persistence"
 export function MazeEditorWidget() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const mazeId = searchParams.get("id")
+    const mazeId = searchParams?.get("id")
 
     // States
     const [mazeName, setMazeName] = useState("新しい迷路")
@@ -31,6 +32,7 @@ export function MazeEditorWidget() {
     const [layers, setLayers] = useState<TileType[][][]>([[]])
     const [currentLayer, setCurrentLayer] = useState(0)
     const [selectedTile, setSelectedTile] = useState<TileType>("floor")
+    const [validationError, setValidationError] = useState<string | null>(null)
 
     // Custom hooks
     const { initializeGrid, handleTileClick } = useMazeGridEditor({
@@ -39,6 +41,14 @@ export function MazeEditorWidget() {
         currentLayer,
         selectedTile,
     })
+
+    // タイルクリック時のラッパー関数（バリデーションエラー処理）
+    const onTileClickWrapper = (row: number, col: number) => {
+        const result = handleTileClick(row, col)
+        if (!result.success && result.errorMessage) {
+            setValidationError(result.errorMessage)
+        }
+    }
 
     const layerManagement = useLayerManagement({
         layers,
@@ -56,6 +66,14 @@ export function MazeEditorWidget() {
         currentLayer,
         onSaveSuccess: () => router.push("/"),
     })
+
+    // 保存時のラッパー関数（バリデーションエラー処理）
+    const onSaveWrapper = () => {
+        const result = handleSave()
+        if (!result.success && result.errorMessage) {
+            setValidationError(result.errorMessage)
+        }
+    }
 
     // 初期化（mazeIdのみに依存）
     useEffect(() => {
@@ -120,7 +138,7 @@ export function MazeEditorWidget() {
 
                     <div className="flex gap-2">
                         <Button
-                            onClick={handleSave}
+                            onClick={onSaveWrapper}
                             size="sm"
                             className="bg-neon-cyan text-space-dark hover:bg-neon-cyan/80"
                         >
@@ -165,7 +183,7 @@ export function MazeEditorWidget() {
 
                                 <GridEditor
                                     grid={layers[currentLayer]}
-                                    onTileClick={handleTileClick}
+                                    onTileClick={onTileClickWrapper}
                                     maxWidth={500}
                                     maxHeight={320}
                                 />
@@ -197,6 +215,12 @@ export function MazeEditorWidget() {
                     </Card>
                 </div>
             </div>
+
+            <ValidationAlertDialog
+                open={!!validationError}
+                onOpenChange={(open) => !open && setValidationError(null)}
+                errorMessage={validationError || undefined}
+            />
         </div>
     )
 }

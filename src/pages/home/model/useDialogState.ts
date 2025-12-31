@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useMazeContext } from "@domains/home/maze-list"
 import { useQROperations } from "@domains/home/hooks"
 
@@ -12,8 +13,20 @@ export function useDialogState() {
 
     const qr = useQROperations()
 
+    const [mazeToDelete, setMazeToDelete] = useState<string | null>(null)
+
+    // 削除確認ダイアログを開く
+    const openDeleteDialog = (id: string) => {
+        setMazeToDelete(id)
+    }
+
+    // 削除確認ダイアログを閉じる
+    const closeDeleteDialog = () => {
+        setMazeToDelete(null)
+    }
+
     return {
-        // QR共有
+        // ... existing props
         showQRDialog: qr.showQRDialog,
         qrData: qr.qrData,
         shareMaze: qr.shareMaze,
@@ -27,5 +40,11 @@ export function useDialogState() {
         canvasRef: qr.canvasRef,
         isStreamReady: qr.isStreamReady,
         cameraError: qr.cameraError,
+        startCamera: qr.startCamera,
+        stopCamera: qr.stopCamera,
+        // 削除
+        mazeToDelete,
+        openDeleteDialog,
+        closeDeleteDialog,
     }
 }

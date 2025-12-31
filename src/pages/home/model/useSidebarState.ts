@@ -51,9 +51,9 @@ export function useSidebarState() {
         saveRename: folder.saveRename,
         cancelRename: folder.cancelRename,
         // D&D
-        dragStart: dnd.dragStart,
+        dragStart: (_e: React.DragEvent, mazeId: string) => dnd.dragStart(mazeId),
         dragOver: dnd.dragOver,
-        dragLeave: dnd.dragLeave,
-        drop: dnd.drop,
+        dragLeave: (_e: React.DragEvent) => dnd.dragLeave(),
+        drop: (_e: React.DragEvent, category: string) => dnd.drop(category),
     }
 }

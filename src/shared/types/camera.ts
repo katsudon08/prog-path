@@ -6,4 +6,6 @@ export interface CameraState {
     canvasRef: RefObject<HTMLCanvasElement | null>;
     isStreamReady: boolean;
     cameraError: string | null;
+    startCamera: () => void;
+    stopCamera: () => void;
 }

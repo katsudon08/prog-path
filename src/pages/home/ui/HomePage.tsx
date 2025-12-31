@@ -7,6 +7,7 @@ import { MazeDetailHeader, MazeDetailPreview } from "@domains/home/maze-preview"
 import { QRShareDialog } from "@domains/home/qr-share"
 import { QRImportDialog } from "@domains/home/qr-import"
 import { FolderDialog } from "@domains/home/folder-management"
+import { MazeDeleteDialog } from "@domains/home/maze-list/ui/MazeDeleteDialog"
 import { useSidebarState } from "../model/useSidebarState"
 import { useDialogState } from "../model/useDialogState"
 
@@ -24,7 +25,7 @@ export function HomePage() {
 
 function HomePageContent() {
     const router = useRouter()
-    const { selectedMaze, selectMaze, deleteMaze } = useMazeContext()
+    const { mazes, selectedMaze, selectMaze, deleteMaze } = useMazeContext()
     const sidebar = useSidebarState()
     const dialogs = useDialogState()
 
@@ -50,6 +51,7 @@ function HomePageContent() {
                             expandedCategories: sidebar.expandedCategories,
                         }}
                         onSelectMaze={selectMaze}
+                        onDeleteMaze={dialogs.openDeleteDialog}
                         categoryHandlers={{
                             onToggleCategory: sidebar.toggleCategory,
                             onDeleteFolder: sidebar.deleteFolder,
@@ -78,9 +80,9 @@ function HomePageContent() {
                             <MazeDetailHeader
                                 maze={selectedMaze}
                                 actions={{
-                                    onShare: dialogs.shareMaze,
+                                    onShare: () => dialogs.shareMaze(selectedMaze),
                                     onEdit: () => editMaze(selectedMaze.id),
-                                    onDelete: () => deleteMaze(selectedMaze.id),
+                                    onDelete: () => dialogs.openDeleteDialog(selectedMaze.id),
                                     onRunAR: () => runAR(selectedMaze.id),
                                 }}
                             />
@@ -93,6 +95,16 @@ function HomePageContent() {
             </div>
 
             {/* Dialogs */}
+            <MazeDeleteDialog
+                open={!!dialogs.mazeToDelete}
+                onOpenChange={(open) => !open && dialogs.closeDeleteDialog()}
+                mazeName={dialogs.mazeToDelete ? mazes.find(m => m.id === dialogs.mazeToDelete)?.name : undefined}
+                onConfirm={() => {
+                    if (dialogs.mazeToDelete) {
+                        deleteMaze(dialogs.mazeToDelete);
+                    }
+                }}
+            />
             <QRShareDialog
                 open={dialogs.showQRDialog}
                 onOpenChange={(open) => !open && dialogs.closeQRDialog()}
@@ -106,6 +118,8 @@ function HomePageContent() {
                     canvasRef: dialogs.canvasRef,
                     isStreamReady: dialogs.isStreamReady,
                     cameraError: dialogs.cameraError,
+                    startCamera: dialogs.startCamera,
+                    stopCamera: dialogs.stopCamera,
                 }}
             />
             <FolderDialog

@@ -33,14 +33,17 @@ export function useMazeGridEditor({
     /**
      * タイルをクリックして配置
      */
-    const handleTileClick = useCallback((row: number, col: number): boolean => {
+    /**
+     * タイルをクリックして配置
+     * @returns { success: boolean, errorMessage?: string }
+     */
+    const handleTileClick = useCallback((row: number, col: number): { success: boolean, errorMessage?: string } => {
         // テレポート配置検証
         const teleportValidation = validateTeleportPlacement(
             selectedTile, row, col, currentLayer, layers
         )
         if (!teleportValidation.valid) {
-            alert(teleportValidation.errorMessage)
-            return false
+            return { success: false, errorMessage: teleportValidation.errorMessage }
         }
 
         // テレポート先検証
@@ -48,17 +51,16 @@ export function useMazeGridEditor({
             selectedTile, row, col, currentLayer, layers
         )
         if (!destinationValidation.valid) {
-            alert(destinationValidation.errorMessage)
-            return false
+            return { success: false, errorMessage: destinationValidation.errorMessage }
         }
 
         let newLayers = [...layers]
 
-        // スタートタイルを配置する場合、既存のスタートタイルを削除
-        if (selectedTile === "start") {
+        // スタートまたはゴールタイルを配置する場合、既存の同種タイルを削除（フロアに置換）
+        if (selectedTile === "start" || selectedTile === "goal") {
             newLayers = newLayers.map(layer =>
                 layer.map(r =>
-                    r.map(tile => tile === "start" ? "floor" : tile)
+                    r.map(tile => tile === selectedTile ? "floor" : tile)
                 )
             )
         }
@@ -75,7 +77,7 @@ export function useMazeGridEditor({
         )
 
         setLayers(newLayers)
-        return true
+        return { success: true }
     }, [layers, setLayers, currentLayer, selectedTile])
 
     return {
