@@ -4,7 +4,7 @@
  */
 
 import type { Command, RobotState, DirectionVector } from './types'
-import type { MazeData, TileType } from '@/src/entities/maze'
+import type { MazeData, TileType } from "@/src/domains/maze/maze-data/lib/types"
 
 /**
  * コマンド実行結果

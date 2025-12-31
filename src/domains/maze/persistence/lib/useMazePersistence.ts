@@ -1,5 +1,5 @@
 import { useCallback } from "react"
-import type { MazeData, TileType } from "@/src/entities/maze"
+import type { MazeData, TileType } from "@/src/domains/maze/maze-data/lib/types"
 import { validateMazeForSave } from "./maze-validator"
 
 interface UseMazePersistenceProps {

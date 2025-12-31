@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { MazeData, TileType } from '@/src/entities/maze';
-import type { RobotState } from '@/src/entities/robot';
-import { getTileColor } from '@/src/entities/maze';
+import type { MazeData, TileType } from "@/src/domains/maze/maze-data/lib/types";
+import type { RobotState } from "@/src/domains/ar/robot-logic/lib/types";
+import { getTileColor } from "@/src/domains/maze/maze-data/lib/tile-colors";
 import { getTileIcon } from '@domains/maze/tile-palette';
 
 interface MinimapViewProps {

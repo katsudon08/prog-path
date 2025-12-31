@@ -1,5 +1,5 @@
-import type { MazeData } from "@/src/entities/maze"
-import { getInitialMazes } from "@/src/entities/maze"
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types"
+import { getInitialMazes } from "@/src/domains/maze/maze-data/constants/initial-mazes"
 
 const MAZES_KEY = "progpath_mazes"
 const CATEGORIES_KEY = "progpath_categories"
@@ -11,17 +11,26 @@ export function loadMazes(): MazeData[] {
     if (typeof window === "undefined") return []
 
     const stored = localStorage.getItem(MAZES_KEY)
-    if (!stored) return getInitialMazes()
+
+    const initializeAndReturn = () => {
+        const initials = getInitialMazes()
+        saveMazes(initials)
+        return initials
+    }
+    
+    if (!stored) {
+        return initializeAndReturn()
+    }
 
     try {
         const parsed = JSON.parse(stored)
         if (!Array.isArray(parsed) || parsed.length === 0) {
-            return getInitialMazes()
+            return initializeAndReturn()
         }
         return parsed as MazeData[]
     } catch (e) {
         console.error("Failed to parse mazes from localStorage", e)
-        return getInitialMazes()
+        return initializeAndReturn()
     }
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
-import type { MazeData } from "@/src/entities/maze";
-import { MazePreview } from "@/src/entities/maze";
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
+import { MazePreview } from "@/src/domains/maze/maze-preview/ui/MazePreview";
 
 interface MazeDetailPreviewProps {
     maze: MazeData;

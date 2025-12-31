@@ -1,4 +1,4 @@
-import type { TileType } from "@/src/entities/maze"
+import type { TileType } from "@/src/domains/maze/maze-data/lib/types"
 
 /**
  * 無効な配置先となるタイルタイプ

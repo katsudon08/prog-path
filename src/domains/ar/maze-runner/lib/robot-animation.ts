@@ -2,7 +2,7 @@
  * アニメーション関連のユーティリティ
  */
 
-import type { Command } from '@/src/entities/robot'
+import type { Command } from "@/src/domains/ar/robot-logic/lib/types"
 
 /**
  * コマンドタイプに応じたアニメーション時間を取得（ミリ秒）

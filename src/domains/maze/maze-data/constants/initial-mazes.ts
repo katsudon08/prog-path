@@ -1,4 +1,4 @@
-import type { MazeData } from './types'
+import type { MazeData } from '../lib/types'
 
 /**
  * 初期迷路データを取得

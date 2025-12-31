@@ -1,6 +1,6 @@
 "use client"
 
-import type { TileType } from "@/src/entities/maze"
+import type { TileType } from "@/src/domains/maze/maze-data/lib/types"
 import { TILE_TYPES } from "../lib/tile-types"
 import { getTileIcon } from "../lib/tile-icons"
 

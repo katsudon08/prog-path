@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, useCallback, useEffect } from "react"
-import type { MazeData } from "@/src/entities/maze"
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types"
 import { isMazeQRCode, decodeMazeFromQR, encodeMazeToQR } from "@shared/lib"
 import { useCameraQRScanner } from "@domains/ar/qr-command-scanner"
 

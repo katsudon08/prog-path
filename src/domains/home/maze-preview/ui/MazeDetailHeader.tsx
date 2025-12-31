@@ -2,7 +2,7 @@
 
 import { Play, Pencil, QrCode, Trash2 } from "lucide-react";
 import { Button } from "@/src/shared/ui";
-import type { MazeData } from "@/src/entities/maze";
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
 
 /** 迷路アクションハンドラー */
 export interface MazeActions {

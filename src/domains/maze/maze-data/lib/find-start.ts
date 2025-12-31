@@ -2,8 +2,8 @@
  * 迷路内のスタートタイルを検索する
  */
 
-import type { MazeData } from '../model/types'
-import type { DirectionVector } from '@/src/entities/robot'
+import type { MazeData } from './types'
+import type { DirectionVector } from "@/src/domains/ar/robot-logic/lib/types"
 
 /**
  * スタート位置情報

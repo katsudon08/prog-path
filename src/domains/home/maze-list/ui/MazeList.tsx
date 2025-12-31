@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, Folder, Trash2 } from "lucide-react";
 import { Card, Input } from "@/src/shared/ui";
-import { MazePreview, findStartPosition } from "@/src/entities/maze";
-import type { MazeData } from "@/src/entities/maze";
+import { MazePreview } from "@/src/domains/maze/maze-preview/ui/MazePreview"
+import { findStartPosition } from "@/src/domains/maze/maze-data/lib/find-start";
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
 
 /** 迷路リストのデータProps */
 export interface MazeListDataProps {

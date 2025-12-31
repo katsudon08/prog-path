@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import type { TileType } from "@/src/entities/maze"
+import type { TileType } from "@/src/domains/maze/maze-data/lib/types"
 import { Key, ArrowUp, ArrowDown } from "lucide-react"
 
 interface TileIconProps {

@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react"
-import type { MazeData } from "@/src/entities/maze"
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types"
 import { loadMazes, saveMazes } from "@shared/lib"
 
 interface MazeContextType {

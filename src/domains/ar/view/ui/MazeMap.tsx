@@ -2,7 +2,7 @@
 
 import React from "react";
 import * as THREE from "three";
-import type { TileType } from "@/src/entities/maze";
+import type { TileType } from "@/src/domains/maze/maze-data/lib/types";
 import { TeleportTile } from "./TeleportTile";
 import { KeyTile } from "./KeyTile";
 import { StartTile } from "./StartTile";

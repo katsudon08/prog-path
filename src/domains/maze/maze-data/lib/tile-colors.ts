@@ -1,4 +1,4 @@
-import type { TileType } from '../model/types'
+import type { TileType } from './types'
 
 /**
  * タイルタイプに対応する色クラスを返す

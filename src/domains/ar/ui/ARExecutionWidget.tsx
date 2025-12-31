@@ -4,8 +4,8 @@ import React, { useEffect, useCallback, useRef } from "react";
 import { Button, Card, Input, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/src/shared/ui";
 import { ArrowLeft, Play, RotateCcw, Trophy, AlertTriangle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { MazeData } from "@/src/entities/maze";
-import type { Command } from "@/src/entities/robot";
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
+import type { Command } from "@/src/domains/ar/robot-logic/lib/types";
 
 // Features from domains/ar
 import { CommandStack, useCommandBuilder } from "@domains/ar/command-builder";
@@ -22,8 +22,8 @@ import { MinimapViewWidget } from "@domains/ar/minimap";
 export function ARExecutionWidget() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const mazeId = searchParams.get("id");
-    const importMode = searchParams.get("import") === "true";
+    const mazeId = searchParams?.get("id") ?? null;
+    const importMode = searchParams?.get("import") === "true";
 
     // --- Maze Runner (実行ロジックをフックに委譲) ---
     const runner = useMazeRunner();

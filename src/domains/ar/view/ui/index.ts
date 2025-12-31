@@ -1,0 +1,7 @@
+export * from './GoalTile'
+export * from './HoleTile'
+export * from './KeyTile'
+export * from './MazeMap'
+export * from './StartTile'
+export * from './TeleportTile'
+export * from './RobotModel'

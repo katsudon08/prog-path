@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useMemo } from "react"
-import type { TileType } from "@/src/entities/maze"
+import type { TileType } from "@/src/domains/maze/maze-data/lib/types"
 import { getTileEditorColor, getTileIcon } from "@domains/maze/tile-palette"
 
 interface GridEditorProps {

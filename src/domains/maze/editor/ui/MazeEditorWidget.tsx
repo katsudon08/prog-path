@@ -7,13 +7,13 @@ import { Input } from "@/src/shared/ui"
 import { Label } from "@/src/shared/ui"
 import { Save, ArrowLeft } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import type { TileType } from "@/src/entities/maze"
-import { getInitialMazes } from "@/src/entities/maze"
+import type { TileType } from "@/src/domains/maze/maze-data/lib/types"
+import { getInitialMazes } from "@/src/domains/maze/maze-data/constants/initial-mazes"
 import { loadMazes } from "@shared/lib"
 
 // Features from domains/maze
 import { TilePalette } from "@domains/maze/tile-palette"
-import { ValidationAlertDialog } from "@domains/maze/ui/ValidationAlertDialog"
+import { ValidationAlertDialog } from "./ValidationAlertDialog"
 import { GridEditor, useMazeGridEditor } from "@domains/maze/grid-editor"
 import { LayerNavigator, useLayerManagement } from "@domains/maze/layer-management"
 import { useMazePersistence } from "@domains/maze/persistence"
@@ -24,7 +24,7 @@ import { useMazePersistence } from "@domains/maze/persistence"
 export function MazeEditorWidget() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const mazeId = searchParams?.get("id")
+    const mazeId = searchParams?.get("id") ?? null
 
     // States
     const [mazeName, setMazeName] = useState("新しい迷路")

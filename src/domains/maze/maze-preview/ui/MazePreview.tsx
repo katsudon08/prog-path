@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import type { TileType } from "../model/types"
-import { getTileColor } from "../lib/tile-colors"
+import type { TileType } from "@/src/domains/maze/maze-data/lib/types"
+import { getTileColor } from "@/src/domains/maze/maze-data/lib/tile-colors"
 import { getTileIcon } from "@domains/maze/tile-palette"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 

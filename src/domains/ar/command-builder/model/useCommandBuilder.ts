@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import type { Command, CommandType } from '@/src/entities/robot'
+import type { Command, CommandType } from "@/src/domains/ar/robot-logic/lib/types"
 
 /**
  * 挿入位置

@@ -24,11 +24,7 @@ export function QRImportDialog({
     const setVideoRef = (node: HTMLVideoElement | null) => {
         // refを更新
         if (videoRef) {
-            if (typeof videoRef === "function") {
-                videoRef(node);
-            } else {
-                (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node;
-            }
+            (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node;
         }
 
         // カメラ開始

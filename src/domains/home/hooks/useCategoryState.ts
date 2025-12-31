@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useCallback, useEffect } from "react"
-import type { MazeData } from "@/src/entities/maze"
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types"
 
 const STORAGE_KEY_CATEGORIES = "progpath_categories"
 const STORAGE_KEY_EXPANDED = "progpath_expanded"

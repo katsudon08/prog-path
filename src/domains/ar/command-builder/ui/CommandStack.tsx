@@ -15,7 +15,7 @@ import {
     ChevronDown,
     ChevronRight,
 } from "lucide-react";
-import type { Command, CommandType } from "@/src/entities/robot";
+import type { Command, CommandType } from "@/src/domains/ar/robot-logic/lib/types";
 import type { InsertionPoint } from "../model";
 
 

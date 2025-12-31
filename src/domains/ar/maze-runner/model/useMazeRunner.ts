@@ -3,10 +3,10 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import type { Command, RobotState, DirectionVector } from '@/src/entities/robot'
-import type { MazeData } from '@/src/entities/maze'
-import { flattenCommands, executeCommand } from '@/src/entities/robot'
-import { findStartPosition } from '@/src/entities/maze'
+import type { Command, RobotState, DirectionVector } from "@/src/domains/ar/robot-logic/lib/types"
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types"
+import { flattenCommands, executeCommand } from "@/src/domains/ar/robot-logic/lib/command-executor"
+import { findStartPosition } from "@/src/domains/maze/maze-data/lib/find-start"
 
 /**
  * ゲーム状態

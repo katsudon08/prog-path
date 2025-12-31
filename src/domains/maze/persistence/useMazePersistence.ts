@@ -1,6 +1,7 @@
 import { useCallback } from "react"
-import type { MazeData, TileType } from "@/src/entities/maze"
+import type { TileType, MazeData } from "@/src/domains/maze/maze-data/lib/types"
 import { validateMazeForSave } from "./maze-validator"
+import { loadMazes } from "@/src/shared/lib"
 
 interface UseMazePersistenceProps {
     mazeId: string | null
@@ -37,8 +38,7 @@ export function useMazePersistence({
             return false
         }
 
-        const stored = localStorage.getItem(STORAGE_KEY)
-        const mazes: MazeData[] = stored ? JSON.parse(stored) : []
+        const mazes = loadMazes()
 
         if (mazeId) {
             // Update existing maze
@@ -80,12 +80,12 @@ export function useMazePersistence({
             return false
         }
 
-        const stored = localStorage.getItem(STORAGE_KEY)
-        if (stored) {
-            const mazes: MazeData[] = JSON.parse(stored)
-            const filtered = mazes.filter((m) => m.id !== mazeId)
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
-        }
+        const mazes = loadMazes()
+        const filtered = mazes.filter((m) => m.id !== mazeId)
+        
+        // Check if we actually removed something to avoid unnecessary writes? 
+        // Logic: keep simple.
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
 
         onDeleteSuccess?.()
         return true

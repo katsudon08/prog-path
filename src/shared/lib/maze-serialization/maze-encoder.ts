@@ -1,4 +1,4 @@
-import type { MazeData } from "@/src/entities/maze"
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types"
 
 /**
  * 迷路データをBase64文字列にエンコード

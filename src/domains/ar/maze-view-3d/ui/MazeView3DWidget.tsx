@@ -5,11 +5,11 @@ import { Canvas } from "@react-three/fiber";
 import { Preload, OrbitControls, Text3D, Center } from "@react-three/drei";
 import * as THREE from "three";
 
-import type { MazeData } from "@/src/entities/maze";
-import type { RobotState, Command } from "@/src/entities/robot";
+import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
+import type { RobotState, Command } from "@/src/domains/ar/robot-logic/lib/types";
 import { isMazeQRCode, decodeMazeFromQR } from "@shared/lib";
-import { MazeMap } from "@/src/entities/maze-3d";
-import { RobotModel } from "@/src/entities/robot-3d";
+import { MazeMap } from "@/src/domains/ar/view/ui";
+import { RobotModel } from "@/src/domains/ar/view/ui";
 import { useCameraQRScanner } from "@domains/ar/qr-command-scanner";
 
 // QRコードの文字列とコマンドのマッピング
