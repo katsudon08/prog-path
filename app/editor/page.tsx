@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense } from "react"
-import { MazeEditorWidget } from "@/src/widgets/maze-editor"
+import { MazeEditorWidget } from "@domains/maze"
 
 export default function EditorPage() {
     return (

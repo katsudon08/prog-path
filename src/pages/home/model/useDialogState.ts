@@ -1,16 +1,16 @@
 "use client"
 
-import { useMazeContext } from "@widgets/maze-list"
-import { useQROperations } from "@/src/features/maze-qr-management"
+import { useMazeContext } from "@domains/home/maze-list"
+import { useQROperations } from "@domains/home/hooks"
 
 /**
  * ダイアログの状態を管理するフック
  * FSD: pages層 - features層のフックを統合
  */
 export function useDialogState() {
-    const { mazes, setMazes, selectedMaze } = useMazeContext()
+    const { selectedMaze } = useMazeContext()
 
-    const qr = useQROperations({ mazes, setMazes, selectedMaze })
+    const qr = useQROperations()
 
     return {
         // QR共有

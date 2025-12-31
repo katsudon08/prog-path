@@ -1,10 +1,7 @@
 "use client"
 
-import { useMazeContext } from "@widgets/maze-list"
-import { useCategoryState } from "@/src/features/category-management"
-
-import { useFolderOperations } from "@/src/features/folder-management"
-import { useMazeDnd } from "@/src/features/maze-dnd"
+import { useMazeContext } from "@domains/home/maze-list"
+import { useCategoryState, useFolderOperations, useMazeDnd } from "@domains/home/hooks"
 
 /**
  * サイドバーの状態を統合するフック

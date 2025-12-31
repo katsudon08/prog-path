@@ -38,6 +38,9 @@
       ],
       "@widgets/*": [
         "src/widgets/*"
+      ],
+      "@domains/*": [
+        "src/domains/*"
       ]
     }
   },

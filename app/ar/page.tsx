@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense } from "react"
-import { ARExecutionWidget } from "@/src/widgets/ar-execution"
+import { ARExecutionWidget } from "@domains/ar"
 
 export default function ARPage() {
     return (

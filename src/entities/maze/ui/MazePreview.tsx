@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import type { TileType } from "../model/types"
 import { getTileColor } from "../lib/tile-colors"
-import { getTileIcon } from "@/src/features/tile-palette"
+import { getTileIcon } from "@domains/maze/tile-palette"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface MazePreviewProps {

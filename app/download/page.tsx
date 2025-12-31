@@ -1,4 +1,4 @@
-import { DownloadWidget } from "@/src/widgets/download"
+import { DownloadWidget } from "@domains/download"
 
 export default function DownloadPage() {
     return <DownloadWidget />
