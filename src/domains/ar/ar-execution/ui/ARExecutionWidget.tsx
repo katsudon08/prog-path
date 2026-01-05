@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useCallback, useRef } from "react";
-import { Button, Card, Input, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/src/shared/ui";
-import { ArrowLeft, Play, RotateCcw, Trophy, AlertTriangle } from "lucide-react";
+import { Button, Card } from "@/src/shared/ui";
+import { ArrowLeft, Play, RotateCcw } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
 import type { Command } from "@/src/domains/ar/robot-logic/lib/types";
@@ -10,6 +10,9 @@ import type { Command } from "@/src/domains/ar/robot-logic/lib/types";
 // Features from domains/ar
 import { CommandStack, useCommandBuilder } from "@domains/ar/command-builder";
 import { useMazeRunner } from "@domains/ar/maze-runner";
+import { SuccessDialog } from "@domains/ar/success-dialog";
+import { FailureDialog } from "@domains/ar/failure-dialog";
+import { LoopDialog } from "@domains/ar/loop-dialog";
 
 // Widgets from domains/ar
 import { MazeView3DWidget } from "@domains/ar/maze-view-3d";
@@ -58,7 +61,6 @@ export function ARExecutionWidget() {
 
     // --- QR Command Detection Handler ---
     const handleMarkerDetected = useCallback((detectedCommand: Command) => {
-        // 実行中またはループ回数入力中はQR読み込みを無視
         if (runner.isExecuting || commandBuilder.loopPopupOpen) return;
 
         const now = Date.now();
@@ -209,26 +211,12 @@ export function ARExecutionWidget() {
                             </div>
                         </MazeView3DWidget>
 
-                        {/* Success Message Overlay */}
+                        {/* Success/Failure Dialogs */}
                         {runner.gameStatus === "success" && (
-                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                                <div className="max-w-2xl w-full mx-4 animate-bounce-in rounded-lg border-2 border-neon-green bg-neon-green/10 px-8 py-6 text-center shadow-lg shadow-neon-green/20 backdrop-blur-md pointer-events-auto">
-                                    <Trophy className="mx-auto mb-3 h-12 w-12 text-neon-green" />
-                                    <p className="text-2xl font-bold text-neon-green">ゴール達成！</p>
-                                    <p className="text-base text-neon-green/80">{runner.moveCount}回の移動でクリア</p>
-                                </div>
-                            </div>
+                            <SuccessDialog moveCount={runner.moveCount} />
                         )}
-
-                        {/* Failure Message Overlay */}
                         {runner.gameStatus === "failed" && (
-                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                                <div className="max-w-2xl w-full mx-4 animate-shake rounded-lg border-2 border-neon-red bg-neon-red/10 px-8 py-6 text-center shadow-lg shadow-neon-red/20 backdrop-blur-md pointer-events-auto">
-                                    <AlertTriangle className="mx-auto mb-3 h-12 w-12 text-neon-red" />
-                                    <p className="text-2xl font-bold text-neon-red">失敗！</p>
-                                    <p className="text-base text-neon-red/80">{runner.errorMessage}</p>
-                                </div>
-                            </div>
+                            <FailureDialog errorMessage={runner.errorMessage} />
                         )}
                     </Card>
 
@@ -248,32 +236,13 @@ export function ARExecutionWidget() {
                 </div>
 
                 {/* Loop Count Input Dialog */}
-                <Dialog open={commandBuilder.loopPopupOpen} onOpenChange={commandBuilder.closeLoopPopup}>
-                    <DialogContent className="border-neon-blue/50 bg-space-dark/90 text-foreground backdrop-blur-sm sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle className="text-neon-cyan">ループ回数を入力</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <Input
-                                type="number"
-                                value={commandBuilder.loopInputString}
-                                onChange={handleLoopCountChange}
-                                className="border-neon-blue/30 bg-space-blue/20 text-foreground"
-                                min="1"
-                                max="10"
-                                autoFocus
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                onClick={commandBuilder.confirmLoopBuilding}
-                                className="bg-neon-cyan text-space-dark hover:bg-neon-cyan/90"
-                            >
-                                決定
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <LoopDialog
+                    open={commandBuilder.loopPopupOpen}
+                    onOpenChange={commandBuilder.closeLoopPopup}
+                    loopInputString={commandBuilder.loopInputString}
+                    onLoopCountChange={handleLoopCountChange}
+                    onConfirm={commandBuilder.confirmLoopBuilding}
+                />
             </div>
         </div>
     );

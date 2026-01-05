@@ -8,8 +8,7 @@ import * as THREE from "three";
 import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
 import type { RobotState, Command } from "@/src/domains/ar/robot-logic/lib/types";
 import { isMazeQRCode, decodeMazeFromQR } from "@shared/lib";
-import { MazeMap } from "@/src/domains/ar/view/ui";
-import { RobotModel } from "@/src/domains/ar/view/ui";
+import { MazeMap, RobotModel } from "@domains/ar/robot-3d";
 import { useCameraQRScanner } from "@domains/ar/qr-command-scanner";
 
 // QRコードの文字列とコマンドのマッピング
