@@ -1,2 +1,2 @@
 // maze-list/hooks public API
-export { useCategoryState } from "./useCategoryState"
+export { useMazeList } from "./useMazeList"

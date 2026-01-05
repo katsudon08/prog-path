@@ -49,7 +49,7 @@
 
 | 機能名 | 説明 |
 | --- | --- |
-| side-header | ・迷路作成画面へ遷移するアイコンボタン <br/> ・`folder-create-dialog`を表示するアイコンボタン <br/> `qr-import`を表示するアイコンボタン |
+| side-header | ・迷路作成画面へ遷移するアイコンボタン <br/> ・`folder-create-dialog`を表示するアイコンボタン <br/> ・`qr-import`を表示するアイコンボタン |
 | maze-data | ・スタートタイルが存在する階層の`maze-preview`を表示 <br/> ・迷路名表示 <br/> ・迷路のサイズ表示 <br/> ・選択されている場合は、その`maze-data`の迷路を`main-content`で表示する <br/> ・ドラッグ＆ドロップで`folder`間で移動可能で、ドロップ先の`folder`の`maze-list`に移動する |
 | maze-list | `maze-data`を一覧表示する迷路リスト |
 | maze-delete-dialog | ・迷路削除確認ダイアログ <br/> ・対象の迷路を削除するかどうかを確認し、削除する場合は対象の迷路を削除する |

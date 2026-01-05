@@ -9,7 +9,7 @@ src/
 ├─ domains/
 │   ├─ home/
 │   │   ├─ [ドメインの各機能]/
-│   │   │   ├─ context/    # React Context
+│   │   │   ├─ store/    # zustand
 │   │   │   ├─ constants/  # 定数
 │   │   │   ├─ lib/        # 汎用関数
 │   │   │   ├─ hooks/      # Custom hooks
@@ -17,7 +17,7 @@ src/
 │   │   └─ index.ts
 │   ├─ maze/
 │   │   ├─ [ドメインの各機能]/
-│   │   │   ├─ context/    # React Context
+│   │   │   ├─ store/    # zustand
 │   │   │   ├─ constants/  # 定数
 │   │   │   ├─ lib/        # 汎用関数
 │   │   │   ├─ hooks/      # Custom hooks
@@ -25,7 +25,7 @@ src/
 │   │   └─ index.ts
 │   ├─ ar/
 │   │   ├─ [ドメインの各機能]/
-│   │   │   ├─ context/    # React Context
+│   │   │   ├─ store/    # zustand
 │   │   │   ├─ constants/  # 定数
 │   │   │   ├─ lib/        # 汎用関数
 │   │   │   ├─ hooks/      # Custom hooks
@@ -33,7 +33,7 @@ src/
 │   │   └─ index.ts
 │   └─ download/
 │       ├─ [ドメインの各機能]/
-│       │   ├─ context/    # React Context
+│       │   ├─ store/    # zustand
 │       │   ├─ constants/  # 定数
 │       │   ├─ lib/        # 汎用関数
 │       │   ├─ hooks/      # Custom hooks
@@ -41,7 +41,7 @@ src/
 │       └─ index.ts
 └─ shared/
     ├─ 共通の各機能/
-    │   ├─ context/    # React Context
+    │   ├─ store/    # zustand
     │   ├─ constants/  # 定数
     │   ├─ lib/        # 汎用関数
     │   ├─ hooks/      # Custom hooks
