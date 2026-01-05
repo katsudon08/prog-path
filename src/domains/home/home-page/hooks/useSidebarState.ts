@@ -1,11 +1,11 @@
 "use client"
 
-import { useMazeContext } from "@domains/home/maze-list"
-import { useCategoryState, useFolderOperations, useMazeDnd } from "@domains/home/hooks"
+import { useMazeContext, useCategoryState } from "@domains/home/maze-list"
+import { useFolderOperations } from "@domains/home/folder-management"
+import { useMazeDnd } from "@domains/home/maze-dnd"
 
 /**
  * サイドバーの状態を統合するフック
- * FSD: pages層 - features層のフックを統合
  */
 export function useSidebarState() {
     const { mazes, setMazes } = useMazeContext()

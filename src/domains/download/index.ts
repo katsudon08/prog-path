@@ -1,3 +1,4 @@
 // Domain: Download
 // Aggregates all download features
-export { DownloadWidget } from "./ui/DownloadWidget"
+export { DownloadPage } from "./Page"
+export { DownloadWidget as DownloadPageContent } from "./app-download"

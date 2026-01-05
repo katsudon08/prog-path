@@ -8,12 +8,11 @@ import { QRShareDialog } from "@domains/home/qr-share"
 import { QRImportDialog } from "@domains/home/qr-import"
 import { FolderDialog } from "@domains/home/folder-management"
 import { MazeDeleteDialog } from "@domains/home/maze-list/ui/MazeDeleteDialog"
-import { useSidebarState } from "../model/useSidebarState"
-import { useDialogState } from "../model/useDialogState"
+import { useSidebarState, useDialogState } from "../hooks"
 
 /**
- * ホームページ
- * FSD: pages層 - widgetsを配置しContextで状態共有
+ * ホームページコンポーネント
+ * Screaming Architecture: domains/home配下のPages層
  */
 export function HomePage() {
     return (

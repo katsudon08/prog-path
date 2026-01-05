@@ -1,14 +1,14 @@
 "use client"
 
 import { Button } from "@/src/shared/ui"
-import { Download, ArrowLeft, Zap, Shield, Lightbulb, Monitor } from "lucide-react"
+import { Download, ArrowLeft, Monitor } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
     fetchLatestRelease,
     isElectronApp,
     startDownload,
     type ReleaseInfo,
-} from "@domains/download/app-download"
+} from "../lib"
 
 /**
  * ダウンロードページWidget
