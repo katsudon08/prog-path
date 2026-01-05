@@ -5,7 +5,7 @@ import { Button, Card } from "@/src/shared/ui";
 import { ArrowLeft, Play, RotateCcw } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
-import type { Command } from "@/src/domains/ar/robot-logic/lib/types";
+import type { Command } from "@/src/domains/ar/robot-3d/types";
 
 // Features from domains/ar
 import { CommandStack, useCommandBuilder } from "@domains/ar/command-builder";
@@ -15,8 +15,8 @@ import { FailureDialog } from "@domains/ar/failure-dialog";
 import { LoopDialog } from "@domains/ar/loop-dialog";
 
 // Widgets from domains/ar
-import { MazeView3DWidget } from "@domains/ar/maze-view-3d";
-import { MinimapViewWidget } from "@domains/ar/minimap";
+import { MazeView3DWidget } from "@domains/ar/maze-3d";
+import { MinimapViewWidget } from "@domains/ar/mini-map";
 
 /**
  * ARExecutionWidget

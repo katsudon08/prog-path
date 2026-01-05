@@ -3,7 +3,7 @@
  */
 
 import type { MazeData } from './types'
-import type { DirectionVector } from "@/src/domains/ar/robot-logic/lib/types"
+import type { DirectionVector } from "@/src/domains/ar/robot-3d/types"
 
 /**
  * スタート位置情報

@@ -1,2 +1,4 @@
-// robot-3d feature public API
+// domains/ar/robot-3d public API
 export * from './ui'
+export * from './lib'
+export * from './types'

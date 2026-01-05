@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import type { RobotState, Command } from "@/src/domains/ar/robot-logic/lib/types";
+import type { RobotState, Command } from "@/src/domains/ar/robot-3d/types";
 import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
 
 interface RobotModelProps {

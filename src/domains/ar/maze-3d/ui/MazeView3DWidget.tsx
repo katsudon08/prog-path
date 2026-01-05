@@ -6,10 +6,10 @@ import { Preload, OrbitControls, Text3D, Center } from "@react-three/drei";
 import * as THREE from "three";
 
 import type { MazeData } from "@/src/domains/maze/maze-data/lib/types";
-import type { RobotState, Command } from "@/src/domains/ar/robot-logic/lib/types";
+import type { RobotState, Command } from "@/src/domains/ar/robot-3d/types";
 import { isMazeQRCode, decodeMazeFromQR } from "@shared/lib";
 import { MazeMap, RobotModel } from "@domains/ar/robot-3d";
-import { useCameraQRScanner } from "@domains/ar/qr-command-scanner";
+import { useCameraQRScanner } from "@domains/ar/camera";
 
 // QRコードの文字列とコマンドのマッピング
 const qrCodeToCommand: { [key: string]: Command } = {

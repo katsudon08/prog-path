@@ -1,4 +1,4 @@
-import type { DirectionVector, RobotState } from './types'
+import type { DirectionVector, RobotState } from '../types'
 
 /**
  * 方向定数

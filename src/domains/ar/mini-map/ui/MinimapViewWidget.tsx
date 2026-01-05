@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import type { MazeData, TileType } from "@/src/domains/maze/maze-data/lib/types";
-import type { RobotState } from "@/src/domains/ar/robot-logic/lib/types";
+import type { RobotState } from "@/src/domains/ar/robot-3d/types";
 import { getTileColor } from "@/src/domains/maze/maze-data/lib/tile-colors";
 import { getTileIcon } from '@domains/maze/tile-palette';
 

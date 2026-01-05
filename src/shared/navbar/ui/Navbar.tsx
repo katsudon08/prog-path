@@ -10,7 +10,7 @@ export function Navbar() {
     const getPageTitle = () => {
         if (pathname ==="/") return "Home";
         if (pathname === "/editor") return "Maze Editor";
-        if (pathname?.startsWith("/ar")) return "AR Execution";
+        if (pathname?.startsWith("/ar")) return "AR";
         if (pathname === "/download") return "Download";
         return "ProgPath";
     };

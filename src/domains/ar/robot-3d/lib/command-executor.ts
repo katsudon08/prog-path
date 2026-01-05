@@ -3,7 +3,7 @@
  * 純粋関数としてコマンドの実行結果を計算
  */
 
-import type { Command, RobotState, DirectionVector } from './types'
+import type { Command, RobotState, DirectionVector } from '../types'
 import type { MazeData, TileType } from "@/src/domains/maze/maze-data/lib/types"
 
 /**

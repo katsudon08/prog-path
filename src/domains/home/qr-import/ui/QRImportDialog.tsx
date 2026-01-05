@@ -78,14 +78,12 @@ export function QRImportDialog({
                             </div>
                         )}
                         {isStreamReady && (
-                            <>
-                                <div className="absolute inset-0 pointer-events-none">
-                                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-neon-green -translate-x-1 -translate-y-1"></div>
-                                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-neon-green translate-x-1 -translate-y-1"></div>
-                                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-neon-green -translate-x-1 translate-y-1"></div>
-                                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-neon-green translate-x-1 translate-y-1"></div>
-                                </div>
-                            </>
+                            <div className="absolute inset-2 pointer-events-none">
+                                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-neon-green"></div>
+                                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-neon-green"></div>
+                                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-neon-green"></div>
+                                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-neon-green"></div>
+                            </div>
                         )}
                     </div>
                     <p className="text-center text-sm text-muted-foreground">

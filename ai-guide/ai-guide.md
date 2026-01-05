@@ -2,11 +2,9 @@
 
 ## 実装
 
-下記の2つのファイルを参照して、その内容と照合しながら実装を行うこと
-
-- architecture.md
-
-- features.md
+実装上のルールについては @rules.md を参照すること
+アーキテクチャ構造については @architecture.md を参照すること
+機能別設計については @features.md を参照すること
 
 ## Git
 

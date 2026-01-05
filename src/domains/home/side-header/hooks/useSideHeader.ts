@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useCameraQRScanner } from "@domains/ar/qr-command-scanner"
+import { useCameraQRScanner } from "@domains/ar/camera"
 
 // Zustand ストア
 import { useMazeStore } from "@domains/home/maze-list/store"
