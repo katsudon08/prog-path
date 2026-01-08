@@ -4,12 +4,28 @@
 export type DirectionVector = [number, number]
 
 /**
+ * 方向定数
+ */
+export const DIRECTION = {
+    NORTH: [0, -1] as DirectionVector,
+    EAST: [1, 0] as DirectionVector,
+    SOUTH: [0, 1] as DirectionVector,
+    WEST: [-1, 0] as DirectionVector,
+} as const
+
+/**
+ * デフォルトの向き定数
+ * ロボットの初期向きは南（画面下方向）
+ */
+export const DEFAULT_DIRECTION: DirectionVector = DIRECTION.SOUTH
+
+/**
  * ロボット状態
  */
 export interface RobotState {
     x: number
     y: number
-    z: number // 階層情報（0-indexed）
+    layer: number // 階層情報（0-indexed）
     direction: DirectionVector
     hasKey?: boolean // 鍵を持っているかどうか
 }

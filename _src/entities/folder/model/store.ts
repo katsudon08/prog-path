@@ -1,61 +1,61 @@
 import { create } from 'zustand'
 
 /**
- * カテゴリ状態管理ストアのインターフェース
+ * フォルダ状態管理ストアのインターフェース
  */
-interface CategoryStore {
+interface FolderStore {
     // State
-    customCategories: string[]
-    expandedCategories: Set<string>
+    folders: string[]
+    expandedFolders: Set<string>
 
     // Actions
-    setCustomCategories: (categories: string[]) => void
-    addCategory: (category: string) => void
-    removeCategory: (category: string) => void
-    toggleCategoryExpanded: (category: string) => void
-    setExpandedCategories: (categories: Set<string>) => void
+    setFolders: (folders: string[]) => void
+    addFolder: (folder: string) => void
+    removeFolder: (folder: string) => void
+    toggleFolderExpanded: (folder: string) => void
+    setExpandedFolders: (folders: Set<string>) => void
 
     // Utility
-    isCategoryExpanded: (category: string) => boolean
+    isFolderExpanded: (folder: string) => boolean
 }
 
 /**
- * カテゴリ状態管理Zustandストア
+ * フォルダ状態管理Zustandストア
  */
-export const useCategoryStore = create<CategoryStore>((set, get) => ({
+export const useFolderStore = create<FolderStore>((set, get) => ({
     // Initial State
-    customCategories: [],
-    expandedCategories: new Set<string>(),
+    folders: [],
+    expandedFolders: new Set<string>(),
 
     // Actions
-    setCustomCategories: (categories) => set({ customCategories: categories }),
+    setFolders: (folders) => set({ folders }),
 
-    addCategory: (category) => set((state) => ({
-        customCategories: [...state.customCategories, category],
-        expandedCategories: new Set(state.expandedCategories).add(category)
+    addFolder: (folder) => set((state) => ({
+        folders: [...state.folders, folder],
+        expandedFolders: new Set(state.expandedFolders).add(folder)
     })),
 
-    removeCategory: (category) => set((state) => {
-        const next = new Set(state.expandedCategories)
-        next.delete(category)
+    removeFolder: (folder) => set((state) => {
+        const next = new Set(state.expandedFolders)
+        next.delete(folder)
         return {
-            customCategories: state.customCategories.filter(c => c !== category),
-            expandedCategories: next
+            folders: state.folders.filter(f => f !== folder),
+            expandedFolders: next
         }
     }),
 
-    toggleCategoryExpanded: (category) => set((state) => {
-        const next = new Set(state.expandedCategories)
-        if (next.has(category)) {
-            next.delete(category)
+    toggleFolderExpanded: (folder) => set((state) => {
+        const next = new Set(state.expandedFolders)
+        if (next.has(folder)) {
+            next.delete(folder)
         } else {
-            next.add(category)
+            next.add(folder)
         }
-        return { expandedCategories: next }
+        return { expandedFolders: next }
     }),
 
-    setExpandedCategories: (categories) => set({ expandedCategories: categories }),
+    setExpandedFolders: (folders) => set({ expandedFolders: folders }),
 
     // Utility
-    isCategoryExpanded: (category) => get().expandedCategories.has(category)
+    isFolderExpanded: (folder) => get().expandedFolders.has(folder)
 }))

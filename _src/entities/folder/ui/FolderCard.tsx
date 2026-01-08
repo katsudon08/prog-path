@@ -1,14 +1,14 @@
 "use client"
 
-import { useState } from 'react'
+import { DEFAULT_FOLDER_NAME } from "../model/constants"
 
 interface FolderCardProps {
-    /** カテゴリ名 */
-    category: string
+    /** フォルダ名 */
+    folder: string
     /** 展開されているかどうか */
     isExpanded?: boolean
     /** カスタムカテゴリかどうか（削除可能） */
-    isCustomCategory?: boolean
+    isFolderCategory?: boolean
     /** フォルダ内のアイテム数 */
     itemCount?: number
     /** 展開/折りたたみハンドラー */
@@ -43,9 +43,9 @@ interface FolderCardProps {
  * ビジネスロジック（削除確認ダイアログ等）は含まない
  */
 export function FolderCard({
-    category,
+    folder,
     isExpanded = false,
-    isCustomCategory = false,
+    isFolderCategory = false,
     itemCount = 0,
     onToggle,
     onDelete,
@@ -61,7 +61,7 @@ export function FolderCard({
     children,
     className = ""
 }: FolderCardProps) {
-    const isUncategorized = category === "未分類"
+    const isUncategorized = folder === DEFAULT_FOLDER_NAME
     
     return (
         <div
@@ -130,7 +130,7 @@ export function FolderCard({
                             if (!isUncategorized) onStartRename?.()
                         }}
                     >
-                        {category}
+                        {folder}
                     </span>
                 )}
                 
@@ -140,7 +140,7 @@ export function FolderCard({
                 </span>
                 
                 {/* 削除ボタン（カスタムカテゴリのみ） */}
-                {!isUncategorized && isCustomCategory && onDelete && (
+                {!isUncategorized && isFolderCategory && onDelete && (
                     <button
                         type="button"
                         onClick={(e) => {

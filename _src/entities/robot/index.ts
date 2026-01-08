@@ -4,6 +4,9 @@
 // Types
 export type { DirectionVector, RobotState, RobotAnimationState } from './model/types'
 
+// Constants（ロボットの向きに関する知識はこのスライスに閉じる）
+export { DEFAULT_DIRECTION, DIRECTION } from './model/types'
+
 // Position utilities
 export {
     directionToRotation,

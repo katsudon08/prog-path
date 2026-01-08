@@ -1,61 +1,37 @@
+import { getItem, setItem } from '../../../shared/lib/storage'
 import type { FolderSettings } from '../model/types'
 
-const CATEGORIES_KEY = 'progpath_categories'
-const EXPANDED_KEY = 'progpath_expanded_categories'
+const FOLDERS_KEY = 'progpath_folders'
+const EXPANDED_FOLDERS_KEY = 'progpath_expanded_folders'
 
 /**
- * LocalStorageからカスタムカテゴリを読み込む
+ * LocalStorageからフォルダ一覧を読み込む
  */
-export function loadCategoriesFromStorage(): string[] {
-    try {
-        const data = localStorage.getItem(CATEGORIES_KEY)
-        if (!data) {
-            return []
-        }
-        return JSON.parse(data) as string[]
-    } catch {
-        console.error('Failed to load categories from storage')
-        return []
-    }
+export function loadFoldersFromStorage(): string[] {
+    const data = getItem<string[]>(FOLDERS_KEY)
+    return data ?? []
 }
 
 /**
- * LocalStorageにカスタムカテゴリを保存する
+ * LocalStorageにフォルダ一覧を保存する
  */
-export function saveCategoriesToStorage(categories: string[]): void {
-    try {
-        localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories))
-    } catch {
-        console.error('Failed to save categories to storage')
-    }
+export function saveFoldersToStorage(folders: string[]): void {
+    setItem(FOLDERS_KEY, folders)
 }
 
 /**
- * LocalStorageから展開されたカテゴリを読み込む
+ * LocalStorageから展開されたフォルダを読み込む
  */
-export function loadExpandedCategoriesFromStorage(): Set<string> {
-    try {
-        const data = localStorage.getItem(EXPANDED_KEY)
-        if (!data) {
-            return new Set<string>()
-        }
-        const arr = JSON.parse(data) as string[]
-        return new Set(arr)
-    } catch {
-        console.error('Failed to load expanded categories from storage')
-        return new Set<string>()
-    }
+export function loadExpandedFoldersFromStorage(): Set<string> {
+    const data = getItem<string[]>(EXPANDED_FOLDERS_KEY)
+    return data ? new Set(data) : new Set<string>()
 }
 
 /**
- * LocalStorageに展開されたカテゴリを保存する
+ * LocalStorageに展開されたフォルダを保存する
  */
-export function saveExpandedCategoriesToStorage(categories: Set<string>): void {
-    try {
-        localStorage.setItem(EXPANDED_KEY, JSON.stringify([...categories]))
-    } catch {
-        console.error('Failed to save expanded categories to storage')
-    }
+export function saveExpandedFoldersToStorage(folders: Set<string>): void {
+    setItem(EXPANDED_FOLDERS_KEY, [...folders])
 }
 
 /**
@@ -63,8 +39,8 @@ export function saveExpandedCategoriesToStorage(categories: Set<string>): void {
  */
 export function loadFolderSettings(): FolderSettings {
     return {
-        customCategories: loadCategoriesFromStorage(),
-        expandedCategories: [...loadExpandedCategoriesFromStorage()]
+        folders: loadFoldersFromStorage(),
+        expandedFolders: [...loadExpandedFoldersFromStorage()]
     }
 }
 
@@ -72,6 +48,6 @@ export function loadFolderSettings(): FolderSettings {
  * フォルダ設定をまとめて保存する
  */
 export function saveFolderSettings(settings: FolderSettings): void {
-    saveCategoriesToStorage(settings.customCategories)
-    saveExpandedCategoriesToStorage(new Set(settings.expandedCategories))
+    saveFoldersToStorage(settings.folders)
+    saveExpandedFoldersToStorage(new Set(settings.expandedFolders))
 }
