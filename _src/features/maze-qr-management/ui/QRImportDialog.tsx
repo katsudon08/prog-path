@@ -1,51 +1,65 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 import { AlertTriangle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../../src/shared/ui/dialog"
 import { useQRImport } from "../model/useQRImport"
 import { useToast } from "../../../shared/ui/toast"
-
-interface CameraState {
-    videoRef: React.RefObject<HTMLVideoElement>
-    canvasRef: React.RefObject<HTMLCanvasElement>
-    isStreamReady: boolean
-    cameraError: string | null
-    startCamera: () => void
-    stopCamera: () => void
-}
-
-interface QRImportDialogProps {
-    camera: CameraState
-}
+import { useCameraQRScanner } from "../../../shared/lib"
 
 /**
  * QRコードインポートダイアログ（カメラスキャナー）
+ * 
+ * 責務の分離:
+ * - UI: カメラ映像の表示、エラー状態の表示、ダイアログの開閉
+ * - ロジック: QRコード検出処理、迷路のバリデーション・保存（useQRImportに委譲）
+ * - 通知: トースト表示（addToast経由）
  */
-export function QRImportDialog({ camera }: QRImportDialogProps) {
-    const { isOpen, close } = useQRImport()
+export function QRImportDialog() {
+    const { isOpen, close, handleQRDetected } = useQRImport()
     const { addToast } = useToast()
-    const { videoRef, canvasRef, isStreamReady, cameraError, startCamera, stopCamera } = camera
 
-    // ビデオ要素がマウントされたらカメラを開始
-    const setVideoRef = (node: HTMLVideoElement | null) => {
-        if (videoRef) {
-            (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node
-        }
-        if (node && isOpen) {
-            startCamera()
-        }
-    }
+    /**
+     * QRコード検出時のハンドラー
+     * ロジック層（useQRImport）に処理を委譲し、結果をトーストで通知
+     */
+    const onQRCodeDetected = useCallback((data: string) => {
+        const result = handleQRDetected(data)
 
-    // クリーンアップ
+        // 結果をトーストで通知（メッセージがある場合のみ）
+        if (result.message) {
+            addToast(result)
+        }
+        // 成功時はhandleQRDetected内でダイアログが自動的に閉じられる
+    }, [handleQRDetected, addToast])
+
+    // カメラQRスキャナーフックを使用
+    const {
+        videoRef,
+        canvasRef,
+        isStreamReady,
+        cameraError,
+        startCamera,
+        stopCamera,
+    } = useCameraQRScanner({
+        onQRCodeDetected,
+        scanInterval: 300,
+        autoStart: false, // ダイアログが開いたら手動で開始
+        cooldownMs: 1000, // 連続検出を防ぐ
+    })
+
+    // ダイアログが開いたらカメラを開始、閉じたら停止
     useEffect(() => {
-        if (!isOpen) {
+        if (isOpen) {
+            startCamera()
+        } else {
             stopCamera()
         }
+        // クリーンアップ：コンポーネントアンマウント時にカメラリソースを解放
         return () => {
             stopCamera()
         }
-    }, [isOpen, stopCamera])
+    }, [isOpen, startCamera, stopCamera])
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
@@ -64,7 +78,7 @@ export function QRImportDialog({ camera }: QRImportDialogProps) {
                     )}
                     <div className="relative w-full aspect-video bg-space-darker rounded-lg overflow-hidden flex items-center justify-center">
                         <video
-                            ref={setVideoRef}
+                            ref={videoRef}
                             className="w-full h-full object-cover"
                             style={{ transform: "scaleX(-1)" }}
                             playsInline
@@ -79,14 +93,6 @@ export function QRImportDialog({ camera }: QRImportDialogProps) {
                                         カメラを起動中...
                                     </p>
                                 </div>
-                            </div>
-                        )}
-                        {isStreamReady && (
-                            <div className="absolute inset-2 pointer-events-none">
-                                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-neon-green"></div>
-                                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-neon-green"></div>
-                                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-neon-green"></div>
-                                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-neon-green"></div>
                             </div>
                         )}
                     </div>

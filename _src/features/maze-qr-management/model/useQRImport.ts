@@ -1,30 +1,7 @@
 import { create } from 'zustand'
 import { useMazeStore, saveMazesToStorage, validateMaze, type MazeData } from '../../../entities/maze'
 import type { ActionResult } from '../../../shared/model'
-
-function isMazeQRCode(qrData: string): boolean {
-    return qrData.startsWith("maze:")
-}
-
-// デコード関数
-function decodeMazeFromQR(qrData: string): MazeData | null {
-    try {
-        if (!isMazeQRCode(qrData)) {
-            return null
-        }
-        const base64 = qrData.substring(5)
-        const json = decodeURIComponent(escape(atob(base64)))
-        const maze: MazeData = JSON.parse(json)
-
-        if (!maze.id || !maze.name || !maze.layers || !maze.size) {
-            return null
-        }
-        return maze
-    } catch (error) {
-        console.error("Failed to decode maze:", error)
-        return null
-    }
-}
+import { decodeMazeFromQR, isMazeQRCode } from '../../../shared/lib'
 
 /**
  * QRインポートストアの状態
@@ -41,8 +18,9 @@ interface QRImportState {
 
 /**
  * QRコードインポート機能のストア
+ * ロジックのみを担当し、UIへの通知はActionResultを通じて行う
  */
-export const useQRImport = create<QRImportState>((set, get) => ({
+export const useQRImport = create<QRImportState>((set) => ({
     // Initial State
     isOpen: false,
 
@@ -51,6 +29,10 @@ export const useQRImport = create<QRImportState>((set, get) => ({
 
     close: () => set({ isOpen: false }),
 
+    /**
+     * QRコード検出時のハンドラー
+     * 純粋なロジック処理のみを担当し、UIへの通知はActionResultで返す
+     */
     handleQRDetected: (data) => {
         // 迷路QRコードかチェック
         if (!isMazeQRCode(data)) {
@@ -91,7 +73,7 @@ export const useQRImport = create<QRImportState>((set, get) => ({
         mazeStore.addMaze(maze)
         saveMazesToStorage(mazeStore.mazes)
 
-        // ダイアログを閉じる
+        // ダイアログを閉じる（ロジック側で状態を更新）
         set({ isOpen: false })
 
         return {

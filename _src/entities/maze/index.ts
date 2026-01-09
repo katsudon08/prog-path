@@ -9,6 +9,9 @@ export type { TileType, MazeData } from './model/types'
 // Store
 export { useMazeStore } from './model/store'
 
+// Constants
+export { MIN_GRID_SIZE, MAX_GRID_SIZE, MIN_LAYERS, MAX_LAYERS } from './model/constants'
+
 // Validators
 export { validateMaze, validateTeleportPlacement } from './lib/validator'
 

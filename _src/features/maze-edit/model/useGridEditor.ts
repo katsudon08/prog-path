@@ -1,9 +1,6 @@
 import { useCallback } from 'react'
-import { validateTeleportPlacement, type TileType } from '../../../entities/maze'
+import { validateTeleportPlacement, MIN_GRID_SIZE, MAX_GRID_SIZE, type TileType } from '../../../entities/maze'
 import type { ActionResult } from '../../../shared/model'
-
-const MIN_GRID_SIZE = 5
-const MAX_GRID_SIZE = 10
 
 interface UseGridEditorProps {
     layers: TileType[][][]
@@ -87,6 +84,7 @@ export function useGridEditor({
 
     /**
      * グリッドサイズを変更
+     * サイズ縮小時に重要タイルが削除される場合も処理を中断せず、通知のみ行う
      */
     const resizeGrid = useCallback((newSize: number): ActionResult => {
         if (newSize < MIN_GRID_SIZE || newSize > MAX_GRID_SIZE) {
@@ -97,6 +95,30 @@ export function useGridEditor({
             }
         }
 
+        const currentSize = layers[0]?.length || 0
+        const deletedTiles: string[] = []
+
+        // サイズ縮小時に削除されるタイルをチェック
+        if (newSize < currentSize) {
+            layers.forEach((layer, layerIdx) => {
+                for (let row = 0; row < layer.length; row++) {
+                    for (let col = 0; col < layer[row].length; col++) {
+                        // 新サイズの範囲外にあるタイルをチェック
+                        if (row >= newSize || col >= newSize) {
+                            const tile = layer[row][col]
+                            if (tile === 'start') {
+                                deletedTiles.push(`${layerIdx + 1}階のスタートタイル`)
+                            }
+                            if (tile === 'goal') {
+                                deletedTiles.push(`${layerIdx + 1}階のゴールタイル`)
+                            }
+                        }
+                    }
+                }
+            })
+        }
+
+        // リサイズ実行（中断しない）
         const newLayers = layers.map(layer => {
             const newGrid: TileType[][] = Array(newSize)
                 .fill(null)
@@ -113,6 +135,16 @@ export function useGridEditor({
         })
 
         setLayers(newLayers)
+
+        // 削除されたタイルがある場合は警告メッセージを含める
+        if (deletedTiles.length > 0) {
+            const deletedTilesStr = deletedTiles.join('と')
+            return {
+                success: true,
+                type: 'info',
+                message: `グリッドサイズを${newSize}x${newSize}に変更しました。\n範囲外にあった${deletedTilesStr}が削除されました。`,
+            }
+        }
 
         return {
             success: true,

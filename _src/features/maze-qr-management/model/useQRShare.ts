@@ -1,18 +1,7 @@
 import { create } from 'zustand'
 import type { MazeData } from '../../../entities/maze'
 import type { ActionResult } from '../../../shared/model'
-
-// エンコード関数（shared/libからインポートする想定だが、一旦ここに定義）
-function encodeMazeToQR(maze: MazeData): string {
-    try {
-        const json = JSON.stringify(maze)
-        const base64 = btoa(unescape(encodeURIComponent(json)))
-        return `maze:${base64}`
-    } catch (error) {
-        console.error("Failed to encode maze:", error)
-        throw new Error("迷路のエンコードに失敗しました")
-    }
-}
+import { encodeMazeToQR } from '../../../shared/lib'
 
 /**
  * QR共有ストアの状態
@@ -30,6 +19,7 @@ interface QRShareState {
 
 /**
  * QRコード共有機能のストア
+ * ロジックのみを担当し、UIへの通知はActionResultを通じて行う
  */
 export const useQRShare = create<QRShareState>((set) => ({
     // Initial State
