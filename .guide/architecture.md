@@ -11,9 +11,15 @@
    ├─ pages
    ├─ widgets
    ├─ features
+   │  ├─ folder-management
+   │  ├─ maze-management
+   │  ├─ maze-qr-management
+   │  ├─ maze-edit
+   │  ├─ command-management
+   │  ├─ maze-simulation
+   │  └─ app-download
    ├─ entities
-   │  ├─ maze-2d
-   │  ├─ maze-3d
+   │  ├─ maze
    │  ├─ command
    │  ├─ folder
    │  └─ robot

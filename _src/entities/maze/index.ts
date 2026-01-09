@@ -10,7 +10,7 @@ export type { TileType, MazeData } from './model/types'
 export { useMazeStore } from './model/store'
 
 // Validators
-export { validateMaze, validateTeleportPlacement, type ValidationResult } from './lib/validator'
+export { validateMaze, validateTeleportPlacement } from './lib/validator'
 
 // Utilities
 export { findStartPosition, type StartPosition } from './lib/find-start'

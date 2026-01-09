@@ -1,17 +1,11 @@
 import type { MazeData, TileType } from '../model/types'
-
-/**
- * バリデーション結果
- */
-export interface ValidationResult {
-    valid: boolean
-    errors: string[]
-}
+import type { ActionResult } from '../../../shared/model'
 
 /**
  * 迷路の整合性をバリデーション
+ * @returns ActionResult形式の結果
  */
-export function validateMaze(maze: MazeData): ValidationResult {
+export function validateMaze(maze: MazeData): ActionResult {
     const errors: string[] = []
     const allTiles = maze.layers.flat(2)
 
@@ -30,7 +24,20 @@ export function validateMaze(maze: MazeData): ValidationResult {
         errors.push('ゴールタイルは1つだけ配置してください（全階層合計）')
     }
 
-    return { valid: errors.length === 0, errors }
+    if (errors.length > 0) {
+        return {
+            success: false,
+            type: 'error',
+            message: errors.join('\n'),
+            errors,
+        }
+    }
+
+    return {
+        success: true,
+        type: 'success',
+        message: 'バリデーションに成功しました',
+    }
 }
 
 /**
@@ -42,26 +49,42 @@ export function validateTeleportPlacement(
     row: number,
     col: number,
     tileType: TileType
-): { valid: boolean; error?: string } {
+): ActionResult {
     const invalidDestinations: TileType[] = ["wall", "hole", "teleportUp", "teleportDown"]
 
     if (tileType === "teleportUp") {
         if (currentLayer >= layers.length - 1) {
-            return { valid: false, error: "上の階層が存在しません。階層を追加してください。" }
+            return {
+                success: false,
+                type: 'error',
+                message: "上の階層が存在しません。階層を追加してください。",
+            }
         }
         const upperTile = layers[currentLayer + 1][row][col]
         if (invalidDestinations.includes(upperTile)) {
-            return { valid: false, error: "真上のマスに壁や穴、テレポートがあるため、上へのテレポートは設置できません。" }
+            return {
+                success: false,
+                type: 'error',
+                message: "真上のマスに壁や穴、テレポートがあるため、上へのテレポートは設置できません。",
+            }
         }
     }
 
     if (tileType === "teleportDown") {
         if (currentLayer <= 0) {
-            return { valid: false, error: "下の階層が存在しません。" }
+            return {
+                success: false,
+                type: 'error',
+                message: "下の階層が存在しません。",
+            }
         }
         const lowerTile = layers[currentLayer - 1][row][col]
         if (invalidDestinations.includes(lowerTile)) {
-            return { valid: false, error: "真下のマスに壁や穴、テレポートがあるため、下へのテレポートは設置できません。" }
+            return {
+                success: false,
+                type: 'error',
+                message: "真下のマスに壁や穴、テレポートがあるため、下へのテレポートは設置できません。",
+            }
         }
     }
 
@@ -70,16 +93,28 @@ export function validateTeleportPlacement(
         if (currentLayer > 0) {
             const lowerTile = layers[currentLayer - 1][row][col]
             if (lowerTile === "teleportUp") {
-                return { valid: false, error: "下の階層に上へのテレポートがあるため、この場所には設置できません。" }
+                return {
+                    success: false,
+                    type: 'error',
+                    message: "下の階層に上へのテレポートがあるため、この場所には設置できません。",
+                }
             }
         }
         if (currentLayer < layers.length - 1) {
             const upperTile = layers[currentLayer + 1][row][col]
             if (upperTile === "teleportDown") {
-                return { valid: false, error: "上の階層に下へのテレポートがあるため、この場所には設置できません。" }
+                return {
+                    success: false,
+                    type: 'error',
+                    message: "上の階層に下へのテレポートがあるため、この場所には設置できません。",
+                }
             }
         }
     }
 
-    return { valid: true }
+    return {
+        success: true,
+        type: 'success',
+        message: 'テレポート配置可能です',
+    }
 }
