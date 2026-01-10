@@ -96,7 +96,7 @@ export function useGridEditor({
         }
 
         const currentSize = layers[0]?.length || 0
-        const deletedTiles: string[] = []
+        const deletedTiles: Set<string> = new Set()
 
         // サイズ縮小時に削除されるタイルをチェック
         if (newSize < currentSize) {
@@ -107,10 +107,10 @@ export function useGridEditor({
                         if (row >= newSize || col >= newSize) {
                             const tile = layer[row][col]
                             if (tile === 'start') {
-                                deletedTiles.push(`${layerIdx + 1}階のスタートタイル`)
+                                deletedTiles.add("スタートタイル")
                             }
                             if (tile === 'goal') {
-                                deletedTiles.push(`${layerIdx + 1}階のゴールタイル`)
+                                deletedTiles.add("ゴールタイル")
                             }
                         }
                     }
@@ -137,8 +137,8 @@ export function useGridEditor({
         setLayers(newLayers)
 
         // 削除されたタイルがある場合は警告メッセージを含める
-        if (deletedTiles.length > 0) {
-            const deletedTilesStr = deletedTiles.join('と')
+        if (deletedTiles.size > 0) {
+            const deletedTilesStr = Array.from(deletedTiles).join('と')
             return {
                 success: true,
                 type: 'info',

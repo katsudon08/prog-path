@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import jsQR from "jsqr"
+import { useCameraStore } from "./useCameraStore"
 
 export interface UseCameraQRScannerOptions {
     /** スキャン間隔（ミリ秒） */
@@ -33,7 +34,7 @@ export interface UseCameraQRScannerResult {
  * カメラを使ったQRコードスキャナーのカスタムフック
  * 
  * ホーム画面（迷路インポート）とAR実行画面（コマンドスキャン）の両方で使用可能
- * 副作用（カメラストリーム、スキャンループ）のクリーンアップを自動で行う
+ * streamはuseCameraStoreで一元管理し、useEffectでリアクティブに監視
  */
 export function useCameraQRScanner(
     options: UseCameraQRScannerOptions
@@ -45,37 +46,52 @@ export function useCameraQRScanner(
         cooldownMs = 0 
     } = options
 
+    // DOM参照（このフック内に閉じ込める）
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
-    const streamRef = useRef<MediaStream | null>(null)
     const scanIntervalRef = useRef<number | null>(null)
     const isCoolingDownRef = useRef<boolean>(false)
 
-    const [isStreamReady, setIsStreamReady] = useState(false)
-    const [cameraError, setCameraError] = useState("")
+    // Zustandストアから状態を取得
+    const { 
+        isStreamReady, 
+        cameraError, 
+        stream,
+        setStreamReady, 
+        setCameraError, 
+        setStream,
+        reset 
+    } = useCameraStore()
 
     // カメラを停止
     const stopCamera = useCallback(() => {
+        // スキャンループを停止
         if (scanIntervalRef.current) {
             clearTimeout(scanIntervalRef.current)
             scanIntervalRef.current = null
         }
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop())
-            streamRef.current = null
-        }
+
+        // ビデオ要素をクリーンアップ
         const video = videoRef.current
-        if (video && video.srcObject) {
+        if (video) {
             video.srcObject = null
             video.onplaying = null
             video.oncanplay = null
+            video.onloadedmetadata = null
         }
-        setIsStreamReady(false)
-        isCoolingDownRef.current = false
-    }, [])
 
-    // カメラを開始
+        // ストアをリセット（ストリームも解放される）
+        reset()
+        isCoolingDownRef.current = false
+    }, [reset])
+
+    // カメラを開始（ストアにstreamを保存するだけ）
     const startCamera = useCallback(async () => {
+        // すでに有効なストリームが存在する場合は二重起動しない
+        if (stream) {
+            return
+        }
+
         const video = videoRef.current
         if (!video) {
             console.warn("Video element not found")
@@ -84,7 +100,7 @@ export function useCameraQRScanner(
 
         try {
             setCameraError("")
-            const stream = await navigator.mediaDevices.getUserMedia({
+            const newStream = await navigator.mediaDevices.getUserMedia({
                 audio: false,
                 video: {
                     facingMode: "environment",
@@ -92,7 +108,23 @@ export function useCameraQRScanner(
                     height: { ideal: 480 },
                 },
             })
-            streamRef.current = stream
+
+            // ストアにストリームを保存（ビデオへのセットはuseEffectに委譲）
+            setStream(newStream)
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : String(err)
+            setCameraError(errorMessage)
+            console.error("Failed to get webcam stream:", err)
+        }
+    }, [stream, setCameraError, setStream])
+
+    // ストアのstreamをリアクティブに監視し、video要素にセット
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video) return
+
+        if (stream) {
+            // streamがセットされた → video要素に反映
             video.srcObject = stream
 
             video.onloadedmetadata = () => {
@@ -103,19 +135,22 @@ export function useCameraQRScanner(
 
             video.onplaying = () => {
                 if (video.readyState >= 2) {
-                    setIsStreamReady(true)
+                    setStreamReady(true)
                 }
             }
 
             video.oncanplay = () => {
-                setIsStreamReady(true)
+                setStreamReady(true)
             }
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : String(err)
-            setCameraError(errorMessage)
-            console.error("Failed to get webcam stream:", err)
+        } else {
+            // streamがnull → クリア
+            video.srcObject = null
+            video.onplaying = null
+            video.oncanplay = null
+            video.onloadedmetadata = null
+            setStreamReady(false)
         }
-    }, [])
+    }, [stream, setStreamReady])
 
     // 自動起動
     useEffect(() => {

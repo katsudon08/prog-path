@@ -22,6 +22,7 @@ export function QRImportDialog() {
     /**
      * QRコード検出時のハンドラー
      * ロジック層（useQRImport）に処理を委譲し、結果をトーストで通知
+     * useCallbackをし忘れると、レンダリングのたびにスキャンループが発生してしまうため注意
      */
     const onQRCodeDetected = useCallback((data: string) => {
         const result = handleQRDetected(data)
