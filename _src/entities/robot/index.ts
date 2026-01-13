@@ -18,5 +18,8 @@ export {
     worldToGridPosition
 } from './lib/position'
 
+// Stores
+export { useRobotStore } from './model/useRobotStore'
+
 // UI Components
 export { RobotModel } from './ui/RobotModel'
