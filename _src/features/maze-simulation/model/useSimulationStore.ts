@@ -25,6 +25,7 @@ interface SimulationState {
     setSpeed: (speed: number) => void
     setError: (error: string | null) => void
     incrementLoopCounter: (pathKey: string) => void
+    resetLoopCounter: (pathKey: string) => void
     resetLoopCounters: () => void
     setInitialMazeData: (maze: MazeData | null) => void
     resetSimulation: () => void
@@ -52,6 +53,11 @@ export const useSimulationStore = create<SimulationState>((set) => ({
             [pathKey]: (state.loopCounters[pathKey] || 0) + 1
         }
     })),
+
+    resetLoopCounter: (pathKey) => set((state) => {
+        const { [pathKey]: _, ...rest } = state.loopCounters
+        return { loopCounters: rest }
+    }),
 
     resetLoopCounters: () => set({ loopCounters: {} }),
 

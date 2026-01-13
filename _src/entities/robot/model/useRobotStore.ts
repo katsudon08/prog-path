@@ -16,10 +16,10 @@ interface RobotStoreState {
     animationState: RobotAnimationState
 
     /**
-     * 状態をリセット（初期位置へ移動）
-     * @param initialState 初期状態
+     * 状態を更新
+     * @param state 更新する状態
      */
-    reset: (initialState: RobotState) => void
+    updateRobotState: (state: RobotState) => void
 
     /**
      * 指定座標へ移動（ワープ的な移動、アニメーションは別途制御）
@@ -52,9 +52,9 @@ export const useRobotStore = create<RobotStoreState>((set) => ({
     },
     animationState: 'idle',
 
-    reset: (initialState) => {
+    updateRobotState: (state) => {
         set({ 
-            robotState: initialState,
+            robotState: state,
             animationState: 'idle' 
         })
     },

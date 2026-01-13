@@ -1,6 +1,16 @@
 import type { Command } from '@/_src/entities/command'
 
 /**
+ * getNextPathの戻り値
+ */
+export interface NextPathResult {
+    /** 次に実行すべきパス、またはnull（終了） */
+    nextPath: number[] | null
+    /** リセットすべきループのパスキー（ループ脱出時） */
+    shouldResetPath?: string
+}
+
+/**
  * パスからコマンドを取得
  */
 export function getCommandByPath(commands: Command[], path: number[]): Command | undefined {
@@ -41,25 +51,25 @@ function getSiblings(commands: Command[], path: number[]): Command[] {
  * @param currentPath 現在実行中のパス
  * @param loopCounters ループカウンタ（キー: path.join(',')）
  * @param incrementLoopCounter ループカウンタをインクリメントする関数
- * @returns 次のパス、または null（終了）
+ * @returns 次のパス情報
  */
 export function getNextPath(
     commands: Command[],
     currentPath: number[],
     loopCounters: Record<string, number>,
     incrementLoopCounter: (pathKey: string) => void
-): number[] | null {
+): NextPathResult {
     // 空パスの場合は最初のコマンドへ
     if (currentPath.length === 0) {
-        return commands.length > 0 ? [0] : null
+        return { nextPath: commands.length > 0 ? [0] : null }
     }
 
     const currentCommand = getCommandByPath(commands, currentPath)
-    if (!currentCommand) return null
+    if (!currentCommand) return { nextPath: null }
 
     // ループコマンドの場合: 子要素の先頭へ進む
     if (currentCommand.type === 'loop' && currentCommand.children && currentCommand.children.length > 0) {
-        return [...currentPath, 0]
+        return { nextPath: [...currentPath, 0] }
     }
 
     // 次の兄弟を探す（再帰的に親へ遡る）
@@ -74,15 +84,15 @@ function findNextSibling(
     path: number[],
     loopCounters: Record<string, number>,
     incrementLoopCounter: (pathKey: string) => void
-): number[] | null {
-    if (path.length === 0) return null
+): NextPathResult {
+    if (path.length === 0) return { nextPath: null }
 
     const currentIndex = path[path.length - 1]
     const siblings = getSiblings(commands, path)
 
     // 次の兄弟がある場合
     if (currentIndex + 1 < siblings.length) {
-        return [...path.slice(0, -1), currentIndex + 1]
+        return { nextPath: [...path.slice(0, -1), currentIndex + 1] }
     }
 
     // 兄弟がいない場合、親へ遡る
@@ -90,7 +100,7 @@ function findNextSibling(
     
     // ルートに到達した場合は終了
     if (parentPath.length === 0) {
-        return null
+        return { nextPath: null }
     }
 
     // 親がループの場合、ループ継続判定
@@ -102,9 +112,11 @@ function findNextSibling(
         if (currentCount + 1 < parent.loopCount) {
             // ループ継続: カウンタをインクリメントしてループ先頭へ
             incrementLoopCounter(loopKey)
-            return [...parentPath, 0]
+            return { nextPath: [...parentPath, 0] }
         }
-        // ループ終了: 親の次の兄弟へ（カウンタは次回のためにリセットされるべきだが、それはStore側でresetLoopCountersで行う）
+        // ループ終了: このループをリセット対象としてマークし、親の次の兄弟へ
+        const result = findNextSibling(commands, parentPath, loopCounters, incrementLoopCounter)
+        return { ...result, shouldResetPath: loopKey }
     }
 
     // 親の次の兄弟を探す

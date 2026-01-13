@@ -53,11 +53,12 @@ export function useSimulationRunner() {
         setCurrentPath, 
         setError,
         incrementLoopCounter,
+        resetLoopCounter,
         setInitialMazeData,
         resetSimulation
     } = useSimulationStore()
 
-    const { robotState, moveTo, rotateTo, setAnimationState, reset: resetRobot } = useRobotStore()
+    const { robotState, moveTo, rotateTo, setAnimationState, updateRobotState } = useRobotStore()
     const { commands } = useCommandStore()
     const { selectedMaze, selectMaze, updateMaze } = useMazeStore()
 
@@ -84,7 +85,7 @@ export function useSimulationRunner() {
             case 'key': {
                 // 鍵を取得
                 const newState = { ...useRobotStore.getState().robotState, hasKey: true }
-                resetRobot(newState)
+                updateRobotState(newState)
                 setAnimationState('collecting')
                 // タイルを床に書き換え
                 const updatedMaze = setTile(maze, x, y, layer, 'floor')
@@ -109,7 +110,7 @@ export function useSimulationRunner() {
             default:
                 return null
         }
-    }, [setStatus, setError, setAnimationState, resetRobot, selectMaze, moveTo])
+    }, [setStatus, setError, setAnimationState, updateRobotState, selectMaze, moveTo])
 
     /**
      * 1ステップ実行
@@ -182,8 +183,9 @@ export function useSimulationRunner() {
                     const frontTile = getTile(selectedMaze, frontPos.x, frontPos.y, robotState.layer)
                     
                     if (frontTile === 'hole') {
-                        // 穴を埋める
+                        // 穴を埋める（アニメーション待機付き）
                         setAnimationState('collecting')
+                        await new Promise(resolve => setTimeout(resolve, speed / 2))
                         const updatedMaze = setTile(selectedMaze, frontPos.x, frontPos.y, robotState.layer, 'floor')
                         selectMaze(updatedMaze)
                     }
@@ -203,7 +205,12 @@ export function useSimulationRunner() {
         }
 
         // 次のパスを計算
-        const nextPath = getNextPath(commands, targetPath, loopCounters, incrementLoopCounter)
+        const { nextPath, shouldResetPath } = getNextPath(commands, targetPath, loopCounters, incrementLoopCounter)
+        
+        // ループ脱出時はそのカウンタをリセット
+        if (shouldResetPath) {
+            resetLoopCounter(shouldResetPath)
+        }
         
         if (nextPath) {
             setCurrentPath(nextPath)

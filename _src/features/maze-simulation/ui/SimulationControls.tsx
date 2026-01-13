@@ -16,7 +16,7 @@ interface SimulationControlsProps {
 export function SimulationControls({ className = '' }: SimulationControlsProps) {
     const { status, error } = useSimulationStore()
     const { run, pause, step, reset: runnerReset } = useSimulationRunner()
-    const { reset: resetRobot } = useRobotStore()
+    const { updateRobotState } = useRobotStore()
     const { selectedMaze } = useMazeStore()
     const { addToast } = useToast()
 
@@ -34,7 +34,7 @@ export function SimulationControls({ className = '' }: SimulationControlsProps) 
                 if (selectedMaze) {
                     const startPos = findStartPosition(selectedMaze)
                     if (startPos) {
-                        resetRobot({
+                        updateRobotState({
                             x: startPos.x,
                             y: startPos.y,
                             layer: startPos.layer,
@@ -45,7 +45,7 @@ export function SimulationControls({ className = '' }: SimulationControlsProps) 
                 }
             }
         }
-    }, [selectedMaze?.id, runnerReset, resetRobot, selectedMaze])
+    }, [selectedMaze?.id, runnerReset, updateRobotState, selectedMaze])
 
     // エラー/完了時にトースト表示
     useEffect(() => {
