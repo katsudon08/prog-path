@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback } from 'react'
-import type { CommandType } from '@/_src/entities/command'
-import { 
-    type ActionResult, 
-    createSuccessResult, 
-    createErrorResult 
+import type { CommandType, Command } from '@/_src/entities/command'
+import {
+    type ActionResult,
+    createSuccessResult,
+    createErrorResult
 } from '@/_src/shared/model'
 import { useCommandStore } from './useCommandStore'
 
@@ -35,32 +35,76 @@ function isValidCommandType(value: string): value is CommandType {
 }
 
 /**
+ * パスに基づいて対象のコマンド配列を取得するヘルパー
+ */
+function getTargetCommands(commands: Command[], path: number[]): Command[] {
+    let current = commands
+    for (const index of path) {
+        if (!current[index]) return []
+        current = current[index].children || []
+    }
+    return current
+}
+
+/**
  * コマンドスタック操作用カスタムフック
  * ActionResultを返す形式でロジックを提供
  */
 export function useCommandBuilder() {
-    const { commands, addCommand: storeAddCommand, removeCommand: storeRemoveCommand, clearCommands: storeClearCommands } = useCommandStore()
+    const { 
+        commands, 
+        activePath,
+        addCommand: storeAddCommand, 
+        updateCommand: storeUpdateCommand, 
+        removeCommand: storeRemoveCommand, 
+        clearCommands: storeClearCommands,
+        setActivePath
+    } = useCommandStore()
+
+    /** 最大ネスト深度 (これ以上のネストはUIやパフォーマンス面で問題が生じるため制限) */
+    const MAX_NEST_DEPTH = 3
 
     /**
-     * コマンドをスタックに追加
+     * 現在のアクティブパスにコマンドを追加
      */
-    const addCommand = useCallback((type: CommandType): ActionResult => {
+    const addCommandToActivePath = useCallback((type: CommandType): ActionResult => {
         if (!isValidCommandType(type)) {
             return createErrorResult(`無効なコマンドタイプ: ${type}`)
         }
 
-        storeAddCommand(type)
+        // ネスト深度制限チェック
+        if (activePath.length >= MAX_NEST_DEPTH) {
+            return createErrorResult(`これ以上のネストはできません（最大${MAX_NEST_DEPTH}階層）`)
+        }
+
+        // 現在の階層のコマンド数を取得して、新しいインデックスを特定
+        const targetCommands = getTargetCommands(commands, activePath)
+        const newIndex = targetCommands.length
+
+        // Commandオブジェクトを生成
+        const newCommand = {
+            type,
+            loopCount: type === 'loop' ? 2 : undefined,
+            children: []
+        }
+
+        storeAddCommand(newCommand, activePath)
+
+        // ループコマンドの場合は、その内部をアクティブパスに設定
+        if (type === 'loop') {
+            setActivePath([...activePath, newIndex])
+        }
+
         const label = COMMAND_LABELS[type]
         return createSuccessResult(`${label}コマンドを追加しました`)
-    }, [storeAddCommand])
+    }, [storeAddCommand, activePath, commands, setActivePath])
 
     /**
      * QRコード文字列からコマンドをパースして追加
      */
     const addCommandFromQR = useCallback((qrData: string): ActionResult => {
         const trimmed = qrData.trim().toLowerCase()
-        
-        // QRデータをCommandTypeに変換
+
         const typeMap: Record<string, CommandType> = {
             'forward': 'forward',
             'turnright': 'turnRight',
@@ -74,22 +118,26 @@ export function useCommandBuilder() {
             return createErrorResult(`認識できないQRコード: ${qrData}`)
         }
 
-        return addCommand(commandType)
-    }, [addCommand])
+        return addCommandToActivePath(commandType)
+    }, [addCommandToActivePath])
 
     /**
-     * 指定位置のコマンドを削除
+     * 指定パスのループ回数を更新
      */
-    const removeCommand = useCallback((index: number): ActionResult => {
-        if (index < 0 || index >= commands.length) {
-            return createErrorResult(`無効なインデックス: ${index}`)
-        }
+    const updateLoopCount = useCallback((path: number[], count: number): ActionResult => {
+        // バリデーション (1-10)
+        const validCount = Math.min(10, Math.max(1, count))
+        storeUpdateCommand(path, { loopCount: validCount })
+        return createSuccessResult(`ループ回数を${validCount}回に変更しました`)
+    }, [storeUpdateCommand])
 
-        const removedType = commands[index]
-        const label = COMMAND_LABELS[removedType]
-        storeRemoveCommand(index)
-        return createSuccessResult(`${label}コマンドを削除しました`)
-    }, [commands, storeRemoveCommand])
+    /**
+     * 指定パスのコマンドを削除
+     */
+    const removeCommand = useCallback((path: number[]): ActionResult => {
+        storeRemoveCommand(path)
+        return createSuccessResult(`コマンドを削除しました`)
+    }, [storeRemoveCommand])
 
     /**
      * スタックを全消去
@@ -105,8 +153,11 @@ export function useCommandBuilder() {
 
     return {
         commands,
-        addCommand,
+        activePath,
+        setActivePath,
+        addCommandToActivePath,
         addCommandFromQR,
+        updateLoopCount,
         removeCommand,
         clearCommands,
         COMMAND_LABELS
