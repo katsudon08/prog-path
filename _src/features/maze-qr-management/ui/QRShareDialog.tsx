@@ -1,6 +1,6 @@
 "use client"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../../src/shared/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/_src/shared/ui"
 import { QRCodeSVG } from "qrcode.react"
 import { useQRShare } from "../model/useQRShare"
 

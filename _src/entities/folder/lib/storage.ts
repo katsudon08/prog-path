@@ -1,4 +1,4 @@
-import { getItem, setItem } from '../../../shared/lib/storage'
+import { getItem, setItem } from '@/_src/shared/lib/storage'
 import type { FolderSettings } from '../model/types'
 
 const FOLDERS_KEY = 'progpath_folders'

@@ -11,8 +11,10 @@ interface CommandCardProps {
     icon: React.ReactNode
     /** 背景色クラス */
     colorClass?: string
-    /** 実行中かどうか */
+    /** 選択中かどうか */
     isActive?: boolean
+    /** 実行中かどうか（パルスアニメーション） */
+    isExecuting?: boolean
     /** 削除ハンドラー */
     onRemove?: () => void
     /** 無効化 */
@@ -38,6 +40,7 @@ export function CommandCard({
     icon,
     colorClass = "bg-neon-cyan",
     isActive = false,
+    isExecuting = false,
     onRemove,
     disabled = false,
     loopCount,
@@ -50,9 +53,11 @@ export function CommandCard({
             <div
                 className={`
                     flex items-center gap-2 rounded-lg border-2 p-3 transition-all
-                    ${isActive
-                        ? "border-neon-cyan bg-neon-cyan/20 shadow-lg shadow-neon-cyan/20"
-                        : "border-neon-blue/30 bg-space-blue/20"
+                    ${isExecuting
+                        ? "border-neon-cyan bg-neon-cyan/30 shadow-lg shadow-neon-cyan/40 animate-pulse"
+                        : isActive
+                            ? "border-neon-cyan bg-neon-cyan/20 shadow-lg shadow-neon-cyan/20"
+                            : "border-neon-blue/30 bg-space-blue/20"
                     }
                 `}
             >

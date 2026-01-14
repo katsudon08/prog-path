@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import { useMazeStore, saveMazesToStorage, validateMaze, type MazeData } from '../../../entities/maze'
-import type { ActionResult } from '../../../shared/model'
-import { decodeMazeFromQR, isMazeQRCode } from '../../../shared/lib'
+import { useMazeStore, saveMazesToStorage, validateMaze, type MazeData } from '@/_src/entities/maze'
+import type { ActionResult } from '@/_src/shared/model'
+import { decodeMazeFromQR, isMazeQRCode } from '@/_src/shared/lib'
 
 /**
  * QRインポートストアの状態

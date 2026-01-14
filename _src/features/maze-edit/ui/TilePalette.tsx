@@ -1,6 +1,6 @@
 "use client"
 
-import { MazeTile2D, getTileColor, type TileType } from "../../../entities/maze"
+import { MazeTile2D, getTileColor, type TileType } from "@/_src/entities/maze"
 import { useTileSelection, TILE_TYPES } from "../model/useTileSelection"
 
 /**

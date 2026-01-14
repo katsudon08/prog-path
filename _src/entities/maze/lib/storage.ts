@@ -1,4 +1,4 @@
-import { getItem, setItem, removeItem } from '../../../shared/lib/storage'
+import { getItem, setItem, removeItem } from '@/_src/shared/lib/storage'
 import type { MazeData } from '../model/types'
 
 const STORAGE_KEY = 'progpath_mazes'

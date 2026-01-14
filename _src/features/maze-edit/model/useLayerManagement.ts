@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { MIN_LAYERS, MAX_LAYERS, type TileType } from '../../../entities/maze'
-import type { ActionResult } from '../../../shared/model'
+import { MIN_LAYERS, MAX_LAYERS, type TileType } from '@/_src/entities/maze'
+import type { ActionResult } from '@/_src/shared/model'
 
 interface UseLayerManagementProps {
     layers: TileType[][][]

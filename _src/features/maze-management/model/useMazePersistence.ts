@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { useMazeStore, saveMazesToStorage, validateMaze, type MazeData, type TileType } from '../../../entities/maze'
-import type { ActionResult } from '../../../shared/model'
+import { useMazeStore, saveMazesToStorage, validateMaze, type MazeData, type TileType } from '@/_src/entities/maze'
+import type { ActionResult } from '@/_src/shared/model'
 
 interface UseMazePersistenceProps {
     mazeId: string | null

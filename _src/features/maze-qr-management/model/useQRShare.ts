@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import type { MazeData } from '../../../entities/maze'
-import type { ActionResult } from '../../../shared/model'
-import { encodeMazeToQR } from '../../../shared/lib'
+import type { MazeData } from '@/_src/entities/maze'
+import type { ActionResult } from '@/_src/shared/model'
+import { encodeMazeToQR } from '@/_src/shared/lib'
 
 /**
  * QR共有ストアの状態

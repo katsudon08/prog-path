@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { TileType } from '../../../entities/maze'
+import type { TileType } from '@/_src/entities/maze'
 
 /**
  * 選択可能なタイル一覧

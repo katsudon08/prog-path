@@ -1,11 +1,11 @@
 "use client"
 
 import { Trash2 } from "lucide-react"
-import { Button } from "../../../../src/shared/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../../../src/shared/ui/dialog"
+import { Button } from "@/_src/shared/ui"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/_src/shared/ui"
 import { useFolderDelete } from "../model/useFolderDelete"
-import { DEFAULT_FOLDER_NAME } from "../../../entities/folder"
-import { useToast } from "../../../shared/ui/toast"
+import { DEFAULT_FOLDER_NAME } from "@/_src/entities/folder"
+import { useToast } from "@/_src/shared/ui/toast"
 
 /**
  * フォルダ削除確認ダイアログ

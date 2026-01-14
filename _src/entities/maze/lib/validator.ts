@@ -1,5 +1,5 @@
 import type { MazeData, TileType } from '../model/types'
-import type { ActionResult } from '../../../shared/model'
+import type { ActionResult } from '@/_src/shared/model'
 
 /**
  * 迷路の整合性をバリデーション

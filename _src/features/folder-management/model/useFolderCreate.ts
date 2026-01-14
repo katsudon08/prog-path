@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { useFolderStore, saveFoldersToStorage, saveExpandedFoldersToStorage } from '../../../entities/folder'
-import type { ActionResult } from '../../../shared/model'
+import { useFolderStore, saveFoldersToStorage, saveExpandedFoldersToStorage } from '@/_src/entities/folder'
+import type { ActionResult } from '@/_src/shared/model'
 
 /**
  * フォルダ作成ダイアログの状態管理

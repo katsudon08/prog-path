@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import { useFolderStore, saveFoldersToStorage } from '../../../entities/folder'
-import { useMazeStore, saveMazesToStorage } from '../../../entities/maze'
-import type { ActionResult } from '../../../shared/model'
+import { useFolderStore, saveFoldersToStorage } from '@/_src/entities/folder'
+import { useMazeStore, saveMazesToStorage } from '@/_src/entities/maze'
+import type { ActionResult } from '@/_src/shared/model'
 
 /**
  * フォルダ名変更の状態管理

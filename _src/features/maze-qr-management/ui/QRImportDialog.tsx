@@ -2,10 +2,10 @@
 
 import { useEffect, useCallback } from "react"
 import { AlertTriangle } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../../src/shared/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/_src/shared/ui"
 import { useQRImport } from "../model/useQRImport"
-import { useToast } from "../../../shared/ui/toast"
-import { useCameraQRScanner } from "../../../shared/lib"
+import { useToast } from "@/_src/shared/ui/toast"
+import { useCameraQRScanner } from "@/_src/shared/lib"
 
 /**
  * QRコードインポートダイアログ（カメラスキャナー）

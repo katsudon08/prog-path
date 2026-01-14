@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef, useEffect } from 'react'
 import { 
     ArrowUp, 
     CornerUpRight, 
@@ -7,7 +8,7 @@ import {
     RotateCcw, 
     Sparkles,
 } from 'lucide-react'
-import type { CommandType } from '@/_src/entities/command'
+import type { CommandType, Command } from '@/_src/entities/command'
 import { CommandCard } from '@/_src/entities/command'
 import { useCommandBuilder } from '../model/useCommandBuilder'
 
@@ -18,6 +19,8 @@ interface CommandStackProps {
     showRemoveButton?: boolean
     /** 無効化 */
     disabled?: boolean
+    /** 実行中のコマンドパス（ハイライト用） */
+    executionPath?: number[]
 }
 
 /** コマンドタイプごとのアイコン */
@@ -49,27 +52,31 @@ function isPathEqual(pathA: number[], pathB: number[]): boolean {
  * 再帰表示用コマンドリストコンポーネント
  */
 interface RecursiveCommandListProps {
-    commands: import('@/_src/entities/command').Command[]
+    commands: Command[]
     parentPath: number[]
     activePath: number[]
+    executionPath: number[]
     onSelectPath: (path: number[]) => void
     onUpdateLoop: (path: number[], count: number) => void
     onRemove: (path: number[]) => void
     labels: Record<CommandType, string>
     disabled: boolean
     showRemoveButton: boolean
+    executingRef: React.RefObject<HTMLDivElement | null>
 }
 
 function RecursiveCommandList({
     commands,
     parentPath,
     activePath,
+    executionPath,
     onSelectPath,
     onUpdateLoop,
     onRemove,
     labels,
     disabled,
-    showRemoveButton
+    showRemoveButton,
+    executingRef
 }: RecursiveCommandListProps) {
     if (commands.length === 0) return null
 
@@ -77,48 +84,42 @@ function RecursiveCommandList({
         <div className="space-y-1">
             {commands.map((cmd, index) => {
                 const currentPath = [...parentPath, index]
-                // 自身の中に挿入する場合のパス（子要素末尾に追加）
-                // ただし、追加ターゲットとして「このコマンドの内部」を選択する場合の表現が必要
-                // ここでは単純に「このコマンドがアクティブ」かどうかで判定するが、
-                // 厳密には activePath は「次の挿入位置」を示すものではない（activePath自体がコンテナを指す）
-                // 仕様上、「ループ内」をactivePathにするため、ループコマンドを選択するとその内部がActiveになる
-                
-                // ループコマンド自身がActivePathと一致するか、あるいはその内部がActivePathか
                 const isSelected = isPathEqual(activePath, currentPath)
+                const isExecuting = isPathEqual(executionPath, currentPath)
                 
                 return (
-                    <CommandCard
+                    <div 
                         key={`cmd-${currentPath.join('-')}`}
-                        type={cmd.type}
-                        label={labels[cmd.type]}
-                        icon={COMMAND_ICONS[cmd.type]}
-                        colorClass={COMMAND_COLORS[cmd.type]}
-                        loopCount={cmd.loopCount}
-                        isActive={isSelected}
-                        onLoopCountChange={(count) => onUpdateLoop(currentPath, count)}
-                        onRemove={showRemoveButton ? () => onRemove(currentPath) : undefined}
-                        disabled={disabled}
-                        // ループの場合、クリックでその内部をActivePathに設定する（トグル動作など検討）
-                        // ここではループアイコンクリック等を想定せず、カードクリック全体で処理したいところだが
-                        // CommandCardの仕様上 onClick はないため、ループの場合のコンテナ選択ボタンが必要かも
-                        // 仮実装: ループの場合、強制的に中身を表示
-                        children={
-                            cmd.type === 'loop' ? (
+                        ref={isExecuting ? executingRef : undefined}
+                    >
+                        <CommandCard
+                            type={cmd.type}
+                            label={labels[cmd.type]}
+                            icon={COMMAND_ICONS[cmd.type]}
+                            colorClass={COMMAND_COLORS[cmd.type]}
+                            loopCount={cmd.loopCount}
+                            isActive={isSelected}
+                            isExecuting={isExecuting}
+                            onLoopCountChange={(count) => onUpdateLoop(currentPath, count)}
+                            onRemove={showRemoveButton ? () => onRemove(currentPath) : undefined}
+                            disabled={disabled}
+                        >
+                            {cmd.type === 'loop' && (
                                 <div className="space-y-1">
-                                    {/* 内部を表示 */}
                                     <RecursiveCommandList 
                                         commands={cmd.children || []}
                                         parentPath={currentPath}
                                         activePath={activePath}
+                                        executionPath={executionPath}
                                         onSelectPath={onSelectPath}
                                         onUpdateLoop={onUpdateLoop}
                                         onRemove={onRemove}
                                         labels={labels}
                                         disabled={disabled}
                                         showRemoveButton={showRemoveButton}
+                                        executingRef={executingRef}
                                     />
                                     
-                                    {/* このループ内をアクティブにするボタン */}
                                     <button
                                         type="button"
                                         onClick={(e) => {
@@ -136,9 +137,9 @@ function RecursiveCommandList({
                                         {isSelected ? "選択中: ここに追加されます" : "このループ内に追加"}
                                     </button>
                                 </div>
-                            ) : undefined
-                        }
-                    />
+                            )}
+                        </CommandCard>
+                    </div>
                 )
             })}
         </div>
@@ -152,8 +153,10 @@ function RecursiveCommandList({
 export function CommandStack({ 
     className = '',
     showRemoveButton = true,
-    disabled = false
+    disabled = false,
+    executionPath = []
 }: CommandStackProps) {
+    const executingRef = useRef<HTMLDivElement>(null)
     const { 
         commands, 
         activePath,
@@ -164,6 +167,13 @@ export function CommandStack({
         COMMAND_LABELS 
     } = useCommandBuilder()
 
+    // 実行中のコマンドへオートスクロール
+    useEffect(() => {
+        if (executionPath.length > 0 && executingRef.current) {
+            executingRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+    }, [executionPath])
+
     if (commands.length === 0) {
         return (
             <div className={`text-center text-muted-foreground py-8 ${className}`}>
@@ -173,7 +183,6 @@ export function CommandStack({
         )
     }
 
-    // ルートを選択するボタン
     const isRootActive = activePath.length === 0
 
     return (
@@ -184,7 +193,6 @@ export function CommandStack({
                     コマンドスタック
                 </h3>
                 <div className="flex gap-2">
-                    {/* ルート選択ボタン */}
                     <button
                         type="button"
                         onClick={() => setActivePath([])}
@@ -214,12 +222,14 @@ export function CommandStack({
                 commands={commands}
                 parentPath={[]}
                 activePath={activePath}
+                executionPath={executionPath}
                 onSelectPath={setActivePath}
                 onUpdateLoop={updateLoopCount}
                 onRemove={removeCommand}
                 labels={COMMAND_LABELS}
                 disabled={disabled}
                 showRemoveButton={showRemoveButton}
+                executingRef={executingRef}
             />
         </div>
     )

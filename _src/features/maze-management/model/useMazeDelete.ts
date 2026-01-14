@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { useMazeStore, saveMazesToStorage } from '../../../entities/maze'
-import type { ActionResult } from '../../../shared/model'
+import { useMazeStore, saveMazesToStorage } from '@/_src/entities/maze'
+import type { ActionResult } from '@/_src/shared/model'
 
 /**
  * 迷路削除ダイアログの状態管理

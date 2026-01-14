@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { validateTeleportPlacement, MIN_GRID_SIZE, MAX_GRID_SIZE, type TileType } from '../../../entities/maze'
-import type { ActionResult } from '../../../shared/model'
+import { validateTeleportPlacement, MIN_GRID_SIZE, MAX_GRID_SIZE, type TileType } from '@/_src/entities/maze'
+import type { ActionResult } from '@/_src/shared/model'
 
 interface UseGridEditorProps {
     layers: TileType[][][]

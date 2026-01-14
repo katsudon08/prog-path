@@ -1,11 +1,11 @@
 "use client"
 
 import { Trash2 } from "lucide-react"
-import { Button } from "../../../../src/shared/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../../../src/shared/ui/dialog"
+import { Button } from "@/_src/shared/ui"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/_src/shared/ui"
 import { useMazeDelete } from "../model/useMazeDelete"
-import { useMazeStore } from "../../../entities/maze"
-import { useToast } from "../../../shared/ui/toast"
+import { useMazeStore } from "@/_src/entities/maze"
+import { useToast } from "@/_src/shared/ui/toast"
 
 /**
  * 迷路削除確認ダイアログ

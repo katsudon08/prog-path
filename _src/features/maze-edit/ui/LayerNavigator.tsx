@@ -1,9 +1,9 @@
 "use client"
 
 import { ChevronUp, ChevronDown, Plus, Minus } from "lucide-react"
-import { Button } from "../../../../src/shared/ui/button"
-import { useToast } from "../../../shared/ui/toast"
-import type { ActionResult } from "../../../shared/model"
+import { Button } from "@/_src/shared/ui"
+import { useToast } from "@/_src/shared/ui/toast"
+import type { ActionResult } from "@/_src/shared/model"
 
 interface LayerNavigatorProps {
     currentLayer: number

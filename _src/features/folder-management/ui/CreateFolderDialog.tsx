@@ -1,11 +1,11 @@
 "use client"
 
 import { FolderPlus } from "lucide-react"
-import { Button } from "../../../../src/shared/ui/button"
-import { Input } from "../../../../src/shared/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../../src/shared/ui/dialog"
+import { Button } from "@/_src/shared/ui"
+import { Input } from "@/_src/shared/ui"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/_src/shared/ui"
 import { useFolderCreate } from "../model/useFolderCreate"
-import { useToast } from "../../../shared/ui/toast"
+import { useToast } from "@/_src/shared/ui/toast"
 
 /**
  * フォルダ作成ダイアログ
