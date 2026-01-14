@@ -81,7 +81,7 @@ export function SimulationControls({ className = '' }: SimulationControlsProps) 
         if (selectedMaze) {
             const startPos = findStartPosition(selectedMaze)
             if (startPos) {
-                resetRobot({
+                updateRobotState({
                     x: startPos.x,
                     y: startPos.y,
                     layer: startPos.layer,
