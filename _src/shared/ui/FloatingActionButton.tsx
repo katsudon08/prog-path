@@ -21,6 +21,8 @@ interface FloatingActionButtonProps {
   mainIcon?: React.ReactNode
   /** 閉じる時のアイコン（オプション、デフォルトはX） */
   closeIcon?: React.ReactNode
+  /** メインボタンクリック時のハンドラー（設定するとメニュー開閉と両方実行） */
+  onMainClick?: () => void
 }
 
 const variantStyles = {
@@ -38,10 +40,17 @@ export function FloatingActionButton({
   actions,
   mainIcon,
   closeIcon,
+  onMainClick,
 }: FloatingActionButtonProps): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
 
-  const toggleMenu = () => setIsOpen(!isOpen)
+  const toggleMenu = () => {
+    if (!isOpen && onMainClick) {
+      // メニューが閉じている時にクリックされたら、カスタムアクションを実行
+      onMainClick()
+    }
+    setIsOpen(!isOpen)
+  }
 
   const handleActionClick = (action: FloatingAction) => {
     action.onClick()

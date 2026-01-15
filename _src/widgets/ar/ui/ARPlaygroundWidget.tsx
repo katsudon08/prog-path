@@ -5,13 +5,13 @@
 
 'use client';
 
-import React from 'react';
-import { Play, Square, RotateCcw, Home } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Play, Square, RotateCcw } from 'lucide-react';
 import { CommandStack } from '@/_src/features/command-management/ui/CommandStack';
 import { useSimulationStore } from '@/_src/features/maze-simulation/model/useSimulationStore';
 import { useSimulationRunner } from '@/_src/features/maze-simulation/model/useSimulationRunner';
 import { useMazeStore } from '@/_src/entities/maze';
-import { useRouter } from 'next/navigation';
+import { FloatingActionButton, type FloatingAction, Navbar } from '@/_src/shared/ui';
 
 interface ARPlaygroundWidgetProps {
   /** 3Dビューを描画するコンポーネント/要素 */
@@ -26,7 +26,6 @@ export function ARPlaygroundWidget({
   mazeName,
   className = '',
 }: ARPlaygroundWidgetProps): React.ReactElement {
-  const router = useRouter();
   const { status, currentPath, error } = useSimulationStore();
   const { run, pause, reset } = useSimulationRunner();
   const { selectedMaze } = useMazeStore();
@@ -46,66 +45,29 @@ export function ARPlaygroundWidget({
     reset();
   };
 
-  const handleHome = () => {
-    reset();
-    router.push('/');
-  };
+  // FABアクション（リボルバー型メニュー用）
+  const fabActions: FloatingAction[] = useMemo(() => [
+    {
+      icon: isRunning ? <Square className="w-5 h-5" /> : <Play className="w-5 h-5" />,
+      label: isRunning ? '停止' : '実行',
+      variant: 'success' as const,
+      onClick: handleExecuteToggle,
+    },
+    {
+      icon: <RotateCcw className="w-5 h-5" />,
+      label: 'リセット',
+      variant: 'info' as const,
+      onClick: handleReset,
+    },
+  ], [isRunning, handleExecuteToggle, handleReset]);
 
   return (
-    <div className={`flex flex-col h-screen relative z-50 bg-space-darker ${className}`}>
-      {/* ヘッダー */}
-      <header className="flex items-center justify-between p-4 border-b border-neon-blue/30 bg-space-dark backdrop-blur-sm z-50">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleHome}
-            className="p-2 rounded-lg text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors"
-            title="ホームに戻る"
-          >
-            <Home className="w-5 h-5" />
-          </button>
-          <h1 className="text-lg font-semibold text-neon-cyan">
-            {mazeName || selectedMaze?.name || 'AR Mode'}
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleReset}
-            disabled={status === 'idle'}
-            className="p-2 rounded-lg text-muted-foreground hover:text-neon-purple hover:bg-neon-purple/10 transition-colors disabled:opacity-50"
-            title="リセット"
-          >
-            <RotateCcw className="w-5 h-5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExecuteToggle}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              isRunning
-                ? 'bg-neon-red/20 text-neon-red hover:bg-neon-red/30'
-                : 'bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30'
-            }`}
-          >
-            {isRunning ? (
-              <>
-                <Square className="w-4 h-4" />
-                <span>停止</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4" />
-                <span>実行</span>
-              </>
-            )}
-          </button>
-        </div>
-      </header>
+    <div className={`flex flex-col min-h-screen bg-space-darker ${className}`}>
+      {/* Navbar */}
+      <Navbar />
 
       {/* メインコンテンツ */}
-      <div className="flex flex-1 overflow-hidden p-4 gap-4">
+      <div className="flex flex-1 overflow-hidden p-4 gap-4 pt-20">
         {/* 3Dビュー */}
         <div className="flex-1 relative rounded-lg overflow-hidden">
           {view3D}
@@ -144,6 +106,9 @@ export function ARPlaygroundWidget({
           />
         </aside>
       </div>
+
+      {/* FAB: リボルバー型メニュー */}
+      <FloatingActionButton actions={fabActions} />
     </div>
   );
 }
