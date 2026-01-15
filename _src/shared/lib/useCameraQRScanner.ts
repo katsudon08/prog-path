@@ -152,15 +152,23 @@ export function useCameraQRScanner(
         }
     }, [stream, setStreamReady])
 
-    // 自動起動
+    // 自動起動（マウント後に遅延実行）
     useEffect(() => {
+        let timer: ReturnType<typeof setTimeout> | null = null
+        
         if (autoStart) {
-            startCamera()
+            // 少し待ってからカメラを起動（DOM要素がマウントされるのを待つ）
+            timer = setTimeout(() => {
+                startCamera()
+            }, 100)
         }
+        
         return () => {
+            if (timer) clearTimeout(timer)
             stopCamera()
         }
-    }, [autoStart, startCamera, stopCamera])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoStart])
 
     // QRコードスキャンループ
     useEffect(() => {

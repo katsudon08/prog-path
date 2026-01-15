@@ -103,7 +103,7 @@ export function MazeView3DWidget({
             : "floor";
 
     return (
-        <div className="relative w-full h-full overflow-hidden rounded-lg border-2 border-neon-cyan/30 bg-transparent">
+        <div className="relative w-full h-full overflow-hidden rounded-lg bg-transparent">
             <canvas ref={canvasRef} style={{ display: "none" }} />
 
             <video

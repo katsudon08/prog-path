@@ -52,9 +52,9 @@ export function ARPlaygroundWidget({
   };
 
   return (
-    <div className={`flex flex-col h-full ${className}`}>
+    <div className={`flex flex-col h-screen relative z-50 bg-space-darker ${className}`}>
       {/* ヘッダー */}
-      <header className="flex items-center justify-between p-4 border-b border-neon-blue/30 bg-space-dark/80 backdrop-blur-sm">
+      <header className="flex items-center justify-between p-4 border-b border-neon-blue/30 bg-space-dark backdrop-blur-sm z-50">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -105,9 +105,9 @@ export function ARPlaygroundWidget({
       </header>
 
       {/* メインコンテンツ */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden p-4 gap-4">
         {/* 3Dビュー */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative rounded-lg overflow-hidden">
           {view3D}
 
           {/* エラー/完了オーバーレイ */}
@@ -136,7 +136,7 @@ export function ARPlaygroundWidget({
         </div>
 
         {/* サイドパネル（コマンドスタック） */}
-        <aside className="w-72 border-l border-neon-blue/30 bg-space-dark/50 overflow-y-auto p-4">
+        <aside className="w-72 bg-space-dark/50 overflow-y-auto p-4 rounded-lg">
           <CommandStack
             disabled={isRunning}
             executionPath={currentPath}

@@ -11,8 +11,6 @@ import { MazeCard, MazePreview2D, useMazeStore, type MazeData } from '@/_src/ent
 interface MazeExplorerWidgetProps {
   /** 表示する迷路リスト（外部から渡す場合） */
   mazes?: MazeData[];
-  /** 迷路クリック時のコールバック */
-  onMazeClick?: (mazeId: string) => void;
   /** 削除時のコールバック */
   onDelete?: (mazeId: string) => void;
   className?: string;
@@ -35,7 +33,6 @@ function getMazeSizeLabel(maze: MazeData): string {
 
 export function MazeExplorerWidget({
   mazes: externalMazes,
-  onMazeClick,
   onDelete,
   className = '',
 }: MazeExplorerWidgetProps): React.ReactElement {
@@ -46,11 +43,10 @@ export function MazeExplorerWidget({
 
   const handleMazeClick = (maze: MazeData) => {
     selectMaze(maze);
-    onMazeClick?.(maze.id);
   };
 
   return (
-    <div className={`flex flex-col gap-4 ${className}`}>
+    <div className={`flex flex-col gap-2 p-4 ${className}`}>
       {/* 迷路一覧 */}
       {mazes.length === 0 ? (
         <div className="text-center text-muted-foreground py-8">
@@ -58,7 +54,7 @@ export function MazeExplorerWidget({
           <p className="text-xs mt-1">右下の + ボタンから新しい迷路を作成するかQRコードでインポート</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-2">
           {mazes.map((maze) => (
             <MazeCard
               key={maze.id}

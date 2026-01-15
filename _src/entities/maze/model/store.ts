@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { MazeData } from './types'
+import { loadMazesFromStorage } from '../lib/storage'
 
 /**
  * 迷路状態管理ストアのインターフェース
@@ -10,6 +11,11 @@ interface MazeStore {
     // State
     mazes: MazeData[]
     selectedMaze: MazeData | null
+    editingMaze: MazeData | null  // 編集中の迷路（ローカル編集用）
+    isLoaded: boolean
+
+    // Initialization
+    initialize: () => void
 
     // Maze Actions
     setMazes: (mazes: MazeData[]) => void
@@ -18,6 +24,10 @@ interface MazeStore {
     addMaze: (maze: MazeData) => void
     addAndSelectMaze: (maze: MazeData) => void
     deleteMaze: (id: string) => void
+
+    // Editing Actions
+    setEditingMaze: (maze: MazeData) => void
+    clearEditingMaze: () => void
 
     // Utility
     getMazeById: (id: string) => MazeData | undefined
@@ -30,6 +40,17 @@ export const useMazeStore = create<MazeStore>((set, get) => ({
     // Initial State
     mazes: [],
     selectedMaze: null,
+    editingMaze: null,
+    isLoaded: false,
+
+    // Initialization - LocalStorageから迷路を読み込む
+    initialize: () => {
+        // 既にロード済みの場合はスキップ
+        if (get().isLoaded) return
+
+        const mazes = loadMazesFromStorage()
+        set({ mazes, isLoaded: true })
+    },
 
     // Maze Actions
     setMazes: (mazes) => set({ mazes }),
@@ -56,6 +77,10 @@ export const useMazeStore = create<MazeStore>((set, get) => ({
         mazes: state.mazes.filter(m => m.id !== id),
         selectedMaze: state.selectedMaze?.id === id ? null : state.selectedMaze
     })),
+
+    // Editing Actions
+    setEditingMaze: (maze) => set({ editingMaze: maze }),
+    clearEditingMaze: () => set({ editingMaze: null }),
 
     // Utility
     getMazeById: (id) => get().mazes.find(m => m.id === id)

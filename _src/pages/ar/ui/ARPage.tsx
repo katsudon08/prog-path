@@ -23,7 +23,7 @@ export function ARPage(): React.ReactElement {
     const importMode = searchParams?.get('import') === 'true';
 
     // Stores
-    const { selectedMaze, selectMaze } = useMazeStore();
+    const { selectedMaze, selectMaze, initialize, getMazeById } = useMazeStore();
     const { robotState } = useRobotStore();
     const { commands, addCommand } = useCommandStore();
     const { status, currentPath } = useSimulationStore();
@@ -35,6 +35,9 @@ export function ARPage(): React.ReactElement {
 
     // Load maze from localStorage
     useEffect(() => {
+        // ストアを初期化
+        initialize();
+
         if (!mazeId && !importMode) {
             // If no maze ID and not import mode, redirect to home
             if (!selectedMaze) {
@@ -43,6 +46,16 @@ export function ARPage(): React.ReactElement {
             return;
         }
 
+        // ストアから迷路を取得（初期化後）
+        if (mazeId) {
+            const maze = getMazeById(mazeId);
+            if (maze) {
+                selectMaze(maze);
+                return;
+            }
+        }
+
+        // フォールバック: LocalStorageから直接読み込み
         const stored = localStorage.getItem('progpath_mazes');
         if (!stored) return;
 
@@ -58,7 +71,7 @@ export function ARPage(): React.ReactElement {
         if (targetMaze) {
             selectMaze(targetMaze);
         }
-    }, [mazeId, importMode, router, selectMaze, selectedMaze]);
+    }, [mazeId, importMode, router, selectMaze, selectedMaze, initialize, getMazeById]);
 
     // QR Command Detection Handler
     const handleMarkerDetected = useCallback((detectedCommand: Command) => {
