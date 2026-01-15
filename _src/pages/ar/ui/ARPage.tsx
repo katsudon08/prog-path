@@ -9,12 +9,13 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMazeStore, type MazeData } from '@/_src/entities/maze';
 import { useRobotStore, type RobotState } from '@/_src/entities/robot';
-import { type Command } from '@/_src/entities/command';
-import { useCommandStore } from '@/_src/features/command-management';
+import { type Command, type CommandType } from '@/_src/entities/command';
+import { useCommandStore, useCommandBuilder } from '@/_src/features/command-management';
 import { useSimulationStore } from '@/_src/features/maze-simulation/model/useSimulationStore';
 import { useSimulationRunner } from '@/_src/features/maze-simulation/model/useSimulationRunner';
 import { ARPlaygroundWidget } from '@/_src/widgets/ar';
 import { MazeView3DWidget } from '@/_src/widgets/maze-view-3d';
+import { useToast } from '@/_src/shared/ui/toast/useToast';
 
 export function ARPage(): React.ReactElement {
     const router = useRouter();
@@ -25,7 +26,9 @@ export function ARPage(): React.ReactElement {
     // Stores
     const { selectedMaze, selectMaze, initialize, getMazeById } = useMazeStore();
     const { robotState } = useRobotStore();
-    const { commands, addCommand } = useCommandStore();
+    const { commands } = useCommandStore();
+    const { addCommandToActivePath } = useCommandBuilder();
+    const { addToast } = useToast();
     const { status, currentPath } = useSimulationStore();
     const { run, pause, reset } = useSimulationRunner();
 
@@ -88,8 +91,10 @@ export function ARPage(): React.ReactElement {
         setDetectedCommandName(detectedCommand.type);
         setTimeout(() => setDetectedCommandName(null), 2000);
 
-        addCommand(detectedCommand, []);  // Add to root level
-    }, [status, addCommand]);
+        // useCommandBuilder経由でコマンドを追加（insertIndex/activePathを考慮）
+        const result = addCommandToActivePath(detectedCommand.type as CommandType);
+        addToast(result);
+    }, [status, addCommandToActivePath, addToast]);
 
     // Flatten commands for 3D widget
     const flattenedCommands: Command[] = React.useMemo(() => {

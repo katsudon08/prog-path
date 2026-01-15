@@ -54,11 +54,14 @@ export function useCommandBuilder() {
     const { 
         commands, 
         activePath,
-        addCommand: storeAddCommand, 
+        insertIndex,
+        addCommand: storeAddCommand,
+        insertCommandAt: storeInsertCommandAt,
         updateCommand: storeUpdateCommand, 
         removeCommand: storeRemoveCommand, 
         clearCommands: storeClearCommands,
-        setActivePath
+        setActivePath,
+        setInsertIndex
     } = useCommandStore()
 
     /** 最大ネスト深度 (これ以上のネストはUIやパフォーマンス面で問題が生じるため制限) */
@@ -72,14 +75,18 @@ export function useCommandBuilder() {
             return createErrorResult(`無効なコマンドタイプ: ${type}`)
         }
 
+        // ストアから最新の状態を取得（クロージャの古い値を回避）
+        const currentState = useCommandStore.getState()
+        const currentActivePath = currentState.activePath
+        const currentInsertIndex = currentState.insertIndex
+
         // ネスト深度制限チェック
-        if (activePath.length >= MAX_NEST_DEPTH) {
+        if (currentActivePath.length >= MAX_NEST_DEPTH) {
             return createErrorResult(`これ以上のネストはできません（最大${MAX_NEST_DEPTH}階層）`)
         }
 
-        // 現在の階層のコマンド数を取得して、新しいインデックスを特定
-        const targetCommands = getTargetCommands(commands, activePath)
-        const newIndex = targetCommands.length
+        // 現在の階層のコマンド数を取得
+        const targetCommands = getTargetCommands(currentState.commands, currentActivePath)
 
         // Commandオブジェクトを生成
         const newCommand = {
@@ -88,16 +95,24 @@ export function useCommandBuilder() {
             children: []
         }
 
-        storeAddCommand(newCommand, activePath)
+        // insertIndexが指定されている場合はその位置に挿入、それ以外は末尾に追加
+        let newIndex: number
+        if (currentInsertIndex !== null) {
+            storeInsertCommandAt(newCommand, currentActivePath, currentInsertIndex)
+            newIndex = currentInsertIndex
+        } else {
+            storeAddCommand(newCommand, currentActivePath)
+            newIndex = targetCommands.length
+        }
 
         // ループコマンドの場合は、その内部をアクティブパスに設定
         if (type === 'loop') {
-            setActivePath([...activePath, newIndex])
+            setActivePath([...currentActivePath, newIndex])
         }
 
         const label = COMMAND_LABELS[type]
         return createSuccessResult(`${label}コマンドを追加しました`)
-    }, [storeAddCommand, activePath, commands, setActivePath])
+    }, [storeAddCommand, storeInsertCommandAt, setActivePath])
 
     /**
      * QRコード文字列からコマンドをパースして追加
@@ -154,7 +169,9 @@ export function useCommandBuilder() {
     return {
         commands,
         activePath,
+        insertIndex,
         setActivePath,
+        setInsertIndex,
         addCommandToActivePath,
         addCommandFromQR,
         updateLoopCount,
