@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { GridEditor } from '@/_src/features/maze-edit/ui/GridEditor';
-import { TilePalette } from '@/_src/features/maze-edit/ui/TilePalette';
+import { TilePalette } from '@/_src/features/maze-edit';
 import { LayerNavigator } from '@/_src/features/maze-edit/ui/LayerNavigator';
 import { EditorControls } from '@/_src/features/maze-edit/ui/EditorControls';
 import { 
