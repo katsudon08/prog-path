@@ -55,7 +55,7 @@ export function EditorControls({
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-4 p-3 rounded-lg bg-space-dark/50 border border-neon-blue/30 ${className}`}
+      className={`inline-flex flex-wrap items-center gap-4 p-3 rounded-lg bg-space-dark/50 ${className}`}
     >
       {/* サイズ変更 */}
       <div className="flex items-center gap-2">

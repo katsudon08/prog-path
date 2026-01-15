@@ -10,9 +10,14 @@ import { GridEditor } from '@/_src/features/maze-edit/ui/GridEditor';
 import { TilePalette } from '@/_src/features/maze-edit/ui/TilePalette';
 import { LayerNavigator } from '@/_src/features/maze-edit/ui/LayerNavigator';
 import { EditorControls } from '@/_src/features/maze-edit/ui/EditorControls';
-import { useMazeStore, type TileType, type MazeData } from '@/_src/entities/maze';
+import { 
+  useMazeStore, 
+  validateTeleportPlacement,
+  type TileType, 
+  type MazeData 
+} from '@/_src/entities/maze';
 import { useTileSelection } from '@/_src/features/maze-edit/model/useTileSelection';
-import { createSuccessResult, createErrorResult } from '@/_src/shared/model';
+import { useToast } from '@/_src/shared/ui/toast';
 
 interface MazeEditorBoardWidgetProps {
   /** 編集対象の迷路（省略時はストアから取得） */
@@ -30,6 +35,7 @@ export function MazeEditorBoardWidget({
   const { selectedMaze, updateMaze } = useMazeStore();
   const maze = externalMaze ?? selectedMaze;
   const { selectedTile } = useTileSelection();
+  const { addToast } = useToast();
 
   const [currentLayerIndex, setCurrentLayerIndex] = useState(0);
 
@@ -48,7 +54,38 @@ export function MazeEditorBoardWidget({
   const handleTileClick = (row: number, col: number) => {
     if (!maze.layers) return;
 
-    const newLayers = maze.layers.map((layer, li) =>
+    // テレポートタイルのバリデーション
+    if (selectedTile === 'teleportUp' || selectedTile === 'teleportDown' || 
+        selectedTile === 'wall' || selectedTile === 'hole') {
+      const validationResult = validateTeleportPlacement(
+        maze.layers,
+        currentLayerIndex,
+        row,
+        col,
+        selectedTile
+      );
+      
+      if (!validationResult.success) {
+        addToast({
+          success: false,
+          type: 'error',
+          message: validationResult.message,
+        });
+        return;
+      }
+    }
+
+    // スタート/ゴールの自動置換（2個目以降は古いものをミチに変換）
+    let layersToUpdate = maze.layers;
+    if (selectedTile === 'start' || selectedTile === 'goal') {
+      layersToUpdate = maze.layers.map((layer) =>
+        layer.map((r) =>
+          r.map((c) => (c === selectedTile ? 'floor' : c))
+        )
+      );
+    }
+
+    const newLayers = layersToUpdate.map((layer, li) =>
       li === currentLayerIndex
         ? layer.map((r, ri) =>
             ri === row
@@ -106,69 +143,46 @@ export function MazeEditorBoardWidget({
 
   const canGoPrev = currentLayerIndex > 0;
   const canGoNext = currentLayerIndex < layerCount - 1;
-  const canAddLayer = layerCount < 5;
-  const canRemoveLayer = layerCount > 1;
 
   const handlePrevLayer = () => setCurrentLayerIndex((i) => Math.max(0, i - 1));
   const handleNextLayer = () => setCurrentLayerIndex((i) => Math.min(layerCount - 1, i + 1));
 
-  const handleAddLayer = () => {
-    if (!canAddLayer) return createErrorResult('最大5階層です');
-    handleLayerCountChange(layerCount + 1);
-    return createSuccessResult('階層を追加しました');
-  };
-
-  const handleRemoveLayer = () => {
-    if (!canRemoveLayer) return createErrorResult('最低1階層必要です');
-    handleLayerCountChange(layerCount - 1);
-    return createSuccessResult('階層を削除しました');
-  };
-
   return (
-    <div className={`flex flex-col gap-4 ${className}`}>
-      {/* コントロール */}
-      <EditorControls
-        size={size}
-        layerCount={layerCount}
-        onSizeChange={handleSizeChange}
-        onLayerCountChange={handleLayerCountChange}
-      />
+    <div className={`flex gap-6 h-full ${className}`}>
+      {/* 左側: MazePreview (GridEditor) - 1:1比率、上下中央 */}
+      <div className="flex-1 flex items-center justify-center">
+        {currentLayer && (
+          <GridEditor
+            grid={currentLayer}
+            onTileClick={handleTileClick}
+          />
+        )}
+      </div>
 
-      <div className="flex gap-4 flex-wrap lg:flex-nowrap">
-        {/* タイルパレット (props不要、内部でuseTileSelection使用) */}
-        <div className="shrink-0">
+      {/* 右側 - 1:1比率、上下中央 */}
+      <div className="flex-1 flex flex-col justify-center gap-4">
+        {/* 右上: コントロール（一段目）+ 階層切り替え（二段目） */}
+        <div className="flex flex-col gap-3">
+          <EditorControls
+            size={size}
+            layerCount={layerCount}
+            onSizeChange={handleSizeChange}
+            onLayerCountChange={handleLayerCountChange}
+          />
+          <LayerNavigator
+            currentLayer={currentLayerIndex}
+            totalLayers={layerCount}
+            canGoPrev={canGoPrev}
+            canGoNext={canGoNext}
+            onPrevLayer={handlePrevLayer}
+            onNextLayer={handleNextLayer}
+          />
+        </div>
+
+        {/* 右下: タイルパレット */}
+        <div>
           <TilePalette />
         </div>
-
-        {/* グリッドエディター */}
-        <div className="flex-1 flex justify-center">
-          {currentLayer && (
-            <GridEditor
-              grid={currentLayer}
-              onTileClick={handleTileClick}
-              maxWidth={500}
-              maxHeight={500}
-            />
-          )}
-        </div>
-
-        {/* レイヤーナビゲーター */}
-        {layerCount > 1 && (
-          <div className="shrink-0">
-            <LayerNavigator
-              currentLayer={currentLayerIndex}
-              totalLayers={layerCount}
-              canAddLayer={canAddLayer}
-              canRemoveLayer={canRemoveLayer}
-              canGoPrev={canGoPrev}
-              canGoNext={canGoNext}
-              onPrevLayer={handlePrevLayer}
-              onNextLayer={handleNextLayer}
-              onAddLayer={handleAddLayer}
-              onRemoveLayer={handleRemoveLayer}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

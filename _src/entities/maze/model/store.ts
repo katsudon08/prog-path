@@ -16,6 +16,7 @@ interface MazeStore {
     selectMaze: (maze: MazeData | null) => void
     updateMaze: (id: string, updates: Partial<MazeData>) => void
     addMaze: (maze: MazeData) => void
+    addAndSelectMaze: (maze: MazeData) => void
     deleteMaze: (id: string) => void
 
     // Utility
@@ -44,6 +45,11 @@ export const useMazeStore = create<MazeStore>((set, get) => ({
 
     addMaze: (maze) => set((state) => ({
         mazes: [...state.mazes, maze]
+    })),
+
+    addAndSelectMaze: (maze) => set((state) => ({
+        mazes: [...state.mazes, maze],
+        selectedMaze: maze
     })),
 
     deleteMaze: (id) => set((state) => ({

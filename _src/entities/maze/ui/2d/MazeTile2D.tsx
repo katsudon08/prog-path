@@ -40,7 +40,7 @@ export function MazeTile2D({
             type="button"
             onClick={onClick}
             className={`
-                flex items-center gap-2 rounded border-2 px-2 py-1
+                flex flex-col items-center justify-center gap-1 rounded border-2
                 transition-all origin-center hover:scale-[1.05]
                 ${isSelected
                     ? "border-neon-cyan bg-neon-cyan/10"
@@ -48,16 +48,16 @@ export function MazeTile2D({
                 }
                 ${className}
             `}
-            style={{ minHeight: size }}
+            style={{ width: size + 16, height: size + 16 }}
         >
             <div
                 className={`rounded shrink-0 flex items-center justify-center ${colorClass}`}
-                style={{ width: size * 0.75, height: size * 0.75 }}
+                style={{ width: size, height: size }}
             >
                 {icon}
             </div>
             {label && (
-                <span className="text-foreground text-sm">{label}</span>
+                <span className="text-foreground text-xs">{label}</span>
             )}
         </button>
     )

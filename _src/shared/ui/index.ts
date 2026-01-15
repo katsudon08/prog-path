@@ -15,3 +15,4 @@ export {
   DialogTrigger,
 } from './dialog';
 export { Input } from './input';
+export { FloatingActionButton, type FloatingAction } from './FloatingActionButton';

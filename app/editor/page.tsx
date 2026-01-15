@@ -1,9 +1,9 @@
 "use client"
 
 import { Suspense } from "react"
-import { MazeEditorWidget } from "@domains/maze"
+import { EditorPage } from "@/_src/pages/editor"
 
-export default function EditorPage() {
+export default function EditorPageWrapper() {
     return (
         <Suspense
             fallback={
@@ -12,7 +12,7 @@ export default function EditorPage() {
                 </div>
             }
         >
-            <MazeEditorWidget />
+            <EditorPage />
         </Suspense>
     )
 }
