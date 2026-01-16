@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { 
     ArrowUp, 
     CornerUpRight, 
@@ -10,6 +10,7 @@ import {
 import type { CommandType, Command } from '@/_src/entities/command'
 import { CommandCard } from '@/_src/entities/command'
 import { useCommandBuilder } from '../model/useCommandBuilder'
+import { useToast } from '@/_src/shared/ui/toast/useToast'
 
 interface CommandStackProps {
     /** カスタムスタイルクラス */
@@ -240,6 +241,7 @@ export function CommandStack({
     executionPath = []
 }: CommandStackProps) {
     const executingRef = useRef<HTMLDivElement>(null)
+    const { addToast } = useToast()
     const { 
         commands, 
         activePath,
@@ -252,6 +254,18 @@ export function CommandStack({
         COMMAND_LABELS 
     } = useCommandBuilder()
 
+    // コマンド削除ハンドラー（トースト通知付き）
+    const handleRemoveCommand = useCallback((path: number[]) => {
+        removeCommand(path)
+        addToast({ success: true, type: 'info', message: 'コマンドを削除しました' })
+    }, [removeCommand, addToast])
+
+    // 全削除ハンドラー（トースト通知付き）
+    const handleClearCommands = useCallback(() => {
+        clearCommands()
+        addToast({ success: true, type: 'info', message: 'すべてのコマンドを削除しました' })
+    }, [clearCommands, addToast])
+
     // 実行中のコマンドへオートスクロール
     useEffect(() => {
         if (executionPath.length > 0 && executingRef.current) {
@@ -259,42 +273,20 @@ export function CommandStack({
         }
     }, [executionPath])
 
-    if (commands.length === 0) {
-        return (
-            <div className={`text-center text-muted-foreground py-8 ${className}`}>
-                <p className="text-sm">コマンドがありません</p>
-                <p className="text-xs mt-1">QRコードをスキャンしてコマンドを追加</p>
-            </div>
-        )
-    }
-
     const isRootActive = activePath.length === 0
 
     return (
-        <div className={`space-y-2 ${className}`}>
-            {/* ヘッダー */}
-            <div className="flex items-center justify-between">
+        <div className={`flex flex-col h-full ${className}`}>
+            {/* ヘッダー（固定） */}
+            <div className="flex items-center justify-between pb-2 flex-shrink-0">
                 <h3 className="text-sm font-semibold text-foreground">
                     コマンドスタック
                 </h3>
                 <div className="flex gap-2">
                     <button
                         type="button"
-                        onClick={() => setActivePath([])}
-                        disabled={disabled}
-                        className={`text-xs px-2 py-0.5 rounded border ${
-                            isRootActive 
-                                ? "bg-neon-cyan/20 border-neon-cyan text-neon-cyan" 
-                                : "border-transparent text-muted-foreground hover:bg-white/5"
-                        }`}
-                    >
-                        Topへ追加
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() => clearCommands()}
-                        disabled={disabled}
+                        onClick={handleClearCommands}
+                        disabled={disabled || commands.length === 0}
                         className="text-xs text-neon-red hover:text-neon-red/80 disabled:opacity-50"
                     >
                         すべて削除
@@ -302,22 +294,33 @@ export function CommandStack({
                 </div>
             </div>
             
-            {/* コマンド一覧（再帰） */}
-            <RecursiveCommandList 
-                commands={commands}
-                parentPath={[]}
-                activePath={activePath}
-                executionPath={executionPath}
-                insertIndex={insertIndex}
-                onSelectPath={setActivePath}
-                onSelectInsertPosition={setInsertIndex}
-                onUpdateLoop={updateLoopCount}
-                onRemove={removeCommand}
-                labels={COMMAND_LABELS}
-                disabled={disabled}
-                showRemoveButton={showRemoveButton}
-                executingRef={executingRef}
-            />
+            {/* コンテンツ（スクロール可能） */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+                {/* コマンドが空の場合のメッセージ */}
+                {commands.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                        <p className="text-sm">コマンドがありません</p>
+                        <p className="text-xs mt-1">QRコードをスキャンしてコマンドを追加</p>
+                    </div>
+                ) : (
+                    /* コマンド一覧（再帰） */
+                    <RecursiveCommandList 
+                        commands={commands}
+                        parentPath={[]}
+                        activePath={activePath}
+                        executionPath={executionPath}
+                        insertIndex={insertIndex}
+                        onSelectPath={setActivePath}
+                        onSelectInsertPosition={setInsertIndex}
+                        onUpdateLoop={updateLoopCount}
+                        onRemove={handleRemoveCommand}
+                        labels={COMMAND_LABELS}
+                        disabled={disabled}
+                        showRemoveButton={showRemoveButton}
+                        executingRef={executingRef}
+                    />
+                )}
+            </div>
         </div>
     )
 }

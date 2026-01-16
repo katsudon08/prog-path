@@ -11,7 +11,7 @@ import { CommandStack } from '@/_src/features/command-management/ui/CommandStack
 import { useSimulationStore } from '@/_src/features/maze-simulation/model/useSimulationStore';
 import { useSimulationRunner } from '@/_src/features/maze-simulation/model/useSimulationRunner';
 import { useMazeStore } from '@/_src/entities/maze';
-import { FloatingActionButton, type FloatingAction, Navbar } from '@/_src/shared/ui';
+import { FloatingActionButton, type FloatingAction, Navbar, ToastContainer } from '@/_src/shared/ui';
 
 interface ARPlaygroundWidgetProps {
   /** 3Dビューを描画するコンポーネント/要素 */
@@ -62,13 +62,13 @@ export function ARPlaygroundWidget({
   ], [isRunning, handleExecuteToggle, handleReset]);
 
   return (
-    <div className={`flex flex-col min-h-screen bg-space-darker ${className}`}>
+    <div className={`flex flex-col h-screen bg-space-darker ${className}`}>
       {/* Navbar */}
       <Navbar />
 
       {/* メインコンテンツ */}
-      <div className="flex flex-1 overflow-hidden p-4 gap-4 pt-20">
-        {/* 3Dビュー */}
+      <div className="flex flex-1 min-h-0 p-6 gap-6 pt-24">
+        {/* 3Dビュー（左側・固定高さ） */}
         <div className="flex-1 relative rounded-lg overflow-hidden">
           {view3D}
 
@@ -97,8 +97,8 @@ export function ARPlaygroundWidget({
           )}
         </div>
 
-        {/* サイドパネル（コマンドスタック） */}
-        <aside className="w-72 bg-space-dark/50 overflow-y-auto p-4 rounded-lg">
+        {/* サイドパネル（コマンドスタック・右側・固定高さ） */}
+        <aside className="w-72 bg-space-dark/50 rounded-lg p-4">
           <CommandStack
             disabled={isRunning}
             executionPath={currentPath}
@@ -109,6 +109,9 @@ export function ARPlaygroundWidget({
 
       {/* FAB: リボルバー型メニュー */}
       <FloatingActionButton actions={fabActions} />
+
+      {/* トースト通知 */}
+      <ToastContainer />
     </div>
   );
 }
