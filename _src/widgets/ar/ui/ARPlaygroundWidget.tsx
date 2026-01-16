@@ -7,11 +7,11 @@
 
 import React, { useMemo } from 'react';
 import { Play, Square, RotateCcw } from 'lucide-react';
-import { CommandStack } from '@/_src/features/command-management/ui/CommandStack';
+import { CommandStack, useCommandStore } from '@/_src/features/command-management';
 import { useSimulationStore } from '@/_src/features/maze-simulation/model/useSimulationStore';
 import { useSimulationRunner } from '@/_src/features/maze-simulation/model/useSimulationRunner';
 import { useMazeStore } from '@/_src/entities/maze';
-import { FloatingActionButton, type FloatingAction, Navbar, ToastContainer } from '@/_src/shared/ui';
+import { FloatingActionButton, type FloatingAction, Navbar, ToastContainer, useToast } from '@/_src/shared/ui';
 
 interface ARPlaygroundWidgetProps {
   /** 3Dビューを描画するコンポーネント/要素 */
@@ -29,6 +29,8 @@ export function ARPlaygroundWidget({
   const { status, currentPath, error } = useSimulationStore();
   const { run, pause, reset } = useSimulationRunner();
   const { selectedMaze } = useMazeStore();
+  const commands = useCommandStore((state) => state.commands);
+  const { addToast } = useToast();
 
   const isRunning = status === 'running';
   const isFinished = status === 'finished' || status === 'error';
@@ -37,6 +39,11 @@ export function ARPlaygroundWidget({
     if (isRunning) {
       pause();
     } else {
+      // コマンドが空のとき実行できない
+      if (commands.length === 0) {
+        addToast({ success: false, type: 'error', message: 'コマンドがありません。QRコードをスキャンしてコマンドを追加してください' });
+        return;
+      }
       run();
     }
   };

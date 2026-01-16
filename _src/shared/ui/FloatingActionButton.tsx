@@ -26,10 +26,10 @@ interface FloatingActionButtonProps {
 }
 
 const variantStyles = {
-  default: 'bg-neon-blue hover:bg-neon-blue/90',
-  success: 'bg-neon-green hover:bg-neon-green/90 text-space-darker',
-  danger: 'bg-red-500 hover:bg-red-600',
-  info: 'bg-neon-cyan hover:bg-neon-cyan/90 text-space-darker',
+  default: 'bg-neon-blue/80 backdrop-blur-sm hover:bg-neon-blue hover:shadow-[0_0_20px_rgba(59,130,246,0.6)] hover:backdrop-blur-md',
+  success: 'bg-neon-green/80 backdrop-blur-sm text-space-darker hover:bg-neon-green hover:shadow-[0_0_20px_rgba(74,222,128,0.6)] hover:backdrop-blur-md',
+  danger: 'bg-red-500/80 backdrop-blur-sm hover:bg-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:backdrop-blur-md',
+  info: 'bg-neon-cyan/80 backdrop-blur-sm text-space-darker hover:bg-neon-cyan hover:shadow-[0_0_20px_rgba(34,211,238,0.6)] hover:backdrop-blur-md',
 }
 
 /**
