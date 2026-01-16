@@ -78,30 +78,6 @@ export function ARPlaygroundWidget({
         {/* 3Dビュー（左側・固定高さ） */}
         <div className="flex-1 relative rounded-lg overflow-hidden">
           {view3D}
-
-          {/* エラー/完了オーバーレイ */}
-          {isFinished && (
-            <div className="absolute inset-0 flex items-center justify-center bg-space-dark/80 backdrop-blur-sm">
-              <div className={`text-center p-6 rounded-xl border ${
-                status === 'finished'
-                  ? 'border-neon-green/50 bg-neon-green/10'
-                  : 'border-neon-red/50 bg-neon-red/10'
-              }`}>
-                <p className={`text-lg font-bold ${
-                  status === 'finished' ? 'text-neon-green' : 'text-neon-red'
-                }`}>
-                  {status === 'finished' ? 'ゴール到達！🎉' : error || 'エラー'}
-                </p>
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="mt-4 px-4 py-2 rounded-lg bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30"
-                >
-                  リセット
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* サイドパネル（コマンドスタック・右側・固定高さ） */}

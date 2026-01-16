@@ -255,17 +255,22 @@ export function RobotModel({
         const moveSpeed = 0.8;
         const distance = modelRef.current.position.distanceTo(targetPosition);
 
-        if (distance > 0.01) {
+        // animationStateがidleまたは距離が大きい場合（リセット時など）は瞬間移動
+        if (animationState === 'idle' || distance > tileSize * 1.5) {
+            modelRef.current.position.copy(targetPosition);
+            modelRef.current.quaternion.copy(targetQuaternion);
+        } else if (distance > 0.01) {
             const maxMove = moveSpeed * delta;
             const moveAmount = Math.min(distance, maxMove);
             const direction = new THREE.Vector3()
                 .subVectors(targetPosition, modelRef.current.position)
                 .normalize();
             modelRef.current.position.add(direction.multiplyScalar(moveAmount));
+            modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
         } else {
             modelRef.current.position.copy(targetPosition);
+            modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
         }
-        modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
     });
 
     if (!isVisible) {

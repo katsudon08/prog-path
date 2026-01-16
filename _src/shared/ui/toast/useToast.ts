@@ -6,6 +6,7 @@ import type { ActionResult } from '../../model'
  */
 interface ToastItem extends ActionResult {
     id: string
+    isExiting: boolean
 }
 
 /**
@@ -18,6 +19,9 @@ interface ToastState {
     clearToasts: () => void
 }
 
+const TOAST_DURATION = 1500 // 表示時間
+const FADE_OUT_DURATION = 300 // フェードアウト時間
+
 /**
  * トースト通知ストア
  */
@@ -26,24 +30,42 @@ export const useToast = create<ToastState>((set) => ({
 
     addToast: (result) => {
         const id = `toast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        const toast: ToastItem = { ...result, id }
+        const toast: ToastItem = { ...result, id, isExiting: false }
 
         set((state) => ({
             toasts: [...state.toasts, toast]
         }))
 
-        // 自動削除（5秒後）
+        // フェードアウト開始
+        setTimeout(() => {
+            set((state) => ({
+                toasts: state.toasts.map((t) => 
+                    t.id === id ? { ...t, isExiting: true } : t
+                )
+            }))
+        }, TOAST_DURATION)
+
+        // 完全に削除
         setTimeout(() => {
             set((state) => ({
                 toasts: state.toasts.filter((t) => t.id !== id)
             }))
-        }, 5000)
+        }, TOAST_DURATION + FADE_OUT_DURATION)
     },
 
     removeToast: (id) => {
+        // まずフェードアウト状態にする
         set((state) => ({
-            toasts: state.toasts.filter((t) => t.id !== id)
+            toasts: state.toasts.map((t) => 
+                t.id === id ? { ...t, isExiting: true } : t
+            )
         }))
+        // フェードアウト後に削除
+        setTimeout(() => {
+            set((state) => ({
+                toasts: state.toasts.filter((t) => t.id !== id)
+            }))
+        }, FADE_OUT_DURATION)
     },
 
     clearToasts: () => {

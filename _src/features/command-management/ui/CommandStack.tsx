@@ -256,9 +256,21 @@ export function CommandStack({
 
     // コマンド削除ハンドラー（トースト通知付き）
     const handleRemoveCommand = useCallback((path: number[]) => {
+        // 削除前にコマンド名を取得
+        const getCommandByPath = (cmds: Command[], p: number[]): Command | null => {
+            if (p.length === 0) return null
+            const [head, ...rest] = p
+            const cmd = cmds[head]
+            if (!cmd) return null
+            if (rest.length === 0) return cmd
+            return getCommandByPath(cmd.children || [], rest)
+        }
+        const command = getCommandByPath(commands, path)
+        const label = command ? COMMAND_LABELS[command.type] : 'コマンド'
+        
         removeCommand(path)
-        addToast({ success: true, type: 'info', message: 'コマンドを削除しました' })
-    }, [removeCommand, addToast])
+        addToast({ success: true, type: 'info', message: `「${label}」を削除しました` })
+    }, [commands, removeCommand, addToast, COMMAND_LABELS])
 
     // 全削除ハンドラー（トースト通知付き）
     const handleClearCommands = useCallback(() => {
@@ -295,7 +307,7 @@ export function CommandStack({
             </div>
             
             {/* コンテンツ（スクロール可能） */}
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0 pt-2">
                 {/* コマンドが空の場合のメッセージ */}
                 {commands.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">

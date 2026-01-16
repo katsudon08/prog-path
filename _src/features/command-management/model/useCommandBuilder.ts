@@ -111,7 +111,7 @@ export function useCommandBuilder() {
         }
 
         const label = COMMAND_LABELS[type]
-        return createSuccessResult(`${label}コマンドを追加しました`)
+        return createSuccessResult(`「${label}」を追加しました`)
     }, [storeAddCommand, storeInsertCommandAt, setActivePath])
 
     /**

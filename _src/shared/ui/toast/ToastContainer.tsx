@@ -15,13 +15,14 @@ export function ToastContainer() {
 
     return (
         <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
-            {toasts.map((toast) => (
+        {toasts.map((toast) => (
                 <ToastItem
                     key={toast.id}
                     id={toast.id}
                     type={toast.type}
                     message={toast.message}
                     errors={toast.errors}
+                    isExiting={toast.isExiting}
                     onClose={() => removeToast(toast.id)}
                 />
             ))}
@@ -34,10 +35,11 @@ interface ToastItemProps {
     type: ActionResultType
     message: string
     errors?: string[]
+    isExiting: boolean
     onClose: () => void
 }
 
-function ToastItem({ type, message, errors, onClose }: ToastItemProps) {
+function ToastItem({ type, message, errors, isExiting, onClose }: ToastItemProps) {
     const styles = getToastStyles(type)
     const Icon = styles.icon
 
@@ -46,9 +48,14 @@ function ToastItem({ type, message, errors, onClose }: ToastItemProps) {
             className={`
                 flex items-start gap-3 p-4 rounded-lg border-2 shadow-lg
                 bg-space-dark backdrop-blur-sm
-                animate-in slide-in-from-right-5 fade-in duration-300
                 ${styles.borderColor}
             `}
+            style={{
+                transition: 'opacity 300ms ease-out, transform 300ms ease-out',
+                opacity: isExiting ? 0 : 1,
+                transform: isExiting ? 'translateX(1rem)' : 'translateX(0)',
+                animation: isExiting ? 'none' : 'fadeIn 300ms ease-out, slideInFromRight 300ms ease-out'
+            }}
         >
             <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${styles.iconColor}`} />
             <div className="flex-1 min-w-0">

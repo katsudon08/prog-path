@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from 'react'
 import { useRobotStore, moveForward, turnRight, turnLeft } from '@/_src/entities/robot'
-import { useMazeStore } from '@/_src/entities/maze'
+import { useMazeStore, findStartPosition } from '@/_src/entities/maze'
 import { useCommandStore } from '../../command-management'
 import { useSimulationStore } from './useSimulationStore'
 import { isWalkable } from '../lib/collision'
@@ -293,19 +293,32 @@ export function useSimulationRunner() {
     }, [setStatus])
 
     /**
-     * リセット（迷路データも復元）
+     * リセット（迷路データも復元、ロボットをスタート位置に瞬間移動）
      */
     const reset = useCallback(() => {
         pause()
         
         // 迷路データを復元
         const simStore = useSimulationStore.getState()
-        if (simStore.initialMazeData) {
-            selectMaze(structuredClone(simStore.initialMazeData))
+        const mazeToRestore = simStore.initialMazeData
+        if (mazeToRestore) {
+            selectMaze(structuredClone(mazeToRestore))
+            
+            // ロボットをスタート位置に瞬間移動（updateRobotStateで完全リセット）
+            const startPos = findStartPosition(mazeToRestore)
+            if (startPos) {
+                updateRobotState({
+                    x: startPos.x,
+                    y: startPos.y,
+                    layer: startPos.layer,
+                    direction: [0, 1], // デフォルトの向き（下向き）
+                    hasKey: false
+                })
+            }
         }
         
         resetSimulation()
-    }, [pause, selectMaze, resetSimulation])
+    }, [pause, selectMaze, resetSimulation, updateRobotState])
 
     return {
         run,
