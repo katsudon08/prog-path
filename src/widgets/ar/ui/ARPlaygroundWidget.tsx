@@ -12,6 +12,8 @@ import { useSimulationStore } from '@/src/features/maze-simulation/model/useSimu
 import { useSimulationRunner } from '@/src/features/maze-simulation/model/useSimulationRunner';
 import { useMazeStore } from '@/src/entities/maze';
 import { FloatingActionButton, type FloatingAction, Navbar, ToastContainer, useToast } from '@/src/shared/ui';
+import { ARMinimap } from './ARMinimap';
+import { useRobotStore } from '@/src/entities/robot';
 
 interface ARPlaygroundWidgetProps {
   /** 3Dビューを描画するコンポーネント/要素 */
@@ -26,9 +28,10 @@ export function ARPlaygroundWidget({
   mazeName,
   className = '',
 }: ARPlaygroundWidgetProps): React.ReactElement {
-  const { status, currentPath, error } = useSimulationStore();
+  const { status, currentPath, forwardStepCount } = useSimulationStore();
   const { run, pause, reset } = useSimulationRunner();
   const { selectedMaze } = useMazeStore();
+  const { robotState, animationState } = useRobotStore();
   const commands = useCommandStore((state) => state.commands);
   const { addToast } = useToast();
 
@@ -77,6 +80,33 @@ export function ARPlaygroundWidget({
         {/* 3Dビュー（左側・カメラ領域） */}
         <div className="relative rounded-lg overflow-hidden border-2 border-neon-cyan shadow-lg shadow-neon-cyan/30">
           {view3D}
+          
+          {/* コマンドカウント表示 (左上) */}
+          <div className="absolute top-4 left-4 z-10 pointer-events-none">
+            <div className="bg-space-darker/80 backdrop-blur-md border border-neon-cyan/50 rounded-lg px-4 py-2 shadow-lg shadow-neon-cyan/20">
+              <span className="text-gray-300 text-sm font-bold mr-2">前に進む:</span>
+              <span className="text-neon-cyan text-xl font-black font-mono">{forwardStepCount}</span>
+              <span className="text-gray-400 text-xs ml-1">回</span>
+            </div>
+          </div>
+
+          {/* 迷路名 (中央上) */}
+          {mazeName && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+              <div className="bg-space-darker/80 backdrop-blur-md border border-neon-cyan/50 rounded-lg px-6 py-2 shadow-lg shadow-neon-cyan/20">
+                <span className="text-neon-cyan font-bold text-lg tracking-wider drop-shadow-md">
+                  {mazeName}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ミニマップ (右上) */}
+          {selectedMaze && (
+            <div className="absolute top-4 right-4 z-10 pointer-events-none">
+               <ARMinimap maze={selectedMaze} robotState={robotState} animationState={animationState} />
+            </div>
+          )}
         </div>
 
         {/* サイドパネル（コマンドスタック・右側） */}

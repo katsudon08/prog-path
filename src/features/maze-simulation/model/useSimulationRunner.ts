@@ -425,6 +425,9 @@ export function useSimulationRunner() {
     const reset = useCallback(() => {
         pause()
 
+        // アニメーション状態をリセット（即座に反映させるため）
+        setAnimationState('idle')
+
         // 迷路データを復元
         const simStore = useSimulationStore.getState()
         const mazeToRestore = simStore.initialMazeData
@@ -445,7 +448,7 @@ export function useSimulationRunner() {
         }
 
         resetSimulation()
-    }, [pause, selectMaze, resetSimulation, updateRobotState])
+    }, [pause, selectMaze, resetSimulation, updateRobotState, setAnimationState])
 
     return {
         run,

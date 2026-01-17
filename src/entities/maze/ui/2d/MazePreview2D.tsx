@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import type { TileType } from "../../model/types"
 import { getTileColor } from "../../lib/tile-colors"
 import { getTileIcon } from "../../lib/tile-icons"
@@ -34,6 +34,13 @@ export function MazePreview2D({
     // 複数階層がある場合は layers を使用、なければ grid を配列化
     const allLayers = layers || (grid ? [grid] : [])
     const [currentLayerIndex, setCurrentLayerIndex] = useState(layerIndex ?? 0)
+
+    // PropのlayerIndexが変更されたら追従する (Controlled behavior)
+    useEffect(() => {
+        if (typeof layerIndex === 'number') {
+            setCurrentLayerIndex(layerIndex)
+        }
+    }, [layerIndex])
 
     // 表示する階層を決定
     const displayLayer = allLayers[currentLayerIndex] || []
