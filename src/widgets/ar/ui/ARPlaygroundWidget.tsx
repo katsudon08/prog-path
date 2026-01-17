@@ -36,16 +36,14 @@ export function ARPlaygroundWidget({
   const isFinished = status === 'finished' || status === 'error';
 
   const handleExecuteToggle = () => {
-    if (isRunning) {
-      pause();
-    } else {
-      // コマンドが空のとき実行できない
-      if (commands.length === 0) {
-        addToast({ success: false, type: 'error', message: 'コマンドがありません。QRコードをスキャンしてコマンドを追加してください' });
-        return;
-      }
-      run();
+    if (isRunning) return;
+
+    // コマンドが空のとき実行できない
+    if (commands.length === 0) {
+      addToast({ success: false, type: 'error', message: 'コマンドがありません。QRコードをスキャンしてコマンドを追加してください' });
+      return;
     }
+    run();
   };
 
   const handleReset = () => {
@@ -55,10 +53,11 @@ export function ARPlaygroundWidget({
   // FABアクション（リボルバー型メニュー用）
   const fabActions: FloatingAction[] = useMemo(() => [
     {
-      icon: isRunning ? <Square className="w-5 h-5" /> : <Play className="w-5 h-5" />,
-      label: isRunning ? '停止' : '実行',
+      icon: <Play className="w-5 h-5" />,
+      label: '実行',
       variant: 'success' as const,
       onClick: handleExecuteToggle,
+      disabled: isRunning,
     },
     {
       icon: <RotateCcw className="w-5 h-5" />,

@@ -11,7 +11,10 @@ export interface FloatingAction {
   /** クリック時のハンドラー */
   onClick: () => void
   /** ボタンのスタイルバリアント */
+  /** ボタンのスタイルバリアント */
   variant?: 'default' | 'success' | 'danger' | 'info'
+  /** 無効化状態 */
+  disabled?: boolean
 }
 
 interface FloatingActionButtonProps {
@@ -53,6 +56,7 @@ export function FloatingActionButton({
   }
 
   const handleActionClick = (action: FloatingAction) => {
+    if (action.disabled) return
     action.onClick()
     setIsOpen(false)
   }
@@ -86,18 +90,20 @@ export function FloatingActionButton({
       {actions.map((action, index) => {
         const pos = getActionPosition(index, actions.length)
         const variant = action.variant || 'default'
+        const isDisabled = action.disabled || false
 
         return (
           <button
             key={action.label}
             onClick={() => handleActionClick(action)}
+            disabled={isDisabled}
             className={`
               absolute bottom-0 right-0 w-12 h-12 rounded-full
               flex items-center justify-center shadow-lg
               transition-all duration-300 ease-out
               ${variantStyles[variant]}
               ${isOpen 
-                ? 'opacity-100 scale-100' 
+                ? (isDisabled ? 'opacity-50 scale-100 grayscale cursor-not-allowed' : 'opacity-100 scale-100')
                 : 'opacity-0 scale-0 pointer-events-none'
               }
             `}

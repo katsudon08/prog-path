@@ -6,7 +6,7 @@ import { Preload, OrbitControls, Text3D, Center } from "@react-three/drei";
 import * as THREE from "three";
 
 import type { MazeData, TileType } from "@/src/entities/maze";
-import type { RobotState } from "@/src/entities/robot";
+import type { RobotState, RobotAnimationState } from "@/src/entities/robot";
 import type { Command } from "@/src/entities/command";
 import { isMazeQRCode, decodeMazeFromQR, useCameraQRScanner } from "@/src/shared/lib";
 import { MazeMap3D } from "@/src/entities/maze";
@@ -24,6 +24,7 @@ const qrCodeToCommand: { [key: string]: Command } = {
 interface MazeView3DWidgetProps {
     maze: MazeData;
     robotState: RobotState;
+    animationState: RobotAnimationState;
     onMarkerDetected: (command: Command) => void;
     detectedCommandName: string | null;
     currentCommandIndex: number;
@@ -39,6 +40,7 @@ interface MazeView3DWidgetProps {
 export function MazeView3DWidget({
     maze,
     robotState,
+    animationState,
     onMarkerDetected,
     detectedCommandName,
     currentCommandIndex,
@@ -187,7 +189,6 @@ export function MazeView3DWidget({
                                             bevelSegments={5}
                                         >
                                             {layerIndex + 1}F
-                                            <meshStandardMaterial color="#E0FFFF" emissive="#E0FFFF" emissiveIntensity={2.0} toneMapped={false} />
                                             <meshStandardMaterial color="#87CEEB" emissive="#87CEEB" emissiveIntensity={1.5} toneMapped={false} />
                                         </Text3D>
                                     </Center>
@@ -199,6 +200,11 @@ export function MazeView3DWidget({
                             robotState={robotState}
                             mazeSize={maze.size}
                             currentTileType={robotTile}
+                            animationState={animationState}
+                            isTeleporting={animationState === 'teleporting'}
+                            isFalling={animationState === 'falling'}
+                            isScanning={animationState === 'scanning'}
+                            isFilling={animationState === 'filling'}
                         />
                         <Preload all />
                     </Suspense>

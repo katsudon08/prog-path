@@ -41,3 +41,4 @@ export type RobotAnimationState =
     | "teleporting"
     | "scanning"
     | "collecting"
+    | "filling"

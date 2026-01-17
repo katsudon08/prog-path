@@ -3,6 +3,17 @@
 import { create } from 'zustand'
 import type { MazeData } from '@/src/entities/maze'
 
+export type ResultType = 'success' | 'failure'
+export type ResultReason = 'goal_success' | 'goal_missing_keys' | 'hole_fall' | 'wall_collision' | 'out_of_bounds' | 'commands_exhausted'
+
+export interface ResultDetails {
+    type: ResultType
+    reason: ResultReason
+    message?: string
+    stepCount?: number
+    remainingKeys?: number
+}
+
 export type SimulationStatus = 'idle' | 'running' | 'paused' | 'finished' | 'error'
 
 interface SimulationState {
@@ -18,6 +29,10 @@ interface SimulationState {
     loopCounters: Record<string, number>
     /** 実行開始時の迷路スナップショット（復元用） */
     initialMazeData: MazeData | null
+    /** 「前にすすむ」コマンド実行回数 */
+    forwardStepCount: number
+    /** 実行結果詳細 */
+    resultDetails: ResultDetails | null
 
     // Actions
     setStatus: (status: SimulationStatus) => void
@@ -29,6 +44,9 @@ interface SimulationState {
     resetLoopCounters: () => void
     setInitialMazeData: (maze: MazeData | null) => void
     resetSimulation: () => void
+    incrementForwardStepCount: () => void
+    resetForwardStepCount: () => void
+    setResultDetails: (details: ResultDetails | null) => void
 }
 
 /**
@@ -41,6 +59,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
     error: null,
     loopCounters: {},
     initialMazeData: null,
+    forwardStepCount: 0,
+    resultDetails: null,
 
     setStatus: (status) => set({ status }),
     setCurrentPath: (path) => set({ currentPath: path }),
@@ -68,7 +88,13 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         currentPath: [],
         error: null,
         loopCounters: {},
-        initialMazeData: null
-    })
+        initialMazeData: null,
+        forwardStepCount: 0,
+        resultDetails: null
+    }),
+
+    incrementForwardStepCount: () => set((state) => ({ forwardStepCount: state.forwardStepCount + 1 })),
+    resetForwardStepCount: () => set({ forwardStepCount: 0 }),
+    setResultDetails: (details) => set({ resultDetails: details })
 }))
 

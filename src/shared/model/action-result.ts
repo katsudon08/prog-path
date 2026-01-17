@@ -16,28 +16,35 @@ export interface ActionResult {
     message: string
     /** 詳細なエラーリスト（オプション） */
     errors?: string[]
+    /** 待機時間（ミリ秒、オプション） */
+    wait?: number
 }
 
 /**
  * 成功結果を作成するヘルパー
  */
-export function createSuccessResult(message: string): ActionResult {
+export function createSuccessResult(message: string, wait?: number): ActionResult {
     return {
         success: true,
         type: 'success',
         message,
+        wait,
     }
 }
 
 /**
  * エラー結果を作成するヘルパー
  */
-export function createErrorResult(message: string, errors?: string[]): ActionResult {
+/**
+ * エラー結果を作成するヘルパー
+ */
+export function createErrorResult(message: string, errors?: string[], wait?: number): ActionResult {
     return {
         success: false,
         type: 'error',
         message,
         errors,
+        wait,
     }
 }
 
