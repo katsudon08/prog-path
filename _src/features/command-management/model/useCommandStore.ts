@@ -36,10 +36,22 @@ interface CommandStackState {
     activePath: number[]
     /** 挿入位置インデックス（null = 末尾に追加） */
     insertIndex: number | null
+    /** 折りたたまれているループのパス（キー: パス文字列） */
+    collapsedLoops: Set<string>
+    /** ループ構築中フラグ */
+    isBuildingLoop: boolean
+    /** 構築中のループのパス */
+    buildingLoopPath: number[] | null
     /** 操作対象パスを設定 */
     setActivePath: (path: number[]) => void
     /** 挿入位置を設定 */
     setInsertIndex: (index: number | null) => void
+    /** ループの開閉状態をトグル */
+    toggleLoopCollapsed: (path: number[]) => void
+    /** ループ構築を開始 */
+    startLoopBuilding: (loopPath: number[]) => void
+    /** ループ構築を終了 */
+    endLoopBuilding: () => void
     /** 指定パスにコマンドを追加（末尾） */
     addCommand: (command: Command, parentPath: number[]) => void
     /** 指定パスの指定位置にコマンドを挿入 */
@@ -56,14 +68,46 @@ interface CommandStackState {
  * コマンドスタック管理用Zustandストア
  * AR実行画面でQRスキャンにより構築されるコマンドスタックを管理
  */
-export const useCommandStore = create<CommandStackState>((set) => ({
+export const useCommandStore = create<CommandStackState>((set, get) => ({
     commands: [],
     activePath: [],
     insertIndex: null,
+    collapsedLoops: new Set<string>(),
+    isBuildingLoop: false,
+    buildingLoopPath: null,
 
     setActivePath: (path) => set({ activePath: path }),
 
     setInsertIndex: (index) => set({ insertIndex: index }),
+
+    toggleLoopCollapsed: (path) => set((state) => {
+        const pathKey = path.join('-')
+        const newCollapsedLoops = new Set(state.collapsedLoops)
+        if (newCollapsedLoops.has(pathKey)) {
+            newCollapsedLoops.delete(pathKey)
+        } else {
+            newCollapsedLoops.add(pathKey)
+        }
+        return { collapsedLoops: newCollapsedLoops }
+    }),
+
+    startLoopBuilding: (loopPath) => set({
+        isBuildingLoop: true,
+        buildingLoopPath: loopPath,
+        activePath: loopPath,
+        insertIndex: 0  // ループ内の先頭を挿入位置に
+    }),
+
+    endLoopBuilding: () => {
+        const state = get()
+        const commandsLength = state.commands.length
+        set({
+            isBuildingLoop: false,
+            buildingLoopPath: null,
+            activePath: [],
+            insertIndex: commandsLength  // ルートレベルの末尾を挿入位置に
+        })
+    },
 
     addCommand: (command, parentPath) => {
         set((state) => ({

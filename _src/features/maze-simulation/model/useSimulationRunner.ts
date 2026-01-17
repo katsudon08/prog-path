@@ -116,19 +116,27 @@ export function useSimulationRunner() {
      * 1ステップ実行
      */
     const step = useCallback(async (): Promise<ActionResult> => {
-        if (!selectedMaze) {
+        // 最新の状態をストアから取得（stale closure対策）
+        const currentState = useSimulationStore.getState()
+        const latestCurrentPath = currentState.currentPath
+        const latestLoopCounters = currentState.loopCounters
+        const latestCommands = useCommandStore.getState().commands
+        const latestRobotState = useRobotStore.getState().robotState
+        const latestMaze = useMazeStore.getState().selectedMaze
+
+        if (!latestMaze) {
             const msg = "迷路が選択されていません"
             setError(msg)
             return createErrorResult(msg)
         }
 
         // 初回実行時にスナップショットを保存
-        if (!initialMazeData && status === 'idle') {
-            setInitialMazeData(structuredClone(selectedMaze))
+        if (!currentState.initialMazeData && currentState.status === 'idle') {
+            setInitialMazeData(structuredClone(latestMaze))
         }
 
-        const targetPath = currentPath.length === 0 ? [0] : currentPath
-        const command = getCommandByPath(commands, targetPath)
+        const targetPath = latestCurrentPath.length === 0 ? [0] : latestCurrentPath
+        const command = getCommandByPath(latestCommands, targetPath)
 
         if (!command) {
             setStatus('finished')
@@ -140,12 +148,12 @@ export function useSimulationRunner() {
         try {
             switch (command.type) {
                 case 'forward': {
-                    const nextPos = moveForward(robotState)
-                    if (isWalkable(selectedMaze, nextPos.x, nextPos.y, robotState.layer)) {
-                        moveTo(nextPos.x, nextPos.y, robotState.layer)
+                    const nextPos = moveForward(latestRobotState)
+                    if (isWalkable(latestMaze, nextPos.x, nextPos.y, latestRobotState.layer)) {
+                        moveTo(nextPos.x, nextPos.y, latestRobotState.layer)
                         
                         // マップイベント判定
-                        const eventResult = handleMapEvent(selectedMaze, nextPos.x, nextPos.y, robotState.layer)
+                        const eventResult = handleMapEvent(latestMaze, nextPos.x, nextPos.y, latestRobotState.layer)
                         if (eventResult && !eventResult.success) {
                             return eventResult
                         }
@@ -159,14 +167,14 @@ export function useSimulationRunner() {
                 }
 
                 case 'turnRight': {
-                    const nextDir = turnRight(robotState.direction)
+                    const nextDir = turnRight(latestRobotState.direction)
                     rotateTo(nextDir)
                     setAnimationState('turning')
                     break
                 }
 
                 case 'turnLeft': {
-                    const nextDir = turnLeft(robotState.direction)
+                    const nextDir = turnLeft(latestRobotState.direction)
                     rotateTo(nextDir)
                     setAnimationState('turning')
                     break
@@ -179,14 +187,14 @@ export function useSimulationRunner() {
 
                 case 'ifHole': {
                     // 正面のタイルをチェック
-                    const frontPos = moveForward(robotState)
-                    const frontTile = getTile(selectedMaze, frontPos.x, frontPos.y, robotState.layer)
+                    const frontPos = moveForward(latestRobotState)
+                    const frontTile = getTile(latestMaze, frontPos.x, frontPos.y, latestRobotState.layer)
                     
                     if (frontTile === 'hole') {
                         // 穴を埋める（アニメーション待機付き）
                         setAnimationState('collecting')
                         await new Promise(resolve => setTimeout(resolve, speed / 2))
-                        const updatedMaze = setTile(selectedMaze, frontPos.x, frontPos.y, robotState.layer, 'floor')
+                        const updatedMaze = setTile(latestMaze, frontPos.x, frontPos.y, latestRobotState.layer, 'floor')
                         selectMaze(updatedMaze)
                     }
                     // 穴でない場合は何もせずスキップ
@@ -204,8 +212,11 @@ export function useSimulationRunner() {
             return createErrorResult(msg)
         }
 
+        // ロボット移動アニメーション完了を待つ
+        await new Promise(resolve => setTimeout(resolve, speed))
+
         // 次のパスを計算
-        const { nextPath, shouldResetPath } = getNextPath(commands, targetPath, loopCounters, incrementLoopCounter)
+        const { nextPath, shouldResetPath } = getNextPath(latestCommands, targetPath, latestLoopCounters, incrementLoopCounter, resetLoopCounter)
         
         // ループ脱出時はそのカウンタをリセット
         if (shouldResetPath) {
@@ -223,13 +234,7 @@ export function useSimulationRunner() {
         }
 
     }, [
-        commands, 
-        currentPath, 
-        robotState, 
-        selectedMaze, 
-        status,
-        loopCounters,
-        initialMazeData,
+        speed,
         setStatus, 
         setError, 
         setCurrentPath, 
@@ -237,6 +242,7 @@ export function useSimulationRunner() {
         rotateTo, 
         setAnimationState,
         incrementLoopCounter,
+        resetLoopCounter,
         setInitialMazeData,
         handleMapEvent,
         selectMaze
@@ -246,13 +252,39 @@ export function useSimulationRunner() {
      * 実行開始
      */
     const run = useCallback(async () => {
+        const mazeStore = useMazeStore.getState()
+        const currentMaze = mazeStore.selectedMaze
+        const simStore = useSimulationStore.getState()
+        
+        if (!currentMaze) return
+        
         // 初回実行時にスナップショットを保存
-        if (selectedMaze && !initialMazeData) {
-            setInitialMazeData(structuredClone(selectedMaze))
+        if (!simStore.initialMazeData) {
+            setInitialMazeData(structuredClone(currentMaze))
         }
 
+        // 即座に実行状態に変更（削除ボタン無効化）
         setStatus('running')
+        setCurrentPath([]) // ハイライトはStep実行直前に設定
         setError(null)
+
+        // ロボットをスタート位置にリセット
+        const startPos = findStartPosition(currentMaze)
+        if (startPos) {
+            updateRobotState({
+                x: startPos.x,
+                y: startPos.y,
+                layer: startPos.layer,
+                direction: [0, 1], // デフォルトの向き（下向き）
+                hasKey: false
+            })
+        }
+
+        // スタート位置リセット後に0.5秒待機
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        // 最初のコマンドのハイライトを設定
+        setCurrentPath([0])
 
         const controller = new AbortController()
         abortControllerRef.current = controller
@@ -270,16 +302,13 @@ export function useSimulationRunner() {
                 if (currentStatus !== 'running') {
                     break
                 }
-
-                // 待機
-                await new Promise(resolve => setTimeout(resolve, speed))
             }
         } catch (e) {
             console.error(e)
         } finally {
             abortControllerRef.current = null
         }
-    }, [step, speed, selectedMaze, initialMazeData, setStatus, setError, setInitialMazeData])
+    }, [step, speed, setStatus, setError, setInitialMazeData, setCurrentPath, updateRobotState])
 
     /**
      * 一時停止

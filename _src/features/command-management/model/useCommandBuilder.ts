@@ -5,7 +5,8 @@ import type { CommandType, Command } from '@/_src/entities/command'
 import {
     type ActionResult,
     createSuccessResult,
-    createErrorResult
+    createErrorResult,
+    createInfoResult
 } from '@/_src/shared/model'
 import { useCommandStore } from './useCommandStore'
 
@@ -55,13 +56,19 @@ export function useCommandBuilder() {
         commands, 
         activePath,
         insertIndex,
+        collapsedLoops,
+        isBuildingLoop,
+        buildingLoopPath,
         addCommand: storeAddCommand,
         insertCommandAt: storeInsertCommandAt,
         updateCommand: storeUpdateCommand, 
         removeCommand: storeRemoveCommand, 
         clearCommands: storeClearCommands,
         setActivePath,
-        setInsertIndex
+        setInsertIndex,
+        toggleLoopCollapsed,
+        startLoopBuilding,
+        endLoopBuilding
     } = useCommandStore()
 
     /** 最大ネスト深度 (これ以上のネストはUIやパフォーマンス面で問題が生じるため制限) */
@@ -79,10 +86,22 @@ export function useCommandBuilder() {
         const currentState = useCommandStore.getState()
         const currentActivePath = currentState.activePath
         const currentInsertIndex = currentState.insertIndex
+        const currentIsBuildingLoop = currentState.isBuildingLoop
+
+        // ループ構築中に再度ループQRを読み込むと、ループを閉じる
+        if (type === 'loop' && currentIsBuildingLoop) {
+            endLoopBuilding()
+            return createInfoResult('ループを閉じました')
+        }
 
         // ネスト深度制限チェック
         if (currentActivePath.length >= MAX_NEST_DEPTH) {
             return createErrorResult(`これ以上のネストはできません（最大${MAX_NEST_DEPTH}階層）`)
+        }
+
+        // ループコマンドの場合は、追加後の深さもチェック（ループ内がさらに1層深くなるため）
+        if (type === 'loop' && currentActivePath.length >= MAX_NEST_DEPTH - 1) {
+            return createErrorResult('これ以上ループを追加できません（ネストが深すぎます）')
         }
 
         // 現在の階層のコマンド数を取得
@@ -105,14 +124,15 @@ export function useCommandBuilder() {
             newIndex = targetCommands.length
         }
 
-        // ループコマンドの場合は、その内部をアクティブパスに設定
+        // ループコマンドの場合はループ構築モードを開始
         if (type === 'loop') {
-            setActivePath([...currentActivePath, newIndex])
+            const loopPath = [...currentActivePath, newIndex]
+            startLoopBuilding(loopPath)
         }
 
         const label = COMMAND_LABELS[type]
         return createSuccessResult(`「${label}」を追加しました`)
-    }, [storeAddCommand, storeInsertCommandAt, setActivePath])
+    }, [storeAddCommand, storeInsertCommandAt, startLoopBuilding, endLoopBuilding])
 
     /**
      * QRコード文字列からコマンドをパースして追加
@@ -150,9 +170,16 @@ export function useCommandBuilder() {
      * 指定パスのコマンドを削除
      */
     const removeCommand = useCallback((path: number[]): ActionResult => {
+        // ループ構築中の場合は構築を終了
+        // （ビルド中のループ自体、またはその親ループが削除される可能性があるため）
+        const currentState = useCommandStore.getState()
+        if (currentState.isBuildingLoop) {
+            endLoopBuilding()
+        }
+        
         storeRemoveCommand(path)
         return createSuccessResult(`コマンドを削除しました`)
-    }, [storeRemoveCommand])
+    }, [storeRemoveCommand, endLoopBuilding])
 
     /**
      * スタックを全消去
@@ -162,16 +189,26 @@ export function useCommandBuilder() {
             return createSuccessResult('スタックは既に空です')
         }
 
+        // ループ構築中なら終了
+        if (isBuildingLoop) {
+            endLoopBuilding()
+        }
+
         storeClearCommands()
         return createSuccessResult('すべてのコマンドを削除しました')
-    }, [commands.length, storeClearCommands])
+    }, [commands.length, storeClearCommands, isBuildingLoop, endLoopBuilding])
 
     return {
         commands,
         activePath,
         insertIndex,
+        collapsedLoops,
+        isBuildingLoop,
+        buildingLoopPath,
         setActivePath,
         setInsertIndex,
+        toggleLoopCollapsed,
+        endLoopBuilding,
         addCommandToActivePath,
         addCommandFromQR,
         updateLoopCount,

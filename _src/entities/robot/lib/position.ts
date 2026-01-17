@@ -28,7 +28,7 @@ export function rotationToDirection(rotation: number): DirectionVector {
  */
 export function turnRight(direction: DirectionVector): DirectionVector {
     const [dx, dy] = direction
-    return [dy, -dx]
+    return [-dy, dx]
 }
 
 /**
@@ -38,7 +38,7 @@ export function turnRight(direction: DirectionVector): DirectionVector {
  */
 export function turnLeft(direction: DirectionVector): DirectionVector {
     const [dx, dy] = direction
-    return [-dy, dx]
+    return [dy, -dx]
 }
 
 /**

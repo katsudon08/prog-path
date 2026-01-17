@@ -103,10 +103,14 @@ interface RecursiveCommandListProps {
     activePath: number[]
     executionPath: number[]
     insertIndex: number | null
+    collapsedLoops: Set<string>
+    isBuildingLoop: boolean
+    buildingLoopPath: number[] | null
     onSelectPath: (path: number[]) => void
     onSelectInsertPosition: (index: number | null) => void
     onUpdateLoop: (path: number[], count: number) => void
     onRemove: (path: number[]) => void
+    onToggleLoopCollapsed: (path: number[]) => void
     labels: Record<CommandType, string>
     disabled: boolean
     showRemoveButton: boolean
@@ -119,10 +123,14 @@ function RecursiveCommandList({
     activePath,
     executionPath,
     insertIndex,
+    collapsedLoops,
+    isBuildingLoop,
+    buildingLoopPath,
     onSelectPath,
     onSelectInsertPosition,
     onUpdateLoop,
     onRemove,
+    onToggleLoopCollapsed,
     labels,
     disabled,
     showRemoveButton,
@@ -130,19 +138,26 @@ function RecursiveCommandList({
 }: RecursiveCommandListProps) {
     // このリストがアクティブパスと一致するかどうか
     const isThisLevelActive = isPathEqual(activePath, parentPath)
+    
+    // ループ構築中かつこのレベルが構築中ループ内かどうかを判定
+    const isInsideCurrentBuildingLoop = isBuildingLoop && buildingLoopPath !== null && 
+        isPathEqual(buildingLoopPath, parentPath)
+    
+    // 挿入ポイントが無効かどうか（ループ構築中で、構築中ループ内でない場合は無効）
+    const insertDisabled = disabled || (isBuildingLoop && !isInsideCurrentBuildingLoop)
 
     if (commands.length === 0) {
-        // コマンドがない場合は先頭への挿入ポイントのみ表示
-        if (isThisLevelActive) {
-            return (
-                <InsertPointButton
-                    isSelected={insertIndex === 0}
-                    onClick={() => onSelectInsertPosition(insertIndex === 0 ? null : 0)}
-                    disabled={disabled}
-                />
-            )
-        }
-        return null
+        // コマンドがない場合も挿入ポイントを表示（クリックでこのレベルをアクティブに）
+        return (
+            <InsertPointButton
+                isSelected={isThisLevelActive && insertIndex === 0}
+                onClick={() => {
+                    onSelectPath(parentPath)
+                    onSelectInsertPosition(isThisLevelActive && insertIndex === 0 ? null : 0)
+                }}
+                disabled={insertDisabled}
+            />
+        )
     }
 
     return (
@@ -155,13 +170,14 @@ function RecursiveCommandList({
                 return (
                     <div key={`cmd-${currentPath.join('-')}`}>
                         {/* このコマンドの前に挿入するポイント */}
-                        {isThisLevelActive && (
-                            <InsertPointButton
-                                isSelected={insertIndex === index}
-                                onClick={() => onSelectInsertPosition(insertIndex === index ? null : index)}
-                                disabled={disabled}
-                            />
-                        )}
+                        <InsertPointButton
+                            isSelected={isThisLevelActive && insertIndex === index}
+                            onClick={() => {
+                                onSelectPath(parentPath)
+                                onSelectInsertPosition(isThisLevelActive && insertIndex === index ? null : index)
+                            }}
+                            disabled={insertDisabled}
+                        />
 
                         <div ref={isExecuting ? executingRef : undefined}>
                             <CommandCard
@@ -174,43 +190,30 @@ function RecursiveCommandList({
                                 isExecuting={isExecuting}
                                 onLoopCountChange={(count) => onUpdateLoop(currentPath, count)}
                                 onRemove={showRemoveButton ? () => onRemove(currentPath) : undefined}
+                                isCollapsed={collapsedLoops.has(currentPath.join('-'))}
+                                onToggleCollapsed={() => onToggleLoopCollapsed(currentPath)}
                                 disabled={disabled}
                             >
-                                {cmd.type === 'loop' && (
-                                    <div className="space-y-0">
-                                        <RecursiveCommandList 
-                                            commands={cmd.children || []}
-                                            parentPath={currentPath}
-                                            activePath={activePath}
-                                            executionPath={executionPath}
-                                            insertIndex={insertIndex}
-                                            onSelectPath={onSelectPath}
-                                            onSelectInsertPosition={onSelectInsertPosition}
-                                            onUpdateLoop={onUpdateLoop}
-                                            onRemove={onRemove}
-                                            labels={labels}
-                                            disabled={disabled}
-                                            showRemoveButton={showRemoveButton}
-                                            executingRef={executingRef}
-                                        />
-                                        
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                onSelectPath(currentPath)
-                                            }}
-                                            className={`
-                                                w-full text-xs py-1 px-2 rounded border border-dashed text-left mt-1
-                                                ${isSelected 
-                                                    ? "border-neon-cyan text-neon-cyan bg-neon-cyan/10" 
-                                                    : "border-muted-foreground/30 text-muted-foreground hover:bg-white/5"
-                                                }
-                                            `}
-                                        >
-                                            {isSelected ? "選択中: ここに追加されます" : "このループ内に追加"}
-                                        </button>
-                                    </div>
+                                {cmd.type === 'loop' && !collapsedLoops.has(currentPath.join('-')) && (
+                                    <RecursiveCommandList 
+                                        commands={cmd.children || []}
+                                        parentPath={currentPath}
+                                        activePath={activePath}
+                                        executionPath={executionPath}
+                                        insertIndex={insertIndex}
+                                        collapsedLoops={collapsedLoops}
+                                        isBuildingLoop={isBuildingLoop}
+                                        buildingLoopPath={buildingLoopPath}
+                                        onSelectPath={onSelectPath}
+                                        onSelectInsertPosition={onSelectInsertPosition}
+                                        onUpdateLoop={onUpdateLoop}
+                                        onRemove={onRemove}
+                                        onToggleLoopCollapsed={onToggleLoopCollapsed}
+                                        labels={labels}
+                                        disabled={disabled}
+                                        showRemoveButton={showRemoveButton}
+                                        executingRef={executingRef}
+                                    />
                                 )}
                             </CommandCard>
                         </div>
@@ -219,13 +222,14 @@ function RecursiveCommandList({
             })}
             
             {/* 最後のコマンドの後に挿入するポイント */}
-            {isThisLevelActive && (
-                <InsertPointButton
-                    isSelected={insertIndex === commands.length}
-                    onClick={() => onSelectInsertPosition(insertIndex === commands.length ? null : commands.length)}
-                    disabled={disabled}
-                />
-            )}
+            <InsertPointButton
+                isSelected={isThisLevelActive && insertIndex === commands.length}
+                onClick={() => {
+                    onSelectPath(parentPath)
+                    onSelectInsertPosition(isThisLevelActive && insertIndex === commands.length ? null : commands.length)
+                }}
+                disabled={insertDisabled}
+            />
         </div>
     )
 }
@@ -246,11 +250,15 @@ export function CommandStack({
         commands, 
         activePath,
         insertIndex,
+        collapsedLoops,
+        isBuildingLoop,
+        buildingLoopPath,
         removeCommand, 
         updateLoopCount, 
         clearCommands, 
         setActivePath,
         setInsertIndex,
+        toggleLoopCollapsed,
         COMMAND_LABELS 
     } = useCommandBuilder()
 
@@ -322,10 +330,14 @@ export function CommandStack({
                         activePath={activePath}
                         executionPath={executionPath}
                         insertIndex={insertIndex}
+                        collapsedLoops={collapsedLoops}
+                        isBuildingLoop={isBuildingLoop}
+                        buildingLoopPath={buildingLoopPath}
                         onSelectPath={setActivePath}
                         onSelectInsertPosition={setInsertIndex}
                         onUpdateLoop={updateLoopCount}
                         onRemove={handleRemoveCommand}
+                        onToggleLoopCollapsed={toggleLoopCollapsed}
                         labels={COMMAND_LABELS}
                         disabled={disabled}
                         showRemoveButton={showRemoveButton}

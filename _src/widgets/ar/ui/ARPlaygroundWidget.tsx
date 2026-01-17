@@ -73,15 +73,15 @@ export function ARPlaygroundWidget({
       {/* Navbar */}
       <Navbar />
 
-      {/* メインコンテンツ */}
-      <div className="flex flex-1 min-h-0 p-6 gap-6 pt-24">
-        {/* 3Dビュー（左側・固定高さ） */}
-        <div className="flex-1 relative rounded-lg overflow-hidden">
+      {/* メインコンテンツ - 7:3 ratio grid */}
+      <div className="grid grid-cols-[7fr_3fr] flex-1 min-h-0 p-6 gap-6 pt-24">
+        {/* 3Dビュー（左側・カメラ領域） */}
+        <div className="relative rounded-lg overflow-hidden border-2 border-neon-cyan shadow-lg shadow-neon-cyan/30">
           {view3D}
         </div>
 
-        {/* サイドパネル（コマンドスタック・右側・固定高さ） */}
-        <aside className="w-72 bg-space-dark/50 rounded-lg p-4">
+        {/* サイドパネル（コマンドスタック・右側） */}
+        <aside className="bg-space-dark/50 rounded-lg p-4 overflow-hidden">
           <CommandStack
             disabled={isRunning}
             executionPath={currentPath}

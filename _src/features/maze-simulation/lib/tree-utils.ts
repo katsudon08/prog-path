@@ -51,13 +51,15 @@ function getSiblings(commands: Command[], path: number[]): Command[] {
  * @param currentPath 現在実行中のパス
  * @param loopCounters ループカウンタ（キー: path.join(',')）
  * @param incrementLoopCounter ループカウンタをインクリメントする関数
+ * @param resetLoopCounter ループカウンタをリセットする関数
  * @returns 次のパス情報
  */
 export function getNextPath(
     commands: Command[],
     currentPath: number[],
     loopCounters: Record<string, number>,
-    incrementLoopCounter: (pathKey: string) => void
+    incrementLoopCounter: (pathKey: string) => void,
+    resetLoopCounter?: (pathKey: string) => void
 ): NextPathResult {
     // 空パスの場合は最初のコマンドへ
     if (currentPath.length === 0) {
@@ -68,7 +70,12 @@ export function getNextPath(
     if (!currentCommand) return { nextPath: null }
 
     // ループコマンドの場合: 子要素の先頭へ進む
+    // この時、ループのカウンターをリセットして初期状態にする
     if (currentCommand.type === 'loop' && currentCommand.children && currentCommand.children.length > 0) {
+        const loopKey = currentPath.join(',')
+        if (resetLoopCounter) {
+            resetLoopCounter(loopKey)
+        }
         return { nextPath: [...currentPath, 0] }
     }
 

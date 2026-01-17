@@ -252,7 +252,7 @@ export function RobotModel({
         }
 
         // 通常の移動処理
-        const moveSpeed = 0.8;
+        const moveSpeed = 1.5; // 500ms内に1タイル(0.5単位)移動できる速度
         const distance = modelRef.current.position.distanceTo(targetPosition);
 
         // animationStateがidleまたは距離が大きい場合（リセット時など）は瞬間移動
