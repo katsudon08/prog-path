@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef, useCallback, useState } from "react"
 import jsQR from "jsqr"
 import { useCameraStore } from "./useCameraStore"
 
@@ -17,7 +17,7 @@ export interface UseCameraQRScannerOptions {
 
 export interface UseCameraQRScannerResult {
     /** ビデオ要素のref */
-    videoRef: React.RefObject<HTMLVideoElement | null>
+    videoRef: React.Ref<HTMLVideoElement>
     /** スキャン用キャンバスのref */
     canvasRef: React.RefObject<HTMLCanvasElement | null>
     /** カメラストリームが準備できているか */
@@ -47,7 +47,12 @@ export function useCameraQRScanner(
     } = options
 
     // DOM参照（このフック内に閉じ込める）
-    const videoRef = useRef<HTMLVideoElement | null>(null)
+    const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null)
+    const videoRef = useCallback((node: HTMLVideoElement | null) => {
+        console.log("🎥 Video element ref updated:", node ? "Mounted" : "Unmounted")
+        setVideoEl(node)
+    }, [])
+
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const scanIntervalRef = useRef<number | null>(null)
     const isCoolingDownRef = useRef<boolean>(false)
@@ -72,7 +77,7 @@ export function useCameraQRScanner(
         }
 
         // ビデオ要素をクリーンアップ
-        const video = videoRef.current
+        const video = videoEl
         if (video) {
             video.srcObject = null
             video.onplaying = null
@@ -88,15 +93,12 @@ export function useCameraQRScanner(
     // カメラを開始（ストアにstreamを保存するだけ）
     const startCamera = useCallback(async () => {
         // すでに有効なストリームが存在する場合は二重起動しない
-        if (stream) {
+        // useCameraStore.getState()を使用して、依存配列にstreamを含めないようにする
+        if (useCameraStore.getState().stream) {
             return
         }
 
-        const video = videoRef.current
-        if (!video) {
-            console.warn("Video element not found")
-            return
-        }
+        // ビデオ要素の存在チェックを削除（ストリーム取得後にアタッチするため）
 
         try {
             setCameraError("")
@@ -109,38 +111,76 @@ export function useCameraQRScanner(
                 },
             })
 
+            console.log("🎥 Got media stream:", newStream.id)
             // ストアにストリームを保存（ビデオへのセットはuseEffectに委譲）
             setStream(newStream)
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : String(err)
+            console.error("❌ Failed to get webcam stream:", errorMessage)
             setCameraError(errorMessage)
-            console.error("Failed to get webcam stream:", err)
         }
-    }, [stream, setCameraError, setStream])
+    }, [setCameraError, setStream])
 
     // ストアのstreamをリアクティブに監視し、video要素にセット
     useEffect(() => {
-        const video = videoRef.current
+        const video = videoEl
         if (!video) return
 
         if (stream) {
+            console.log("🎥 Attaching stream to video element")
             // streamがセットされた → video要素に反映
             video.srcObject = stream
-
+            
+            // onloadedmetadataで再生を開始（autoPlayが効かない場合の保険）
             video.onloadedmetadata = () => {
+                console.log("🎥 onloadedmetadata")
                 video.play().catch(err => {
-                    console.error("Video play failed:", err)
+                    if (err.name === 'AbortError') {
+                        // 読み込み中断やコンポーネントアンマウント時のAbortErrorは無視
+                        console.log("ℹ️ Video play aborted (expected):", err.message)
+                    } else {
+                        console.error("❌ Video play failed (onloadedmetadata):", err)
+                    }
                 })
             }
 
             video.onplaying = () => {
+                console.log("🎥 onplaying, readyState:", video.readyState)
                 if (video.readyState >= 2) {
                     setStreamReady(true)
                 }
             }
 
             video.oncanplay = () => {
+                console.log("🎥 oncanplay")
                 setStreamReady(true)
+            }
+
+            // Fallback: ポーリングでreadyStateを確認（イベントが発火しない場合や発火済みのケースへの対策）
+            const checkReadyInterval = setInterval(() => {
+                if (video.readyState >= 2) {
+                    console.log("🎥 Polling check: Video is ready")
+                    setStreamReady(true)
+                    clearInterval(checkReadyInterval)
+                }
+            }, 500)
+
+            // Force ready after 2 seconds (safety net)
+            const forceReadyTimeout = setTimeout(() => {
+                console.log("⚠️ Force ready timeout triggered")
+                setStreamReady(true)
+            }, 2000)
+
+            return () => {
+                clearTimeout(checkReadyInterval)
+                clearTimeout(forceReadyTimeout)
+                // Cleanup: do NOT nullify srcObject here to prevent flickering or accidental clearing
+                // stopCamera() handles the real cleanup of tracks
+                if (video) {
+                    video.onplaying = null
+                    video.oncanplay = null
+                    video.onloadedmetadata = null
+                }
             }
         } else {
             // streamがnull → クリア
@@ -150,7 +190,17 @@ export function useCameraQRScanner(
             video.onloadedmetadata = null
             setStreamReady(false)
         }
-    }, [stream, setStreamReady])
+
+        // クリーンアップ
+        return () => {
+            if (video) {
+                video.srcObject = null
+                video.onplaying = null
+                video.oncanplay = null
+                video.onloadedmetadata = null
+            }
+        }
+    }, [stream, setStreamReady, videoEl])
 
     // 自動起動（マウント後に遅延実行）
     useEffect(() => {
@@ -172,11 +222,11 @@ export function useCameraQRScanner(
 
     // QRコードスキャンループ
     useEffect(() => {
-        if (!isStreamReady || !videoRef.current || !canvasRef.current) {
+        if (!isStreamReady || !videoEl || !canvasRef.current) {
             return
         }
 
-        const video = videoRef.current
+        const video = videoEl
         const canvas = canvasRef.current
         const ctx = canvas.getContext("2d")
 
@@ -233,7 +283,7 @@ export function useCameraQRScanner(
                 clearTimeout(scanIntervalRef.current)
             }
         }
-    }, [isStreamReady, scanInterval, onQRCodeDetected, cooldownMs])
+    }, [isStreamReady, scanInterval, onQRCodeDetected, cooldownMs, videoEl])
 
     return {
         videoRef,

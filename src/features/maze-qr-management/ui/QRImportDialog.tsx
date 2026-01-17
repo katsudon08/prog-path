@@ -83,6 +83,7 @@ export function QRImportDialog() {
                             className="w-full h-full object-cover"
                             style={{ transform: "scaleX(-1)" }}
                             playsInline
+                            autoPlay
                             muted
                         />
                         <canvas ref={canvasRef} className="hidden" />

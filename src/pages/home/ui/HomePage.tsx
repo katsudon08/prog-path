@@ -16,6 +16,8 @@ import { DeleteFolderDialog } from '@/src/features/folder-management/ui/DeleteFo
 import { useFolderDelete } from '@/src/features/folder-management/model/useFolderDelete';
 import { useQRImport } from '@/src/features/maze-qr-management/model/useQRImport';
 import { QRImportDialog } from '@/src/features/maze-qr-management/ui/QRImportDialog';
+import { useQRShare } from '@/src/features/maze-qr-management/model/useQRShare';
+import { QRShareDialog } from '@/src/features/maze-qr-management/ui/QRShareDialog';
 import { useRouter } from 'next/navigation';
 
 /**
@@ -47,7 +49,9 @@ export function HomePage(): React.ReactElement {
   const { folders, expandedFolders, setFolders, toggleFolderExpanded } = useFolderStore();
   const { open: openFolderCreate } = useFolderCreate();
   const { open: openFolderDelete } = useFolderDelete();
+
   const { open: openQRImport } = useQRImport();
+  const { open: openQRShare } = useQRShare();
 
   // ドラッグ中のアイテム
   const [draggingMazeId, setDraggingMazeId] = useState<string | null>(null);
@@ -156,7 +160,7 @@ export function HomePage(): React.ReactElement {
 
       <main className="flex-1 flex pt-16">
         {/* 左側：フォルダ＋迷路リスト（スクロール可能） */}
-        <aside className="w-80 h-[calc(100vh-4rem)] border-r border-neon-blue/20 bg-space-dark overflow-y-auto">
+        <aside className="w-[25%] h-[calc(100vh-4rem)] border-r border-neon-blue/20 bg-space-dark overflow-y-auto">
           {folders.map((folder) => {
             const folderMazes = getMazesForFolder(folder);
             const isDropTarget = dropTargetFolder === folder;
@@ -210,7 +214,7 @@ export function HomePage(): React.ReactElement {
         </aside>
 
         {/* 右側：選択中の迷路プレビュー（固定） */}
-        <div className="flex-1 h-[calc(100vh-4rem)] p-6 flex items-center justify-center overflow-hidden">
+        <div className="w-[65%] h-[calc(100vh-4rem)] p-6 flex items-center justify-center overflow-hidden">
           {selectedMaze ? (
             <div className="flex flex-col items-center gap-6">
               {/* 迷路名 */}
@@ -237,6 +241,16 @@ export function HomePage(): React.ReactElement {
                 >
                   <Edit className="w-5 h-5" />
                   編集
+                </button>
+
+                {/* QR共有ボタン */}
+                <button
+                  type="button"
+                  onClick={() => openQRShare(selectedMaze)}
+                  className="flex items-center gap-2 px-6 py-3 bg-neon-purple/20 border border-neon-purple rounded-lg text-neon-purple hover:bg-neon-purple/30 transition-colors"
+                >
+                  <QrCode className="w-5 h-5" />
+                  共有
                 </button>
 
                 {/* 実行ボタン */}
@@ -266,6 +280,7 @@ export function HomePage(): React.ReactElement {
       <CreateFolderDialog />
       <DeleteFolderDialog />
       <QRImportDialog />
+      <QRShareDialog />
     </div>
   );
 }
