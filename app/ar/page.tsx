@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense } from "react"
-import { ARPage } from "@/_src/pages/ar"
+import { ARPage } from "@/src/pages/ar"
 
 export default function ARPageWrapper() {
     return (

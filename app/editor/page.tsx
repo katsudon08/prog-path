@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense } from "react"
-import { EditorPage } from "@/_src/pages/editor"
+import { EditorPage } from "@/src/pages/editor"
 
 export default function EditorPageWrapper() {
     return (

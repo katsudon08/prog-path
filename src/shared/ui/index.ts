@@ -1,6 +1,18 @@
 // shared/ui public API
-export * from './button'
-export * from './card'
-export * from './dialog'
-export * from './input'
-export * from './label'
+export { Navbar } from './navbar';
+export { useToast, ToastContainer } from './toast';
+export { Button, buttonVariants } from './button';
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from './dialog';
+export { Input } from './input';
+export { FloatingActionButton, type FloatingAction } from './FloatingActionButton';
