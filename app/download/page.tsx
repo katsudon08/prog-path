@@ -1,1 +1,1 @@
-export { DownloadPage as default } from "@domains/download"
+export { DownloadPage as default } from "@/src/pages/download"

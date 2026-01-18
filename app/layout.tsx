@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { Orbitron, Michroma } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-import { Navbar } from "@shared/navbar";
+import { Navbar } from "@/src/shared/ui/navbar";
+import { ToastContainer } from "@/src/shared/ui/toast/ToastContainer";
 
 const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" });
 const michroma = Michroma({
@@ -32,6 +33,7 @@ export default function RootLayout({
                 <Navbar />
                 {children}
                 <Analytics />
+                <ToastContainer />
             </body>
         </html>
     );
