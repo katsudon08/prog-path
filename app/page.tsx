@@ -1,5 +1,1 @@
-import { HomePortalWidget } from "@widgets/home-portal"
-
-export default function Page() {
-    return <HomePortalWidget />
-}
+export { HomePage as default } from "@/src/pages/home"

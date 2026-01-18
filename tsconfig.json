@@ -24,11 +24,24 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@shared/*": ["./shared/*"],
-      "@entities/*": ["./entities/*"],
-      "@features/*": ["./features/*"],
-      "@widgets/*": ["./widgets/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
+      ],
+      "@entities/*": [
+        "src/entities/*"
+      ],
+      "@features/*": [
+        "src/features/*"
+      ],
+      "@widgets/*": [
+        "src/widgets/*"
+      ],
+      "@domains/*": [
+        "src/domains/*"
+      ]
     }
   },
   "include": [

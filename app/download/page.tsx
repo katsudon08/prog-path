@@ -1,5 +1,1 @@
-import { DownloadWidget } from "@widgets/download"
-
-export default function DownloadPage() {
-    return <DownloadWidget />
-}
+export { DownloadPage as default } from "@/src/pages/download"
