@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { Download, Loader2 } from 'lucide-react';
 
 interface AppDownloadButtonProps {
   downloadUrl: string | null;
@@ -13,15 +14,15 @@ interface AppDownloadButtonProps {
 
 /** ボタン共通スタイル */
 const baseButtonStyles =
-  'inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-200';
+  'inline-flex items-center justify-center px-10 py-5 rounded-full font-semibold transition-all duration-300 gap-3 text-lg tracking-wide hover:scale-105 active:scale-95';
 
 /** 無効状態のスタイル */
 const disabledStyles =
-  'bg-muted text-muted-foreground cursor-not-allowed opacity-50';
+  'bg-white/10 text-muted-foreground cursor-not-allowed';
 
 /** プライマリボタンスタイル */
 const primaryStyles =
-  'bg-gradient-to-r from-neon-cyan to-neon-purple text-space-dark hover:opacity-90 hover:shadow-lg hover:shadow-neon-cyan/20';
+  'bg-neon-cyan text-space-dark shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_40px_rgba(34,211,238,0.5)] hover:bg-white';
 
 /**
  * ダウンロードボタンを表示するコンポーネント
@@ -36,38 +37,35 @@ export function AppDownloadButton({
   // Electron 環境の場合
   if (isElectron) {
     return (
-      <div className="mt-4">
-        <button disabled className={`${baseButtonStyles} ${disabledStyles}`}>
-          デスクトップ版で実行中です
-        </button>
-      </div>
+      <button disabled className={`${baseButtonStyles} ${disabledStyles}`}>
+        <Download className="w-5 h-5 opacity-50" />
+        <span>インストール済み</span>
+      </button>
     );
   }
 
   // 読み込み中の場合
   if (loading) {
     return (
-      <div className="mt-4">
-        <button disabled className={`${baseButtonStyles} ${disabledStyles}`}>
-          <span className="animate-pulse">読み込み中...</span>
-        </button>
-      </div>
+      <button disabled className={`${baseButtonStyles} ${disabledStyles}`}>
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span>確認中...</span>
+      </button>
     );
   }
 
   const url = downloadUrl || fallbackUrl;
 
   return (
-    <div className="mt-4">
-      <a
-        href={url}
-        className={`${baseButtonStyles} ${primaryStyles}`}
-        download
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Windows版をダウンロード
-      </a>
-    </div>
+    <a
+      href={url}
+      className={`${baseButtonStyles} ${primaryStyles}`}
+      download
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <Download className="w-6 h-6" />
+      Windows版をダウンロード
+    </a>
   );
 }

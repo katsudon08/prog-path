@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { AlertCircle, ArrowUpRight } from 'lucide-react';
 
 interface ReleaseVersionInfoProps {
   version: string | null;
@@ -13,18 +14,7 @@ interface ReleaseVersionInfoProps {
 }
 
 /**
- * スケルトンプレースホルダーコンポーネント
- */
-function SkeletonLine({ className }: { className?: string }): React.ReactElement {
-  return (
-    <div
-      className={`h-4 bg-white/10 rounded animate-pulse ${className ?? ''}`}
-    />
-  );
-}
-
-/**
- * 最新バージョンとファイルサイズを表示するコンポーネント
+ * 最新バージョンとファイルサイズを表示するコンポーネント (ミニマル版)
  */
 export function ReleaseVersionInfo({
   version,
@@ -35,47 +25,51 @@ export function ReleaseVersionInfo({
 }: ReleaseVersionInfoProps): React.ReactElement {
   if (loading) {
     return (
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">最新バージョン:</span>
-          <SkeletonLine className="w-20" />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">ファイル容量:</span>
-          <SkeletonLine className="w-16" />
-        </div>
+      <div className="flex items-center gap-4 text-sm text-muted-foreground animate-pulse">
+        <div className="h-4 w-24 bg-white/5 rounded" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-2">
-        <p className="text-red-400">{error}</p>
+      <div className="flex items-center gap-2 text-sm text-red-400">
+        <AlertCircle className="w-4 h-4" />
+        <span>情報の取得に失敗しました</span>
         <a
           href={fallbackUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-neon-cyan hover:text-neon-cyan/80 transition-colors underline underline-offset-2"
+          className="underline hover:text-red-300 ml-1"
         >
-          GitHubリリースページを開く →
+          GitHubで確認
         </a>
       </div>
     );
   }
 
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6 text-sm text-muted-foreground/60 font-medium">
       {version && (
-        <p className="text-muted-foreground">
-          最新バージョン: <strong className="text-neon-cyan">{version}</strong>
-        </p>
+        <span>バージョン {version}</span>
       )}
-      {fileSizeMB !== null && (
-        <p className="text-muted-foreground">
-          ファイル容量: <strong className="text-foreground">{fileSizeMB} MB</strong>
-        </p>
+      {fileSizeMB && (
+        <>
+          <span className="hidden md:inline w-1 h-1 rounded-full bg-white/10" />
+          <span>{fileSizeMB} MB</span>
+        </>
       )}
+      <span className="hidden md:inline w-1 h-1 rounded-full bg-white/10" />
+      
+      <a 
+        href={fallbackUrl}
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="flex items-center gap-1 hover:text-neon-cyan transition-colors ml-2 md:ml-4"
+      >
+        リリースノート
+        <ArrowUpRight className="w-3 h-3" />
+      </a>
     </div>
   );
 }

@@ -8,7 +8,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { FolderPlus, Plus, QrCode, Edit, Play } from 'lucide-react';
 import { Navbar, FloatingActionButton, type FloatingAction } from '@/src/shared/ui';
-import { FolderCard, useFolderStore, loadFoldersFromStorage, saveFoldersToStorage, DEFAULT_FOLDER_NAME } from '@/src/entities/folder';
+import { FolderCard, useFolderStore, loadFoldersFromStorage, saveFoldersToStorage, loadExpandedFoldersFromStorage, saveExpandedFoldersToStorage, DEFAULT_FOLDER_NAME } from '@/src/entities/folder';
 import { MazeCard, MazePreview2D, useMazeStore, saveMazesToStorage, type MazeData } from '@/src/entities/maze';
 import { useFolderCreate } from '@/src/features/folder-management/model/useFolderCreate';
 import { CreateFolderDialog } from '@/src/features/folder-management/ui/CreateFolderDialog';
@@ -46,7 +46,7 @@ export function HomePage(): React.ReactElement {
   const selectMaze = useMazeStore((s) => s.selectMaze);
   const updateMaze = useMazeStore((s) => s.updateMaze);
 
-  const { folders, expandedFolders, setFolders, toggleFolderExpanded } = useFolderStore();
+  const { folders, expandedFolders, setFolders, setExpandedFolders, toggleFolderExpanded } = useFolderStore();
   const { open: openFolderCreate } = useFolderCreate();
   const { open: openFolderDelete } = useFolderDelete();
 
@@ -68,7 +68,16 @@ export function HomePage(): React.ReactElement {
       ? loadedFolders
       : [DEFAULT_FOLDER_NAME, ...loadedFolders];
     setFolders(foldersWithDefault);
-  }, [initialize, setFolders]);
+
+    // 展開状態の復元
+    const loadedExpandedFolders = loadExpandedFoldersFromStorage();
+    setExpandedFolders(loadedExpandedFolders);
+  }, [initialize, setFolders, setExpandedFolders]);
+
+  // 展開状態の保存
+  useEffect(() => {
+    saveExpandedFoldersToStorage(expandedFolders);
+  }, [expandedFolders]);
 
   // フォルダごとの迷路を取得
   const getMazesForFolder = useCallback((folder: string): MazeData[] => {
