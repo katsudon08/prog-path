@@ -29,7 +29,7 @@ export function ARPage(): React.ReactElement {
     const { commands, clearCommands } = useCommandStore();
     const { addCommandToActivePath } = useCommandBuilder();
     const { addToast } = useToast();
-    const { status, currentPath, setInitialMazeData, forwardStepCount, resultDetails, setResultDetails, speed } = useSimulationStore();
+    const { status, currentPath, initialMazeData, setInitialMazeData, forwardStepCount, resultDetails, setResultDetails, speed } = useSimulationStore();
     const { run, pause, reset } = useSimulationRunner();
 
     // Debug: Monitor selectedMaze changes
@@ -90,12 +90,40 @@ export function ARPage(): React.ReactElement {
             // 既に選択されている迷路が対象の迷路と同じなら、リロードしない
             // (シミュレーション中の状態変更でこのEffectが発火しても、上書きを防ぐ)
             if (selectedMaze?.id === mazeId) {
+                // [Initial Position Fix] すでに選択されている場合でも、初回であれば初期位置を設定する
+                if (!initialMazeData) {
+                    const startPos = findStartPosition(selectedMaze);
+                    if (startPos) {
+                        useRobotStore.getState().updateRobotState({
+                            x: startPos.x,
+                            y: startPos.y,
+                            layer: startPos.layer,
+                            direction: [0, 1],
+                            hasKey: false
+                        });
+                        setInitialMazeData(structuredClone(selectedMaze));
+                    }
+                }
                 return;
             }
 
             const maze = getMazeById(mazeId);
             if (maze) {
                 selectMaze(maze);
+                
+                // [Initialization] ロボットリセット、コマンド消去、初期状態保存
+                clearCommands();
+                const startPos = findStartPosition(maze);
+                if (startPos) {
+                    useRobotStore.getState().updateRobotState({
+                        x: startPos.x,
+                        y: startPos.y,
+                        layer: startPos.layer,
+                        direction: [0, 1],
+                        hasKey: false
+                    });
+                }
+                setInitialMazeData(structuredClone(maze));
                 return;
             }
         }

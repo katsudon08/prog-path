@@ -130,6 +130,72 @@ export function useSimulationRunner() {
     }, [])
 
     /**
+     * タイル上のイベント（ゴール、穴、テレポート等）を再帰的に処理する
+     */
+    const handleTileEvents = useCallback(async (x: number, y: number, layer: number, latestMaze: MazeData): Promise<ActionResult | null> => {
+        const event = detectMapEvent(latestMaze, x, y, layer)
+        if (!event) return null
+
+        switch (event.type) {
+            case 'goal': {
+                const remainingKeyCount = latestMaze.layers.reduce((acc, layer) => 
+                    acc + layer.reduce((rAcc, row) => 
+                        rAcc + row.reduce((cAcc, cell) => cAcc + (cell === 'key' ? 1 : 0), 0), 0), 0)
+
+                if (remainingKeyCount > 0) {
+                    setResultDetails({ type: 'failure', reason: 'goal_missing_keys', remainingKeys: remainingKeyCount })
+                    return createErrorResult(`全てのカギを集めてください！(残り${remainingKeyCount}個)`)
+                }
+
+                setResultDetails({ 
+                    type: 'success', 
+                    reason: 'goal_success', 
+                    stepCount: useSimulationStore.getState().forwardStepCount 
+                })
+                setStatus('finished')
+                return createSuccessResult('ゴールに到達しました！🎉')
+            }
+
+            case 'hole': {
+                setAnimationState('falling')
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                setResultDetails({ type: 'failure', reason: 'hole_fall' })
+                return createErrorResult(event.message)
+            }
+
+            case 'item': { // Key
+                const newState = { ...useRobotStore.getState().robotState, hasKey: true, x, y, layer }
+                updateRobotState(newState)
+                setAnimationState('collecting')
+                
+                const updatedMaze = setTile(latestMaze, x, y, layer, 'floor')
+                selectMaze(updatedMaze)
+
+                const remainingKeys = updatedMaze.layers.reduce((acc, l) => 
+                    acc + l.reduce((rAcc, r) => 
+                        rAcc + r.reduce((cAcc, c) => cAcc + (c === 'key' ? 1 : 0), 0), 0), 0)
+                
+                useToast.getState().addToast(createSuccessResult(`カギを取得しました 🔑 (残り${remainingKeys}個)`))
+                await new Promise(resolve => setTimeout(resolve, 500))
+                return null // カギ取得後は次のコマンドへ移動可能
+            }
+
+            case 'teleportUp':
+            case 'teleportDown': {
+                setAnimationState('teleporting')
+                moveTo(x, y, event.targetLayer)
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                
+                // テレポート先で再度イベント判定を行う（再帰）
+                return await handleTileEvents(x, y, event.targetLayer, latestMaze)
+            }
+            
+            default:
+                return null
+        }
+    }, [detectMapEvent, setResultDetails, setStatus, setAnimationState, updateRobotState, selectMaze, moveTo])
+
+    /**
      * 1ステップ実行
      */
     const step = useCallback(async (): Promise<ActionResult> => {
@@ -174,86 +240,24 @@ export function useSimulationRunner() {
 
                     if (moveCheck === 'ok') {
                         moveTo(nextPos.x, nextPos.y, latestRobotState.layer)
-
-                        // マップイベント判定
-                        const event = detectMapEvent(latestMaze, nextPos.x, nextPos.y, latestRobotState.layer)
                         
-                        // まずは通常の移動アニメーション分待機
+                        // 移動アニメーション分待機
                         await new Promise(resolve => setTimeout(resolve, speed))
 
-                        if (event) {
-                            switch (event.type) {
-                                case 'goal':
-                                    // マップ上に残っているカギがあるかチェック
-                                    const remainingKeyCount = latestMaze.layers.reduce((acc, layer) => 
-                                        acc + layer.reduce((rAcc, row) => 
-                                            rAcc + row.reduce((cAcc, cell) => cAcc + (cell === 'key' ? 1 : 0), 0), 0), 0)
-
-                                    if (remainingKeyCount > 0) {
-                                        setResultDetails({ type: 'failure', reason: 'goal_missing_keys', remainingKeys: remainingKeyCount })
-                                        return createErrorResult(`全てのカギを集めてください！(残り${remainingKeyCount}個)`)
-                                    }
-
-                                    setResultDetails({ 
-                                        type: 'success', 
-                                        reason: 'goal_success', 
-                                        stepCount: useSimulationStore.getState().forwardStepCount 
-                                    })
-                                    setStatus('finished')
-                                    return createSuccessResult('ゴールに到達しました！🎉')
-
-                                case 'hole':
-                                    setAnimationState('falling')
-                                    // 落下アニメーション待機
-                                    await new Promise(resolve => setTimeout(resolve, 1000))
-                                    setResultDetails({ type: 'failure', reason: 'hole_fall' })
-                                    return createErrorResult(event.message)
-
-                                case 'item': { // Key
-                                    const newState = { ...useRobotStore.getState().robotState, hasKey: true }
-                                    updateRobotState(newState)
-                                    setAnimationState('collecting')
-                                    
-                                    const updatedMaze = setTile(latestMaze, nextPos.x, nextPos.y, latestRobotState.layer, 'floor')
-                                    selectMaze(updatedMaze)
-
-                                    const remainingKeys = updatedMaze.layers.reduce((acc, l) => 
-                                        acc + l.reduce((rAcc, r) => 
-                                            rAcc + r.reduce((cAcc, c) => cAcc + (c === 'key' ? 1 : 0), 0), 0), 0)
-                                    
-                                    useToast.getState().addToast(createSuccessResult(`カギを取得しました 🔑 (残り${remainingKeys}個)`))
-                                    // カギ取得アニメーション待機（少し）
-                                    await new Promise(resolve => setTimeout(resolve, 500))
-                                    break;
-                                }
-
-                                case 'teleportUp':
-                                case 'teleportDown': {
-                                    setAnimationState('teleporting')
-                                    moveTo(nextPos.x, nextPos.y, event.targetLayer)
-                                    // テレポートアニメーション待機
-                                    await new Promise(resolve => setTimeout(resolve, 1000))
-                                    // return createSuccessResult(event.message) // OLD
-                                    break // continue to nextPath logic
-                                }
-                            }
+                        // イベント処理（テレポート等の連鎖判定含む）
+                        const eventResult = await handleTileEvents(nextPos.x, nextPos.y, latestRobotState.layer, latestMaze)
+                        
+                        if (eventResult) {
+                            return eventResult
                         }
                         
-                        // イベントがない、または継続可能なイベント（カギ）の場合は終了
-                        if (!event || event.type === 'item') {
-                             // 結果を保存してswitchを抜ける（この後パス更新へ）
-                             break
-                        }
-                        
-                         // ここには到達しないはず
-                         break
+                        break
                     } else {
                         const reason = moveCheck === 'out_of_bounds' ? 'out_of_bounds' : 'wall_collision'
                         const msg = reason === 'out_of_bounds' ? '迷路の外にはみ出しました' : '壁に衝突しました'
                         setResultDetails({ type: 'failure', reason })
                         throw new Error(msg)
                     }
-                    // break is implicit due to block end, but good for clarity
                     break
                 }
 
@@ -352,7 +356,8 @@ export function useSimulationRunner() {
         resetLoopCounter,
         setInitialMazeData,
         detectMapEvent,
-        selectMaze
+        selectMaze,
+        handleTileEvents
     ])
 
     /**
@@ -391,14 +396,20 @@ export function useSimulationRunner() {
         // ロボットをスタート位置にリセット
         const startPos = findStartPosition(currentMaze)
         if (startPos) {
-            updateRobotState({
-                x: startPos.x,
-                y: startPos.y,
-                layer: startPos.layer,
-                direction: [0, 1], // デフォルトの向き（下向き）
-                hasKey: false
-            })
-        }
+                    updateRobotState({
+                    x: startPos.x,
+                    y: startPos.y,
+                    layer: startPos.layer,
+                    direction: [0, 1], // デフォルトの向き（下向き）
+                    hasKey: false
+                })
+
+                // 初期位置（スタートタイル）でのイベント判定（スタート地点にテレポートやゴールがある場合）
+                const startEventResult = await handleTileEvents(startPos.x, startPos.y, startPos.layer, currentMaze)
+                if (startEventResult && !startEventResult.success) {
+                    return // エラー終了
+                }
+            }
 
         // スタート位置リセット後に1秒待機
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -446,7 +457,7 @@ export function useSimulationRunner() {
                 abortControllerRef.current = null
             }
         }
-    }, [step, speed, setStatus, setError, setInitialMazeData, setCurrentPath, updateRobotState])
+    }, [step, speed, setStatus, setError, setInitialMazeData, setCurrentPath, updateRobotState, handleTileEvents, selectMaze])
 
     /**
      * 一時停止

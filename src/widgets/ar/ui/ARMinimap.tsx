@@ -99,7 +99,7 @@ export function ARMinimap({ maze, robotState, animationState }: ARMinimapProps):
             MazePreview2D grid has `border-1`.
         */}
         <div 
-          className="absolute pointer-events-none transition-all duration-300 ease-out"
+          className={`absolute pointer-events-none ${transitionClass}`}
           style={{
             top: yPos,
             left: xPos,
