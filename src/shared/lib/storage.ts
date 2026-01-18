@@ -16,7 +16,6 @@ export function getItem<T>(key: string): T | null {
         }
         return JSON.parse(data) as T
     } catch {
-        console.error(`Failed to load from storage: ${key}`)
         return null
     }
 }

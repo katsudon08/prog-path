@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import type { MazeData } from './types'
-import { loadMazesFromStorage } from '../lib/storage'
+import { loadMazesFromStorage, saveMazesToStorage } from '../lib/storage'
+import { getInitialMazes } from '../lib/initial-mazes'
+import { isMazeDataArray } from '../lib/validator'
 
 /**
  * 迷路状態管理ストアのインターフェース
@@ -48,7 +50,14 @@ export const useMazeStore = create<MazeStore>((set, get) => ({
         // 既にロード済みの場合はスキップ
         if (get().isLoaded) return
 
-        const mazes = loadMazesFromStorage()
+        let mazes = loadMazesFromStorage()
+        
+        // データがない、空配列、または不正な形式の場合は初期データをロード
+        if (!mazes || mazes.length === 0 || !isMazeDataArray(mazes)) {
+            mazes = getInitialMazes()
+            saveMazesToStorage(mazes)
+        }
+        
         set({ mazes, isLoaded: true })
     },
 

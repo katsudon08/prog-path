@@ -118,3 +118,25 @@ export function validateTeleportPlacement(
         message: 'テレポート配置可能です',
     }
 }
+
+/**
+ * データがMazeData型かどうかを判定する型ガード
+ */
+export function isMazeData(data: any): data is MazeData {
+    return (
+        typeof data === 'object' &&
+        data !== null &&
+        typeof data.id === 'string' &&
+        typeof data.name === 'string' &&
+        // size, layers などの必須プロパティチェック
+        typeof data.size === 'number' &&
+        Array.isArray(data.layers)
+    )
+}
+
+/**
+ * データがMazeData配列かどうかを判定する型ガード
+ */
+export function isMazeDataArray(data: any): data is MazeData[] {
+    return Array.isArray(data) && data.every(isMazeData)
+}
