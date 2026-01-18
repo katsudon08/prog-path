@@ -159,6 +159,13 @@ export const useCommandStore = create<CommandStackState>((set, get) => ({
     },
 
     clearCommands: () => {
-        set({ commands: [], activePath: [] })
+        set({ 
+            commands: [], 
+            activePath: [],
+            isBuildingLoop: false,
+            buildingLoopPath: null,
+            insertIndex: null,
+            collapsedLoops: new Set<string>()
+        })
     }
 }))

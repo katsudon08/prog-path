@@ -30,6 +30,7 @@ interface MazeView3DWidgetProps {
     currentCommandIndex: number;
     flattenedCommands: Command[];
     children?: React.ReactNode;
+    speed?: number;
 }
 
 /**
@@ -46,6 +47,7 @@ export function MazeView3DWidget({
     currentCommandIndex,
     flattenedCommands,
     children,
+    speed,
 }: MazeView3DWidgetProps) {
     const [renderingZ, setRenderingZ] = useState(robotState.layer);
 
@@ -205,6 +207,7 @@ export function MazeView3DWidget({
                             isFalling={animationState === 'falling'}
                             isScanning={animationState === 'scanning'}
                             isFilling={animationState === 'filling'}
+                            speed={speed}
                         />
                         <Preload all />
                     </Suspense>

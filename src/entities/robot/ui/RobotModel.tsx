@@ -28,6 +28,8 @@ interface RobotModelProps {
     isFilling?: boolean;
     /** スキャン先の方向 */
     scanDirection?: DirectionVector;
+    /** シミュレーション速度 (ms) */
+    speed?: number;
 }
 
 /**
@@ -48,6 +50,7 @@ export function RobotModel({
     isCollecting = false,
     isFilling = false,
     scanDirection,
+    speed = 500, // デフォルト500ms
 }: RobotModelProps) {
     const { scene } = useGLTF("/robot.gltf");
     // シーンをクローンしてマテリアルを独立させる（キャッシュ汚染防止）
@@ -58,7 +61,7 @@ export function RobotModel({
                 node.material = Array.isArray(node.material)
                     ? node.material.map(m => m.clone())
                     : node.material.clone();
-                
+
                 // 元のマテリアル設定を保存（リセット時に復元するため）
                 const saveOriginalState = (m: THREE.Material) => {
                     m.userData.originalTransparent = m.transparent;
@@ -214,10 +217,10 @@ export function RobotModel({
     // useFrame - アニメーション処理
     useFrame((_, delta) => {
         if (!modelRef.current) return;
-        
+
         // Debug Log (throttled?) - Maybe not every frame, but let's see phases.
         if (isTeleporting) {
-             // console.log('[RobotModel] Teleport Phase:', teleportPhase);
+            // console.log('[RobotModel] Teleport Phase:', teleportPhase);
         }
 
         const elapsed = performance.now() - animationStartTimeRef.current;
@@ -267,7 +270,7 @@ export function RobotModel({
         if (isFilling) {
             const fillDuration = 500;
             const fillingProgress = Math.min((performance.now() - fillingStartTimeRef.current) / fillDuration, 1);
-            
+
             // Refを使用して直接更新（再レンダリング防止）
             if (fillingOuterMeshRef.current) {
                 fillingOuterMeshRef.current.scale.setScalar(fillingProgress);
@@ -339,10 +342,10 @@ export function RobotModel({
                     const phase5Progress = Math.min(teleportElapsed / phase5Duration, 1);
                     teleportYOffsetRef.current = 0.3 * (1 - phase5Progress);
                     if (phase5Progress >= 1) {
-                         // アニメーション完了後も、isTeleportingがfalseになるまでこの状態を維持
-                         // useEffect側でCleanUpされるのを待つ
-                         teleportYOffsetRef.current = 0;
-                         teleportOpacityRef.current = 1.0;
+                        // アニメーション完了後も、isTeleportingがfalseになるまでこの状態を維持
+                        // useEffect側でCleanUpされるのを待つ
+                        teleportYOffsetRef.current = 0;
+                        teleportOpacityRef.current = 1.0;
                     }
                     break;
                 }
@@ -365,29 +368,58 @@ export function RobotModel({
                 }
             });
 
-            modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
+            // テレポート中の回転
+            const durationS = speed / 1000;
+            const rotationSpeed = (Math.PI / 2) / (durationS * 0.8);
+            modelRef.current.quaternion.rotateTowards(targetQuaternion, delta * rotationSpeed);
             return;
         }
 
-        // 通常の移動処理
-        const moveSpeed = 1.5; // 500ms内に1タイル(0.5単位)移動できる速度
+        // 通常の移動・回転処理
+        // speed (ms) の 80% くらいで移動完了するように計算
+        const durationS = speed / 1000;
+        // 少なくとも0.1秒は確保
+        const safeDuration = Math.max(durationS, 0.1);
+
+        const moveSpeed = tileSize / (safeDuration * 0.8);
+        const rotationSpeed = (Math.PI / 2) / (safeDuration * 0.8);
+
         const distance = modelRef.current.position.distanceTo(targetPosition);
 
-        // animationStateがidleまたは距離が大きい場合（リセット時など）は瞬間移動
-        if (animationState === 'idle' || distance > tileSize * 1.5) {
+        // リセット時や大きく離れている場合、またはアイドル時は瞬時に移動・回転
+        // ただし、テレポート中（isTeleporting = true）の場合は除外する
+        if ((animationState === 'idle' || distance > tileSize * 2) && !isTeleporting) {
             modelRef.current.position.copy(targetPosition);
             modelRef.current.quaternion.copy(targetQuaternion);
-        } else if (distance > 0.01) {
+            return;
+        }
+
+        // 位置補間
+        if (distance > 0.005) {
+            // 移動が必要
             const maxMove = moveSpeed * delta;
+            
             const moveAmount = Math.min(distance, maxMove);
             const direction = new THREE.Vector3()
                 .subVectors(targetPosition, modelRef.current.position)
                 .normalize();
+            
+            // Y軸は固定
+            direction.y = 0;
+            
             modelRef.current.position.add(direction.multiplyScalar(moveAmount));
-            modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
         } else {
-            modelRef.current.position.copy(targetPosition);
-            modelRef.current.quaternion.slerp(targetQuaternion, delta * 8.0);
+            // ほぼ到達したら位置を合わせる
+            modelRef.current.position.x = targetPosition.x;
+            modelRef.current.position.z = targetPosition.z;
+        }
+
+        // 回転補間 (rotateTowardsで定速回転)
+        const angleDiff = modelRef.current.quaternion.angleTo(targetQuaternion);
+        if (angleDiff > 0.005) {
+            modelRef.current.quaternion.rotateTowards(targetQuaternion, delta * rotationSpeed);
+        } else {
+            modelRef.current.quaternion.copy(targetQuaternion);
         }
     });
 
@@ -426,52 +458,52 @@ export function RobotModel({
                 </>
             )}
 
-             {/* 穴埋めエフェクト（光球：穴の上で徐々に光る） */}
-             <group position={frontTargetPos} visible={isFilling} ref={fillingGroupRef}>
-                    {/* 光球本体（淡い外側） */}
-                    <mesh ref={fillingOuterMeshRef} renderOrder={1}>
-                        <sphereGeometry args={[0.25, 32, 32]} />
-                        <meshBasicMaterial 
-                            color="#00aaff" 
-                            transparent 
-                            opacity={0} 
-                            depthWrite={false}
-                        />
-                    </mesh>
-                    {/* 内側のコア（強烈な光） */}
-                    <mesh ref={fillingInnerMeshRef} renderOrder={2}>
-                        <sphereGeometry args={[0.11, 32, 32]} />
-                        <meshStandardMaterial 
-                            color="#94c2ff"
-                            emissive="#94c2ff"
-                            emissiveIntensity={10.0}
-                            toneMapped={false}
-                            transparent 
-                            opacity={0} 
-                            depthWrite={false}
-                        />
-                    </mesh>
-                    {/* 発光エフェクト */}
-                    <pointLight 
-                        ref={fillingLightRef}
-                        color="#0088ff" 
-                        intensity={0} 
-                        distance={3} 
+            {/* 穴埋めエフェクト（光球：穴の上で徐々に光る） */}
+            <group position={frontTargetPos} visible={isFilling} ref={fillingGroupRef}>
+                {/* 光球本体（淡い外側） */}
+                <mesh ref={fillingOuterMeshRef} renderOrder={1}>
+                    <sphereGeometry args={[0.25, 32, 32]} />
+                    <meshBasicMaterial
+                        color="#00aaff"
+                        transparent
+                        opacity={0}
+                        depthWrite={false}
                     />
-                    {/* 床面の輝き */}
-                    <mesh 
-                        ref={fillingFloorMeshRef}
-                        rotation={[-Math.PI / 2, 0, 0]} 
-                        position={[0, -0.15, 0]} // 少し下げる
-                    >
-                        <circleGeometry args={[0.3, 32]} />
-                        <meshBasicMaterial 
-                            color="#00aaff" 
-                            transparent 
-                            opacity={0} 
-                        />
-                    </mesh>
-                </group>
+                </mesh>
+                {/* 内側のコア（強烈な光） */}
+                <mesh ref={fillingInnerMeshRef} renderOrder={2}>
+                    <sphereGeometry args={[0.11, 32, 32]} />
+                    <meshStandardMaterial
+                        color="#94c2ff"
+                        emissive="#94c2ff"
+                        emissiveIntensity={10.0}
+                        toneMapped={false}
+                        transparent
+                        opacity={0}
+                        depthWrite={false}
+                    />
+                </mesh>
+                {/* 発光エフェクト */}
+                <pointLight
+                    ref={fillingLightRef}
+                    color="#0088ff"
+                    intensity={0}
+                    distance={3}
+                />
+                {/* 床面の輝き */}
+                <mesh
+                    ref={fillingFloorMeshRef}
+                    rotation={[-Math.PI / 2, 0, 0]}
+                    position={[0, -0.15, 0]} // 少し下げる
+                >
+                    <circleGeometry args={[0.3, 32]} />
+                    <meshBasicMaterial
+                        color="#00aaff"
+                        transparent
+                        opacity={0}
+                    />
+                </mesh>
+            </group>
         </group>
     );
 }

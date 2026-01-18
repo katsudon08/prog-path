@@ -29,7 +29,7 @@ export function ARPage(): React.ReactElement {
     const { commands, clearCommands } = useCommandStore();
     const { addCommandToActivePath } = useCommandBuilder();
     const { addToast } = useToast();
-    const { status, currentPath, setInitialMazeData, forwardStepCount, resultDetails, setResultDetails } = useSimulationStore();
+    const { status, currentPath, setInitialMazeData, forwardStepCount, resultDetails, setResultDetails, speed } = useSimulationStore();
     const { run, pause, reset } = useSimulationRunner();
 
     // Debug: Monitor selectedMaze changes
@@ -189,6 +189,7 @@ export function ARPage(): React.ReactElement {
             detectedCommandName={detectedCommandName}
             currentCommandIndex={currentCommandIndex}
             flattenedCommands={flattenedCommands}
+            speed={speed}
         >
             {/* 結果オーバーレイ */}
             {resultDetails && (status === 'finished' || status === 'error') && (

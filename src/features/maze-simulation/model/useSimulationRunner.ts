@@ -5,7 +5,6 @@ import { useRobotStore, moveForward, turnRight, turnLeft } from '@/src/entities/
 import { useMazeStore, findStartPosition } from '@/src/entities/maze'
 import { useCommandStore } from '../../command-management'
 import { useSimulationStore } from './useSimulationStore'
-import { isWalkable } from '../lib/collision'
 import { getCommandByPath, getNextPath } from '../lib/tree-utils'
 import type { MazeData, TileType } from '@/src/entities/maze'
 import {
@@ -86,82 +85,49 @@ export function useSimulationRunner() {
     const { selectedMaze, selectMaze, updateMaze } = useMazeStore()
 
     const abortControllerRef = useRef<AbortController | null>(null)
+    const runIdRef = useRef<number>(0)
+
+    type MapEvent = 
+        | { type: 'goal'; message: string }
+        | { type: 'hole'; message: string }
+        | { type: 'item'; message: string }
+        | { type: 'teleportUp'; targetLayer: number; message: string }
+        | { type: 'teleportDown'; targetLayer: number; message: string }
+        | null
 
     /**
-     * マップイベントを処理（移動直後）
+     * マップイベント判定（副作用なし）
      */
-    const handleMapEvent = useCallback((maze: MazeData, x: number, y: number, layer: number): ActionResult | null => {
+    const detectMapEvent = useCallback((maze: MazeData, x: number, y: number, layer: number): MapEvent => {
         const tile = getTile(maze, x, y, layer)
-        console.log('[handleMapEvent] Check:', x, y, layer, 'Tile:', tile)
         if (!tile) return null
 
-        switch (tile) {
-            case 'goal':
-                // マップ上に残っているカギがあるかチェック
-                const remainingKeyCount = maze.layers.reduce((acc, layer) => 
-                    acc + layer.reduce((rAcc, row) => 
-                        rAcc + row.reduce((cAcc, cell) => cAcc + (cell === 'key' ? 1 : 0), 0), 0), 0)
-
-                if (remainingKeyCount > 0) {
-                    setResultDetails({ type: 'failure', reason: 'goal_missing_keys', remainingKeys: remainingKeyCount })
-                    return createErrorResult(`全てのカギを集めてください！(残り${remainingKeyCount}個)`)
-                }
-
-                setResultDetails({ 
-                    type: 'success', 
-                    reason: 'goal_success', 
-                    stepCount: useSimulationStore.getState().forwardStepCount 
-                })
-                setStatus('finished')
-                return createSuccessResult('ゴールに到達しました！🎉')
-
-            case 'hole':
-                // ここではまだエラー確定させず、移動完了後に処理するためにWait付きのエラー結果を返す
-                setResultDetails({ type: 'failure', reason: 'hole_fall' })
-                return createErrorResult('穴に落ちました', undefined, 1000)
-
-            case 'key': {
-                // 鍵を取得
-                const newState = { ...useRobotStore.getState().robotState, hasKey: true }
-                updateRobotState(newState)
-                setAnimationState('collecting')
-                // タイルを床に書き換え
-                const updatedMaze = setTile(maze, x, y, layer, 'floor')
-                selectMaze(updatedMaze)
-
-                // 残りのカギの数をカウント
-                const remainingKeys = updatedMaze.layers.reduce((acc, l) => 
-                    acc + l.reduce((rAcc, r) => 
-                        rAcc + r.reduce((cAcc, c) => cAcc + (c === 'key' ? 1 : 0), 0), 0), 0)
-                
-                // トースト通知
-                useToast.getState().addToast(createSuccessResult(`カギを取得しました 🔑 (残り${remainingKeys}個)`))
-
-                return null // 処理継続
-            }
-
-            case 'teleportUp':
-                if (layer < maze.layers.length - 1) {
-                    moveTo(x, y, layer + 1)
-                    setAnimationState('teleporting')
-                    // テレポートアニメーション待機 (1000ms)
-                    return createSuccessResult('テレポートしました', 1000)
-                }
-                return null
-
-            case 'teleportDown':
-                if (layer > 0) {
-                    moveTo(x, y, layer - 1)
-                    setAnimationState('teleporting')
-                    // テレポートアニメーション待機 (1000ms)
-                    return createSuccessResult('テレポートしました', 1000)
-                }
-                return null
-
-            default:
-                return null
+        if (tile === 'goal') {
+            return { type: 'goal', message: 'ゴールに到達しました！' }
         }
-    }, [setStatus, setError, setAnimationState, updateRobotState, selectMaze, moveTo])
+
+        if (tile === 'hole') {
+            return { type: 'hole', message: '穴に落ちてしまいました...' }
+        }
+
+        if (tile === 'key') {
+            return { type: 'item', message: 'カギを取得しました' }
+        }
+        
+        if (tile === 'teleportUp') {
+             if (layer < maze.layers.length - 1) {
+                 return { type: 'teleportUp', targetLayer: layer + 1, message: 'テレポートしました' }
+             }
+        }
+
+        if (tile === 'teleportDown') {
+            if (layer > 0) {
+                return { type: 'teleportDown', targetLayer: layer - 1, message: 'テレポートしました' }
+            }
+        }
+
+        return null
+    }, [])
 
     /**
      * 1ステップ実行
@@ -210,39 +176,84 @@ export function useSimulationRunner() {
                         moveTo(nextPos.x, nextPos.y, latestRobotState.layer)
 
                         // マップイベント判定
-                        const eventResult = handleMapEvent(latestMaze, nextPos.x, nextPos.y, latestRobotState.layer)
-                        if (eventResult && !eventResult.success) {
-                            // 移動アニメーションの完了を待つ（穴の上まで移動させるため）
-                            await new Promise(resolve => setTimeout(resolve, speed))
+                        const event = detectMapEvent(latestMaze, nextPos.x, nextPos.y, latestRobotState.layer)
+                        
+                        // まずは通常の移動アニメーション分待機
+                        await new Promise(resolve => setTimeout(resolve, speed))
 
-                             if (eventResult.wait) {
-                                // 落下アニメーション開始
-                                setAnimationState('falling')
-                                setStatus('error')
-                                setError(eventResult.message)
-                                // 落下アニメーションの完了を待つ
-                                await new Promise(resolve => setTimeout(resolve, eventResult.wait))
-                             } else {
-                                setStatus('error')
-                                setError(eventResult.message)
-                             }
-                            return eventResult
+                        if (event) {
+                            switch (event.type) {
+                                case 'goal':
+                                    // マップ上に残っているカギがあるかチェック
+                                    const remainingKeyCount = latestMaze.layers.reduce((acc, layer) => 
+                                        acc + layer.reduce((rAcc, row) => 
+                                            rAcc + row.reduce((cAcc, cell) => cAcc + (cell === 'key' ? 1 : 0), 0), 0), 0)
+
+                                    if (remainingKeyCount > 0) {
+                                        setResultDetails({ type: 'failure', reason: 'goal_missing_keys', remainingKeys: remainingKeyCount })
+                                        return createErrorResult(`全てのカギを集めてください！(残り${remainingKeyCount}個)`)
+                                    }
+
+                                    setResultDetails({ 
+                                        type: 'success', 
+                                        reason: 'goal_success', 
+                                        stepCount: useSimulationStore.getState().forwardStepCount 
+                                    })
+                                    setStatus('finished')
+                                    return createSuccessResult('ゴールに到達しました！🎉')
+
+                                case 'hole':
+                                    setAnimationState('falling')
+                                    // 落下アニメーション待機
+                                    await new Promise(resolve => setTimeout(resolve, 1000))
+                                    setResultDetails({ type: 'failure', reason: 'hole_fall' })
+                                    return createErrorResult(event.message)
+
+                                case 'item': { // Key
+                                    const newState = { ...useRobotStore.getState().robotState, hasKey: true }
+                                    updateRobotState(newState)
+                                    setAnimationState('collecting')
+                                    
+                                    const updatedMaze = setTile(latestMaze, nextPos.x, nextPos.y, latestRobotState.layer, 'floor')
+                                    selectMaze(updatedMaze)
+
+                                    const remainingKeys = updatedMaze.layers.reduce((acc, l) => 
+                                        acc + l.reduce((rAcc, r) => 
+                                            rAcc + r.reduce((cAcc, c) => cAcc + (c === 'key' ? 1 : 0), 0), 0), 0)
+                                    
+                                    useToast.getState().addToast(createSuccessResult(`カギを取得しました 🔑 (残り${remainingKeys}個)`))
+                                    // カギ取得アニメーション待機（少し）
+                                    await new Promise(resolve => setTimeout(resolve, 500))
+                                    break;
+                                }
+
+                                case 'teleportUp':
+                                case 'teleportDown': {
+                                    setAnimationState('teleporting')
+                                    moveTo(nextPos.x, nextPos.y, event.targetLayer)
+                                    // テレポートアニメーション待機
+                                    await new Promise(resolve => setTimeout(resolve, 1000))
+                                    // return createSuccessResult(event.message) // OLD
+                                    break // continue to nextPath logic
+                                }
+                            }
                         }
                         
-                        // 待機時間が指定されている場合は待機
-                        if (eventResult?.wait) {
-                            await new Promise(resolve => setTimeout(resolve, eventResult.wait))
+                        // イベントがない、または継続可能なイベント（カギ）の場合は終了
+                        if (!event || event.type === 'item') {
+                             // 結果を保存してswitchを抜ける（この後パス更新へ）
+                             break
                         }
-
-                        if (eventResult && eventResult.success && eventResult.type === 'success' && eventResult.message.includes('ゴール')) {
-                            return eventResult
-                        }
+                        
+                         // ここには到達しないはず
+                         break
                     } else {
                         const reason = moveCheck === 'out_of_bounds' ? 'out_of_bounds' : 'wall_collision'
                         const msg = reason === 'out_of_bounds' ? '迷路の外にはみ出しました' : '壁に衝突しました'
                         setResultDetails({ type: 'failure', reason })
                         throw new Error(msg)
                     }
+                    // break is implicit due to block end, but good for clarity
                     break
                 }
 
@@ -250,6 +261,7 @@ export function useSimulationRunner() {
                     const nextDir = turnRight(latestRobotState.direction)
                     rotateTo(nextDir)
                     setAnimationState('turning')
+                    await new Promise(resolve => setTimeout(resolve, speed))
                     break
                 }
 
@@ -257,6 +269,7 @@ export function useSimulationRunner() {
                     const nextDir = turnLeft(latestRobotState.direction)
                     rotateTo(nextDir)
                     setAnimationState('turning')
+                    await new Promise(resolve => setTimeout(resolve, speed))
                     break
                 }
 
@@ -278,13 +291,15 @@ export function useSimulationRunner() {
                         console.log('[ifHole] Filling hole at', frontPos.x, frontPos.y)
                         // 穴を埋める（アニメーション待機付き）
                         setAnimationState('filling')
-                        await new Promise(resolve => setTimeout(resolve, speed / 2))
+                        await new Promise(resolve => setTimeout(resolve, 1000))
                         const updatedMaze = setTile(latestMaze, frontPos.x, frontPos.y, latestRobotState.layer, 'floor')
                         console.log('[ifHole] Updated maze tile:', getTile(updatedMaze, frontPos.x, frontPos.y, latestRobotState.layer))
                         selectMaze(updatedMaze)
                         console.log('[ifHole] selectMaze called')
                     } else {
                         console.log('[ifHole] No hole at front, skipping')
+                        // 穴がない場合もチェック動作として少し待つ
+                        await new Promise(resolve => setTimeout(resolve, speed / 2))
                     }
                     break
                 }
@@ -300,8 +315,8 @@ export function useSimulationRunner() {
             return createErrorResult(msg)
         }
 
-        // ロボット移動アニメーション完了を待つ
-        await new Promise(resolve => setTimeout(resolve, speed))
+        // Generic wait removed
+        // await new Promise(resolve => setTimeout(resolve, speed))
 
         // 次のパスを計算
         const { nextPath, shouldResetPath } = getNextPath(latestCommands, targetPath, latestLoopCounters, incrementLoopCounter, resetLoopCounter)
@@ -311,11 +326,14 @@ export function useSimulationRunner() {
             resetLoopCounter(shouldResetPath)
         }
 
+        console.log('[Step End] Next Path:', nextPath)
+
         if (nextPath) {
             setCurrentPath(nextPath)
             setAnimationState('idle')
             return createSuccessResult("次のコマンドへ")
         } else {
+            console.log('[Step End] No next path. Finishing.')
             setStatus('finished')
             setResultDetails({ type: 'failure', reason: 'commands_exhausted' })
             setAnimationState('idle')
@@ -333,7 +351,7 @@ export function useSimulationRunner() {
         incrementLoopCounter,
         resetLoopCounter,
         setInitialMazeData,
-        handleMapEvent,
+        detectMapEvent,
         selectMaze
     ])
 
@@ -341,6 +359,14 @@ export function useSimulationRunner() {
      * 実行開始
      */
     const run = useCallback(async () => {
+        // Run IDをインクリメント（これで以前の待機中の処理はすべて無効になる）
+        const currentRunId = ++runIdRef.current
+
+        // すでに実行中の場合は中断
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+        }
+
         const mazeStore = useMazeStore.getState()
         const currentMaze = mazeStore.selectedMaze
         const simStore = useSimulationStore.getState()
@@ -374,24 +400,36 @@ export function useSimulationRunner() {
             })
         }
 
-        // スタート位置リセット後に0.5秒待機
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // スタート位置リセット後に1秒待機
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        // IDチェック: 待機中に新しい実行がリクエストされていたら、この処理は破棄
+        if (runIdRef.current !== currentRunId) {
+            console.log('Run aborted due to new run request', currentRunId, runIdRef.current)
+            return
+        }
 
         // 最初のコマンドのハイライトを設定
         setCurrentPath([0])
-
+        
         const controller = new AbortController()
         abortControllerRef.current = controller
 
         try {
             while (!controller.signal.aborted) {
+                // ループ中もRun IDチェック（念のため）
+                if (runIdRef.current !== currentRunId) break
+
                 const result = await step()
 
-                // ステップ間の微小な待機（状態更新の伝播用）
-                // これがないと、idle -> moving の遷移が速すぎてReactが検知できない場合がある
-                await new Promise(resolve => setTimeout(resolve, 100))
+                // ステップ間の待機（ユーザー要望により少し長めに）
+                await new Promise(resolve => setTimeout(resolve, 300))
 
                 if (!result.success || result.type === 'info') {
+                    if (!result.success && result.type === 'error') {
+                        setError(result.message)
+                        setStatus('error')
+                    }
                     break
                 }
 
@@ -404,7 +442,9 @@ export function useSimulationRunner() {
         } catch (e) {
             console.error(e)
         } finally {
-            abortControllerRef.current = null
+            if (abortControllerRef.current === controller) {
+                abortControllerRef.current = null
+            }
         }
     }, [step, speed, setStatus, setError, setInitialMazeData, setCurrentPath, updateRobotState])
 
