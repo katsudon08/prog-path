@@ -1,136 +1,186 @@
-![ProgPath](docs/img/header/header.png)
+<div id="top"/>
 
-<br/>
+![ProgPath](docs/img/header/prog-path.png)
+
+<h1 align="center">🚀 ProgPath</h1>
+
+<h3 align="center">「楽しみながら学ぶ」を形にする、小学生向けプログラミング教育導入アプリ</h3>
+
+<h2 align="center">使用技術一覧</h2>
+<!-- シールド一覧 -->
+<p align="center">
+  <a href="https://skillicons.dev">
+    <img src="https://skillicons.dev/icons?i=html,css,js,ts,react,nextjs,tailwindcss,threejs,electron,vercel,git,github" />
+  </a>
+</p>
 
 ## サービスのURL
-オフライン版をダウンロードしてプレイすることも可能です
+オフライン版をダウンロードしてプレイすることも可能です。
 
 > https://prog-path.vercel.app/
 
 <br/>
 
 ## サービス内で利用するQRコード
-**前に進むコマンド** <br/>
+**前にすすむコマンド** <br/>
 > ![qr-forward](docs/img/qr/qr-forward.png)
 
-**右に曲がるコマンド** <br/>
+**右にまがるコマンド** <br/>
 > ![qr-turn-right](docs/img/qr/qr-turn-right.png)
 
-**左に曲がるコマンド** <br/>
+**左にまがるコマンド** <br/>
 > ![qr-turn-left](docs/img/qr/qr-turn-left.png)
 
 **ループコマンド** <br/>
 > ![qr-loop](docs/img/qr/qr-loop.png)
 
-**穴を埋める** <br/>
+**穴をうめる** <br/>
 > ![qr-if-hole](docs/img/qr/qr-if-hole.png)
 
-<br/>
+## サービス概要
 
-## サービスについて
-### サービス概要
-本アプリケーションは、 **「楽しみながら学ぶ」** をコンセプトにした、小学校高学年向けのプログラミング教育導入アプリです。
-以下の機能を提供しています。
+本アプリケーションは、小学校高学年をターゲットとしたプログラミング教育導入アプリです。物理的なQRコードカードをカメラで読み取ることで、画面内の3Dロボットを操作し、迷路のゴールを目指します。
 
-> **基本機能** <br/>
+### 開発の背景と研究の目的
+**「勉強」から「遊び」へ**
+> プログラミングを「堅苦しい座学」として捉えるのではなく、遊びの中で「楽しい」という原体験を得られるアプリケーションを目指しました。
 > 
-> 物理的なカード（QRコード）をカメラで読み込むことにより、画面内の3Dロボットに命令を出し、迷路のゴールを目指します。
+> 小学校高学年の児童が夢中でプレイできるよう、ゲーム性を重視した設計を行っています。
 
-> **クリエイティブ機能** <br/>
+**技術的転換による操作性と没入感の向上**
+> 研究の引き継ぎ段階では「2Dマップ・ARマーカー方式」で実装されていましたが、教育現場での認識精度や動作の安定性を考慮し、「3Dマップ・QRコード方式」へと大幅に転換しました。 
 > 
-> 既存のコースを攻略するだけでなく、ユーザー自身が迷路を自由に作成できる機能を搭載し、自由な発想を促します。
-
-> **プラットフォーム** <br/>
-> 
-> 学校現場と家庭、双方での利用を想定したクロスプラットフォーム設計（Web版・デスクトップ版）です。
-
-### ターゲットと解決する課題
-> **ターゲット** <br/>
-> 
-> 小学校高学年の児童
-
-> **解決する課題** <br/>
-> 
-> 「勉強」の堅苦しさを排除し、遊びの中で **「プログラミング＝楽しい」** という原体験を提供します。
-
-### 技術的な工夫とこだわり
-同研究室の先輩から引き継いだ初期バージョン（2次元マップ（python）・ARマーカー方式）から、実用性とエンターテインメント性を高めるために以下の点において大幅なアップデートを行いました。
-
-> **UXの向上（3D化）** <br/>
-> 
-> 従来の2次元アプリから、3Dロボットとアニメーションを用いたリッチな表現へと進化させ、児童の興味・関心を惹きつけるUI/UXを実現しました。
-
-> **ネットワーク環境への配慮** <br/>
->
-> 教育現場においてはデスクトップ版、家庭においてはWeb版を用いて、場所を選ばずにシームレスに利用できる環境を構築しました。
-
-> **認識技術の転換（ARからQRへ）**
-> 
-> 開発過程でARマーカーのReactへの移行に技術的な課題が生じましたが、代替案としてQRコードを採用しました。 <br/>
-結果として、ARマーカーよりも読み込み精度が向上し、より快適な操作性を実現することができました。
-
-### 開発への想い・モチベーション
-この研究開発の根底にあるのは、 **「ユーザー（児童）の笑顔」** です。 実際に開発したアプリを使って授業を行い、生徒一人ひとりからアンケートを取りました。
-「楽しかった」「またやりたい」という肯定的な言葉や、夢中でプレイする姿が、開発を続ける最も強いモチベーションとなりました。
-
-<br/>
+> このアップデートにより、ARマーカーよりも高い読み取り精度を確保しつつ、3Dモデルによるリッチな視覚表現を実現しました。結果として、児童がより直感的に、かつストレスなく操作できる環境を構築しています。
 
 ## アプリケーションのイメージ
-![アプリケーションのイメージ](docs/img/app-view/app-view.gif)
 
-<br/>
+| ホーム画面 | 迷路作成・編集画面 |
+| :---: | :---: |
+| ![home](docs/img/app-view/home.png) | ![maze-editor](docs/img/app-view/maze-editor.png) |
+| これまでに作った迷路を見たり、新しい迷路を作り始めたりする画面です。 | 画面をタップしてブロックを置くだけで、自分だけのオリジナル迷路をカンタンに作れます。 |
 
-## 機能一覧
-| ホーム画面 |
-| --- |
-| ![ホーム画面](docs/img/app-view/home.png) |
-| 迷路作成、読み込み機能、迷路のプレビューとフォルダ機能を実装しました。 |
+| 迷路実行画面 | ダウンロード画面 |
+| :---: | :---: |
+| ![ar](docs/img/app-view/ar.png) | ![download](docs/img/app-view/download.png) |
+| カメラに「コマンドカード（QRコード）」をかざして、ロボットをゴールまで導いてあげましょう。 | インターネットがない場所でも遊べるように、アプリをパソコンにインストールすることができます。 |
 
-| 迷路共有モーダルウィンドウ | 迷路読み込みモーダルウィンドウ |
-| --- | --- |
-| ![迷路共有モーダルウィンドウ](docs/img/app-view/maze-share.png) | ![迷路読み込みモーダルウィンドウ](docs/img/app-view/maze-scan.png) |
-| 迷路情報をQRコードにエンコードして共有する機能を実装しました。 | QRコードを読み込むことで迷路を読み込む機能を実装しました。 |
+## 主な機能
 
-| 迷路作成画面 | 迷路編集画面 |
-| --- | --- |
-| ![迷路作成画面](docs/img/app-view/maze-create.png) | ![迷路編集画面](docs/img/app-view/maze-edit.png) |
-| 迷路を作成する機能を実装しました。 | 迷路を編集する機能を実装しました。 |
+### 🎮 迷路実行（AR体験）
+- 「前に進む」、「右に曲がる」などのQRコードをカメラにかざすことで、直感的にプログラムを構築できます。
+- Three.jsを用いた3Dロボットとアニメーションにより、児童の興味を惹きつけるUXを提供します。
+- プログラミングの基礎である繰り返し処理（Loop）も物理カードで実装可能です。
 
-| 迷路実行画面 | デスクトップ版ダウンロード画面 |
-| --- | --- |
-| ![迷路実行画面](docs/img/app-view/maze-play.png) | ![デスクトップ版ダウンロード画面](docs/img/app-view/download.png) |
-| 迷路を実行する機能を実装しました。 | デスクトップ版をダウンロードする機能を実装しました。 |
+### 🧩 迷路作成・共有
+- 5×5から10×10までのサイズ変更や、最大5階建ての立体的な迷路を作成できます。
+- 作成した迷路データはQRコードにエンコードして書き出し、他のユーザーと簡単に共有できます。
 
-<br/>
+### 📂 管理機能
+- 作成した迷路をフォルダごとに分類し、整理・保存することが可能です。
 
-## 使用技術
-| Category | Technology Stack |
-| --- | --- |
-| Frontend | Next.js, TypeScript |
-| Styling | Tailwind CSS, tailwindcss-animate |
-| UI Component | Radix UI, Lucide React, cmdk |
-| 3D | three.js, react-three/fiber, react-three/drei |
-| QR | jsqr, qrcode.react |
-| desktop | electron, electron-builder, electron-serve |
-| Deployment | Vercel |
+### 💻 デスクトップ版
+- Electronを用いたデスクトップアプリケーションとして提供しています。
+- Web版と同様の機能を利用できます。
 
-<br/>
+## システムアーキテクチャ
 
-## システム構成図
-![システム構成図](docs/img/system-architecture/system-architecture.png)
+### FSDアーキテクチャの採用
 
+![FSD](docs/img/system-architecture/fsd.png)
 
-**構成の特徴:**
-- **クロスプラットフォーム**: Web版（Vercel）とデスクトップ版（Electron）の両方をサポート
-- **物理的インタラクション**: QRコードカードをカメラで読み取り、直感的な操作を実現
-- **リッチな3D体験**: Three.jsによる3Dロボットと迷路のビジュアライゼーション
-- **オフライン対応**: デスクトップ版ではネットワーク不要で動作
-- **データ共有**: 作成した迷路をQRコードで共有可能
+プロジェクトの保守性とColocationを高めるため、フロントエンドの設計手法として **Feature Sliced Architecture (FSD)** を採用しています。
 
-<br/>
+### システム構成図
 
-## 今後の展望
-- 小学校で使用する実機において、動作が重い・バグが頻発しているので、より軽量なアプリケーションを目指します。
-- プログラミング教育を意識して、最小のコマンド数でクリアを目指すための仕組みづくりを行います。
-- 迷路のQRエンコードを圧縮して、より短いQRコードを生成するようにします。
-- 本アプリの保守性を高めるために、インフラやディレクトリ設計、コード品質を向上させます。
+```mermaid
+graph TB
+    subgraph "User Environment"
+        User["👤 ユーザー (児童)"]
+        QRCards["📄 物理命令カード <br> (QRコード)"]
+        Camera["📹 カメラデバイス"]
+    end
+
+    subgraph "Client Application"
+        subgraph "Cross-Platform Layer"
+            Web["🌐 Web App <br> (Next.js / Vercel)"]
+            Desktop["💻 Desktop App <br> (Electron)"]
+        end
+
+        subgraph "Frontend"
+            UI["🎨 UI Components <br> (Radix UI / Tailwind CSS)"]
+            Renderer["🎮 3D Engine <br> (Three.js / R3F)"]
+        end
+
+        subgraph "Core Logic"
+            QRScanner["🔍 QR Recognition <br> (jsqr)"]
+            GameLogic["🧠 Maze Logic <br>  🤖 Robot Control"]
+            State["💾 State Management <br> (Zustand)"]
+            Storage["📁 Browser Storage <br> (LocalStorage)"]
+        end
+    end
+
+    subgraph "Deployment & Distribution"
+        Vercel["☁️ Vercel"]
+        GitHub["📦 GitHub Releases"]
+    end
+
+    %% Data Flow
+    User -->|カード提示| Camera
+    Camera -->|画像ストリーム| QRScanner
+    QRScanner -->|命令変換| GameLogic
+    GameLogic -->|状態更新| State
+    State -->|描画命令| Renderer
+    Renderer -->|3D表示| UI
+    GameLogic -->|永続化| Storage
+    
+    Web --- Vercel
+    Desktop --- GitHub
+
+    style User fill:#e1f5ff
+    style QRCards fill:#fff3cd
+    style GameLogic fill:#d4edda
+    style Renderer fill:#f8d7da
+```
+
+## セットアップ手順
+
+### 必要環境
+- Node.js
+- npm
+
+### インストール
+1. リポジトリをクローンします。
+```bash
+git clone https://github.com/your-username/prog-path.git
+cd prog-path
+```
+
+2. 依存関係をインストールします。
+```bash
+npm run install
+```
+
+### 実行方法
+
+**Web版**
+```bash
+npm run dev
+```
+
+**デスクトップ版**
+```bash
+npm run electron:dev
+```
+
+**ビルド**
+```bash
+# Web版のビルド
+npm run build
+
+# デスクトップ版のパッケージング
+npm run electron:build
+```
+
+<p align="center">
+    (<a href="#top">トップへ</a>)
+</p>
