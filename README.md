@@ -78,7 +78,7 @@
 - プログラミングの基礎である繰り返し処理（Loop）も物理カードで実装可能です。
 
 ### 🧩 迷路作成・共有
-- 5×5から10×10までのサイズ変更や、最大5階建ての立体的な迷路を作成できます。
+- 5×5から10×10までのサイズ変更や、最大5階の立体的な迷路を作成できます。
 - 作成した迷路データはQRコードにエンコードして書き出し、他のユーザーと簡単に共有できます。
 
 ### 📂 管理機能
@@ -98,55 +98,7 @@
 
 ### システム構成図
 
-```mermaid
-graph TB
-    subgraph "User Environment"
-        User["👤 ユーザー (児童)"]
-        QRCards["📄 物理命令カード <br> (QRコード)"]
-        Camera["📹 カメラデバイス"]
-    end
-
-    subgraph "Client Application"
-        subgraph "Cross-Platform Layer"
-            Web["🌐 Web App <br> (Next.js / Vercel)"]
-            Desktop["💻 Desktop App <br> (Electron)"]
-        end
-
-        subgraph "Frontend"
-            UI["🎨 UI Components <br> (Radix UI / Tailwind CSS)"]
-            Renderer["🎮 3D Engine <br> (Three.js / R3F)"]
-        end
-
-        subgraph "Core Logic"
-            QRScanner["🔍 QR Recognition <br> (jsqr)"]
-            GameLogic["🧠 Maze Logic <br>  🤖 Robot Control"]
-            State["💾 State Management <br> (Zustand)"]
-            Storage["📁 Browser Storage <br> (LocalStorage)"]
-        end
-    end
-
-    subgraph "Deployment & Distribution"
-        Vercel["☁️ Vercel"]
-        GitHub["📦 GitHub Releases"]
-    end
-
-    %% Data Flow
-    User -->|カード提示| Camera
-    Camera -->|画像ストリーム| QRScanner
-    QRScanner -->|命令変換| GameLogic
-    GameLogic -->|状態更新| State
-    State -->|描画命令| Renderer
-    Renderer -->|3D表示| UI
-    GameLogic -->|永続化| Storage
-    
-    Web --- Vercel
-    Desktop --- GitHub
-
-    style User fill:#e1f5ff
-    style QRCards fill:#fff3cd
-    style GameLogic fill:#d4edda
-    style Renderer fill:#f8d7da
-```
+![system-architecture](docs/img/system-architecture/system-architecture.png)
 
 ## セットアップ手順
 
