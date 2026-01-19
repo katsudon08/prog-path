@@ -14,6 +14,12 @@
   </a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/katsudon08/prog-path/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" />
+  </a>
+</p>
+
 ## サービスのURL
 オフライン版をダウンロードしてプレイすることも可能です。
 
