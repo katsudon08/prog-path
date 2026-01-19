@@ -28,20 +28,13 @@
 <br/>
 
 ## サービス内で利用するQRコード
-**前にすすむコマンド** <br/>
-> ![qr-forward](docs/img/qr/qr-forward.png)
+| **前にすすむコマンド** | **穴をうめる** | **ループコマンド** |
+| :--: | :--: | :--: |
+| ![qr-forward](docs/img/qr/qr-forward.png) | ![qr-if-hole](docs/img/qr/qr-if-hole.png) | ![qr-loop](docs/img/qr/qr-loop.png) |
 
-**右にまがるコマンド** <br/>
-> ![qr-turn-right](docs/img/qr/qr-turn-right.png)
-
-**左にまがるコマンド** <br/>
-> ![qr-turn-left](docs/img/qr/qr-turn-left.png)
-
-**ループコマンド** <br/>
-> ![qr-loop](docs/img/qr/qr-loop.png)
-
-**穴をうめる** <br/>
-> ![qr-if-hole](docs/img/qr/qr-if-hole.png)
+| **右にまがるコマンド** | **左にまがるコマンド** |
+| :--: | :--: |
+| ![qr-turn-right](docs/img/qr/qr-turn-right.png) | ![qr-turn-left](docs/img/qr/qr-turn-left.png) |
 
 ## サービス概要
 
@@ -60,12 +53,12 @@
 
 ## アプリケーションのイメージ
 
-| ホーム画面 | 迷路作成・編集画面 |
+| **ホーム画面** | **迷路作成・編集画面** |
 | :---: | :---: |
 | ![home](docs/img/app-view/home.png) | ![maze-editor](docs/img/app-view/maze-editor.png) |
 | これまでに作った迷路を見たり、新しい迷路を作り始めたりする画面です。 | 画面をタップしてブロックを置くだけで、自分だけのオリジナル迷路をカンタンに作れます。 |
 
-| 迷路実行画面 | ダウンロード画面 |
+| **迷路実行画面** | **ダウンロード画面** |
 | :---: | :---: |
 | ![ar](docs/img/app-view/ar.png) | ![download](docs/img/app-view/download.png) |
 | カメラに「コマンドカード（QRコード）」をかざして、ロボットをゴールまで導いてあげましょう。 | インターネットがない場所でも遊べるように、アプリをパソコンにインストールすることができます。 |
