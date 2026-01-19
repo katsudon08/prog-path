@@ -1,6 +1,6 @@
 {
   "name": "prog-path",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "main": "main.js",
   "private": true,
   "description": "A programming education app for elementary school students. Use cards to control a robot and navigate through mazes.",
