@@ -112,6 +112,9 @@ export function EditorPage(): React.ReactElement {
           updateMaze(editingMaze.id, editingMaze);
         }
 
+        // selectedMazeも最新状態に更新
+        selectMaze(editingMaze);
+
         // LocalStorageに保存
         const currentMazes = useMazeStore.getState().mazes;
         saveMazesToStorage(currentMazes);
