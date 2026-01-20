@@ -195,6 +195,7 @@ export function MazeEditorBoardWidget({
             type="text"
             value={maze.name}
             onChange={(e) => handleNameChange(e.target.value)}
+            maxLength={15}
             className="bg-space-dark border border-neon-blue/30 rounded px-3 py-2 text-neon-cyan focus:border-neon-cyan focus:outline-none"
             placeholder="迷路の名前"
           />
