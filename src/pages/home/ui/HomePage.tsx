@@ -53,6 +53,13 @@ export function HomePage(): React.ReactElement {
   const { open: openQRImport } = useQRImport();
   const { open: openQRShare } = useQRShare();
 
+  // selectedMazeがmazesリストに含まれているか確認（保存されていない新規迷路は除外）
+  const validatedSelectedMaze = useMemo(() => {
+    if (!selectedMaze) return null;
+    const existsInMazes = mazes.some((maze) => maze.id === selectedMaze.id);
+    return existsInMazes ? selectedMaze : null;
+  }, [selectedMaze, mazes]);
+
   // ドラッグ中のアイテム
   const [draggingMazeId, setDraggingMazeId] = useState<string | null>(null);
   const [dropTargetFolder, setDropTargetFolder] = useState<string | null>(null);
@@ -124,8 +131,8 @@ export function HomePage(): React.ReactElement {
 
   // 編集ボタンのハンドラー
   const handleEditClick = () => {
-    if (selectedMaze) {
-      router.push(`/editor?id=${selectedMaze.id}`);
+    if (validatedSelectedMaze) {
+      router.push(`/editor?id=${validatedSelectedMaze.id}`);
     }
   };
 
@@ -200,7 +207,7 @@ export function HomePage(): React.ReactElement {
                       id={maze.id}
                       name={maze.name}
                       sizeLabel={getMazeSizeLabel(maze)}
-                      isSelected={selectedMaze?.id === maze.id}
+                      isSelected={validatedSelectedMaze?.id === maze.id}
                       onSelect={() => selectMaze(maze)}
                       draggable={true}
                       onDragStart={(e) => handleDragStart(e, maze.id)}
@@ -224,16 +231,16 @@ export function HomePage(): React.ReactElement {
 
         {/* 右側：選択中の迷路プレビュー（固定） */}
         <div className="w-[65%] h-[calc(100vh-4rem)] p-6 flex items-center justify-center overflow-hidden">
-          {selectedMaze ? (
+          {validatedSelectedMaze ? (
             <div className="flex flex-col items-center gap-6">
               {/* 迷路名 */}
               <h2 className="text-2xl font-bold text-neon-cyan">
-                {selectedMaze.name}
+                {validatedSelectedMaze.name}
               </h2>
 
               {/* プレビュー（階層ナビゲーション付き）- 5x5サイズ基準で自動スケーリング */}
               <MazePreview2D
-                layers={selectedMaze.layers}
+                layers={validatedSelectedMaze.layers}
                 cellSize={48}
                 showNavigation={true}
                 maxWidth={260}
@@ -255,7 +262,7 @@ export function HomePage(): React.ReactElement {
                 {/* QR共有ボタン */}
                 <button
                   type="button"
-                  onClick={() => openQRShare(selectedMaze)}
+                  onClick={() => openQRShare(validatedSelectedMaze)}
                   className="flex items-center gap-2 px-6 py-3 bg-neon-purple/20 border border-neon-purple rounded-lg text-neon-purple hover:bg-neon-purple/30 transition-colors"
                 >
                   <QrCode className="w-5 h-5" />
@@ -265,7 +272,7 @@ export function HomePage(): React.ReactElement {
                 {/* 実行ボタン */}
                 <button
                   type="button"
-                  onClick={() => router.push(`/ar?id=${selectedMaze.id}`)}
+                  onClick={() => router.push(`/ar?id=${validatedSelectedMaze.id}`)}
                   className="flex items-center gap-2 px-6 py-3 bg-neon-green/20 border border-neon-green rounded-lg text-neon-green hover:bg-neon-green/30 transition-colors"
                 >
                   <Play className="w-5 h-5" />
