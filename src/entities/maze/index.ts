@@ -17,3 +17,11 @@ export {
     validateTeleportTarget,
     validateMazeForSave,
 } from './model/validation';
+export {
+    getAllMazes,
+    getMazeById,
+    createMaze,
+    updateMaze,
+    deleteMaze,
+    getMazesByFolderId,
+} from './api/maze-repository';
