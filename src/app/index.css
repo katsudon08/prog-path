@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+    --font-sans: "Zen Maru Gothic", "Kosugi Maru", "Comic Sans MS", cursive,
+        sans-serif;
+    --color-primary: #ff9f43;
+    --color-primary-dark: #e08930;
+    --color-secondary: #54a0ff;
+    --color-secondary-dark: #3a8ae6;
+    --color-bg: #fdfbf7;
+    --color-surface: #ffffff;
+    --color-text: #333333;
+    --color-text-muted: #888888;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
