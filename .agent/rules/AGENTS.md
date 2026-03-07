@@ -8,6 +8,13 @@ trigger: always_on
 
 - 詳細については [docs/overview.md](../../docs/overview.md) を参照してください。
 
+## 要件仕様 (Specifications)
+本プロジェクトの機能要件やデータモデル仕様などについては `docs/specs/` 以下を参照してください。
+- [機能要件 (Functional Requirements)](../../docs/specs/functional-requirements.md)
+- [UI/UX要件 (UI/UX Requirements)](../../docs/specs/ui-ux-requirements.md)
+- [データモデル要件 (Data Models)](../../docs/specs/data-models.md)
+- [非機能要件 (Non-Functional Requirements)](../../docs/specs/non-functional-requirements.md)
+
 ## アーキテクチャ方針（Architecture）
 
 - 詳細については [docs/architecture.md](../../docs/architecture.md) を参照してください。
