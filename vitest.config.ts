@@ -7,7 +7,7 @@ export default mergeConfig(
         test: {
             globals: true,
             environment: 'node',
-            setupFiles: './src/shared/api/__tests__/setup.ts',
+            setupFiles: ['fake-indexeddb/auto'],
         },
     }),
 );
