@@ -1,7 +1,3 @@
----
-trigger: always_on
----
-
 # Pull Request Convention
 
 AI がプルリクエストを作成する際のフォーマットとルールを定義します。

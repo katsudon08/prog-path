@@ -1,7 +1,3 @@
----
-trigger: always_on
----
-
 # Branch Convention
 
 AI がブランチを命名する際のルールを定義します。

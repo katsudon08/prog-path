@@ -1,7 +1,3 @@
----
-trigger: always_on
----
-
 # Commit Convention
 
 Conventional Commits に準拠したコミットメッセージのルールを定義します。

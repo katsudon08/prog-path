@@ -1,7 +1,3 @@
----
-trigger: always_on
----
-
 # Issue Convention
 
 AI がイシューを起票する際のフォーマットとルールを定義します。
