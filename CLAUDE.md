@@ -68,6 +68,7 @@ Feature-Sliced Design を厳守する。
   - `main` … **開発のベース**。作業ブランチを切り、`main` に向けて PR を出す。`main` への直接コミットは避ける。
   - `release` … リリース済みコードを置くブランチ。リポジトリにアクセスした人に最初に表示させる目的（デフォルト表示）であり、**開発 PR のベースにはしない**。
 - **開発フロー**: Issue ごとに作業ブランチ（例 `feat/<issue>-...`）を `main` から切り、`main` に向けて PR を作成する。
+- **ブランチ命名**: `<type>/<issue>-<kebab-case-summary>` 形式。区切りは必ず**ハイフン（`-`）**を使い、**アンダースコア（`_`）は使わない**（例: ✅ `docs/144-requirements` / ❌ `docs/144_requirements`）。`type` はコミット規約と同じ（`feat` / `fix` / `docs` など）。
 - **コミット規約**: Conventional Commits + 日本語。
 
   ```
