@@ -31,6 +31,7 @@
 | UI | React |
 | UI コンポーネント | Radix UI + Tailwind CSS |
 | 3D | Three.js（React Three Fiber） |
+| QR 認識 | qr-scanner（jsQR を Web Worker でラップ） |
 | デスクトップ | Tauri |
 | バリデーション | Zod |
 | DB アクセス | TanStack DB |
