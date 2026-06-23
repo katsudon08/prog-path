@@ -4,13 +4,11 @@
 
 <h1 align="center">🚀 ProgPath</h1>
 
-<h3 align="center">「楽しみながら学ぶ」を形にする、小学生向けプログラミング教育導入アプリ</h3>
+<h3 align="center">小学生（高学年）向けのプログラミング教育導入アプリ</h3>
 
-<h2 align="center">使用技術一覧</h2>
-<!-- シールド一覧 -->
 <p align="center">
   <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=html,css,js,ts,react,nextjs,tailwindcss,threejs,electron,vercel,git,github" />
+    <img src="https://skillicons.dev/icons?i=ts,react,tailwind,threejs,vite,tauri,git,github" />
   </a>
 </p>
 
@@ -20,117 +18,75 @@
   </a>
 </p>
 
-## サービスのURL
-オフライン版をダウンロードしてプレイすることも可能です。
-
-> https://prog-path.vercel.app/
-
-<br/>
-
-## サービス内で利用するQRコード
-| **前にすすむコマンド** | **穴をうめるコマンド** | **ループコマンド** |
-| :--: | :--: | :--: |
-| ![qr-forward](docs/img/qr/qr-forward.png) | ![qr-if-hole](docs/img/qr/qr-if-hole.png) | ![qr-loop](docs/img/qr/qr-loop.png) |
-
-| **右にまがるコマンド** | **左にまがるコマンド** |
-| :--: | :--: |
-| ![qr-turn-right](docs/img/qr/qr-turn-right.png) | ![qr-turn-left](docs/img/qr/qr-turn-left.png) |
+> [!NOTE]
+> **本プロジェクトはゼロから全面再開発中です。** 既存実装（Next.js + Electron）は破棄予定で、要件定義を起点に to-be 設計（Vite+ / Tauri / TanStack DB ほか）へ引き直しています。現在はドキュメント整備フェーズで、実装は未着手です。確定済みの設計は [`docs/`](#ドキュメント) を参照してください。
 
 ## サービス概要
 
-本アプリケーションは、小学校高学年をターゲットとしたプログラミング教育導入アプリです。物理的なQRコードカードをカメラで読み取ることで、画面内の3Dロボットを操作し、迷路のゴールを目指します。
+ProgPath は、小学校高学年をターゲットとしたプログラミング教育導入アプリです。物理的な QR コードカードをカメラで読み取って命令を組み立て、カメラ映像に重ねて表示される 3D ロボットを操作し、迷路のゴールを目指します。
 
-### 開発の背景と研究の目的
-**「勉強」から「遊び」へ**
-> プログラミングを「堅苦しい座学」として捉えるのではなく、遊びの中で「楽しい」という原体験を得られるアプリケーションを目指しました。
-> 
-> 小学校高学年の児童が夢中でプレイできるよう、ゲーム性を重視した設計を行っています。
+**中心価値**
 
-**技術的転換による操作性と没入感の向上**
-> 研究の引き継ぎ段階では「2Dマップ・ARマーカー方式」で実装されていましたが、教育現場での認識精度や動作の安定性を考慮し、「3Dマップ・QRコード方式」へと大幅に転換しました。 
-> 
-> このアップデートにより、ARマーカーよりも高い読み取り精度を確保しつつ、3Dモデルによるリッチな視覚表現を実現しました。結果として、児童がより直感的に、かつストレスなく操作できる環境を構築しています。
+- **3D / AR 表現**: カメラ映像に 3D の迷路・ロボットを重ね、命令の結果を直感的に見せる。
+- **QR カードによる命令作成**: 物理カードをカメラで読み取って命令を組み立て、複数人で手を動かせる。
+- **迷路エディタ（補助）**: 迷路を作成・編集する。中心価値を支える補助的な位置づけ。
 
-## アプリケーションのイメージ
+## 利用前提
 
-| **ホーム画面** | **迷路作成・編集画面** |
-| :---: | :---: |
-| ![home](docs/img/app-view/home.png) | ![maze-editor](docs/img/app-view/maze-editor.png) |
-| これまでに作った迷路を見たり、新しい迷路を作り始めたりする画面です。 | 画面をタップしてブロックを置くだけで、自分だけのオリジナル迷路をカンタンに作れます。 |
-
-| **迷路実行画面** | **ダウンロード画面** |
-| :---: | :---: |
-| ![ar](docs/img/app-view/ar.png) | ![download](docs/img/app-view/download.png) |
-| カメラに「コマンドカード（QRコード）」をかざして、ロボットをゴールまで導いてあげましょう。 | インターネットがない場所でも遊べるように、アプリをパソコンにインストールすることができます。 |
+- **学校の授業**での利用を想定。1 クラスに複数台の PC を用意する。
+- 児童 **2〜3 人で 1 台を囲んで**使う。協調学習の基本単位はこの「2〜3 人で 1 台」グループ。
+- 家庭学習・1人1台・イベント展示は主対象ではない。
+- 機能・UI・成功指標は、常にこの「2〜3 人で 1 台を囲む授業」を基準に判断する。
 
 ## 主な機能
 
-### 🎮 迷路実行（AR）
-- 「前に進む」、「右に曲がる」などのQRコードをカメラにかざすことで、直感的にプログラムを構築できます。
-- Three.jsを用いた3Dロボットとアニメーションにより、児童の興味を惹きつけるUXを提供します。
-- プログラミングの基礎である繰り返し処理（Loop）も物理カードで実装可能です。
+- **迷路実行（AR）**: 「前にすすむ」「右にまがる」などの QR カードをカメラにかざして命令を構築し、3D ロボットを動かす。繰り返し（ループ）にも対応。
+- **迷路作成・編集**: 1〜3 階・5×5〜7×7 のグリッドでオリジナル迷路を作成する。
+- **迷路の共有**: 迷路データを QR コードに変換して書き出し・読み込みできる（1 迷路 = 1 QR）。
+- **管理機能**: 迷路をフォルダで分類・整理する。
+- **デスクトップ版**: Tauri によるデスクトップアプリとして提供予定（Web 版と同一機能）。
 
-### 🧩 迷路作成・共有
-- 5×5から10×10までのサイズ変更や、最大5階の立体的な迷路を作成できます。
-- 作成した迷路データはQRコードにエンコードして書き出し、他のユーザーと簡単に共有できます。
+> 各機能の詳細な振る舞いは [docs/features.md](docs/features.md) を参照。
 
-### 📂 管理機能
-- 作成した迷路をフォルダごとに分類し、整理・保存することが可能です。
+## 技術スタック（to-be）
 
-### 💻 デスクトップ版
-- Electronを用いたデスクトップアプリケーションとして提供しています。
-- Web版と同様の機能を利用できます。
+| 領域 | 採用 |
+| --- | --- |
+| 言語 | TypeScript |
+| UI | React / Radix UI + Tailwind CSS |
+| 3D / AR | Three.js（React Three Fiber） |
+| QR 認識 | qr-scanner |
+| 状態管理 | Zustand（複雑な遷移は XState） |
+| バリデーション | Zod |
+| 永続化 | TanStack DB + IndexedDB |
+| デスクトップ | Tauri |
+| ツールチェーン | Vite+（vp） |
+| 環境管理 / パッケージ | mise / pnpm |
+| アーキテクチャ | Feature-Sliced Design (FSD) |
 
-## システムアーキテクチャ
+> 技術選定の理由・システム構成は [docs/architecture.md](docs/architecture.md) を参照。
 
-### FSDアーキテクチャの採用
+## ドキュメント
 
-![FSD](docs/img/system-architecture/fsd.png)
+再開発の設計は `docs/` 配下に整備しています。
 
-プロジェクトの保守性とColocationを高めるため、フロントエンドの設計手法として **Feature Sliced Architecture (FSD)** を採用しています。
+| ドキュメント | 内容 |
+| --- | --- |
+| [requirements.md](docs/requirements.md) | 要件定義（何を作るか） |
+| [features.md](docs/features.md) | 機能仕様（画面別の振る舞い） |
+| [architecture.md](docs/architecture.md) | アーキテクチャ設計（FSD・スタック・構成図） |
+| [directory-structure.md](docs/directory-structure.md) | ディレクトリ構成 |
+| [db-design.md](docs/db-design.md) | DB 設計 |
+| [glossary.md](docs/glossary.md) | 用語集 |
 
-### システム構成図
+## セットアップ
 
-![system-architecture](docs/img/system-architecture/system-architecture.png)
+> [!IMPORTANT]
+> to-be スタック（mise / pnpm / Vite+ / Tauri）でのセットアップ手順は**整備中**です。実装着手・配布形態の確定後に記載します。ツールチェーンの方針は [docs/architecture.md](docs/architecture.md) を参照してください。
 
-## セットアップ手順
+## ライセンス
 
-### 必要環境
-- Node.js
-- npm
-
-### インストール
-1. リポジトリをクローンします。
-```bash
-git clone https://github.com/your-username/prog-path.git
-cd prog-path
-```
-
-2. 依存関係をインストールします。
-```bash
-npm run install
-```
-
-### 実行方法
-
-**Web版**
-```bash
-npm run dev
-```
-
-**デスクトップ版**
-```bash
-npm run electron:dev
-```
-
-**ビルド**
-```bash
-# Web版のビルド
-npm run build
-
-# デスクトップ版のビルド・パッケージング
-npm run electron:build
-```
+[MIT License](LICENSE)
 
 <p align="center">
     (<a href="#top">トップへ</a>)
