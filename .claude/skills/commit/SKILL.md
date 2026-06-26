@@ -22,7 +22,7 @@ ProgPath のコミット規約（Conventional Commits + 日本語）に沿って
 ## 手順
 
 1. **ブランチ確認（必須・コミット直前に毎回）**: `git branch --show-current` で現在のブランチを確認する。
-   - `main` / `release` の場合は直接コミットせず、作業用ブランチ（例 `feat/<issue>-...`）への切り替えを提案する。
+   - `main` / `release` の場合は直接コミットせず、作業用ブランチへの切り替えを提案する。ブランチ名は CLAUDE.md のブランチ命名規則に従い、**対応する Issue があれば番号を必ず含める**（例: `feat/164-toolchain-bootstrap`）。
    - PR マージ後のローカル同期などで HEAD が `main` に移っていることがある。「さっきまで作業ブランチにいた」という前提で確認を省略しない。
 2. **差分レビュー**: `git status` と `git diff` を確認。
    - 一時ファイル・デバッグ用 `console.log`・不要アセットの混入をチェック。

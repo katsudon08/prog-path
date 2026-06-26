@@ -70,7 +70,11 @@ Feature-Sliced Design を厳守する。
   - `release` … リリース済みコードを置くブランチ。リポジトリにアクセスした人に最初に表示させる目的（デフォルト表示）であり、**開発 PR のベースにはしない**。
 - **開発フロー**: Issue ごとに作業ブランチ（例 `feat/<issue>-...`）を `main` から切り、`main` に向けて PR を作成する。
 - **コミット前のブランチ確認（必須）**: `commit` skill を使うかどうかに関わらず、**コミットする直前に必ず `git branch --show-current` で現在のブランチを確認する**。`main` / `release` 上にいる場合は直接コミットせず、作業ブランチを切り直してから行う。PR マージ後のローカル同期などで HEAD が `main` に移っていることがあるため、「さっきまで作業ブランチにいた」前提で確認を省略しない。
-- **ブランチ命名**: `<type>/<issue>-<kebab-case-summary>` 形式。区切りは必ず**ハイフン（`-`）**を使い、**アンダースコア（`_`）は使わない**（例: ✅ `docs/144-requirements` / ❌ `docs/144_requirements`）。`type` はコミット規約と同じ（`feat` / `fix` / `docs` など）。
+- **ブランチ命名**: `<type>/<issue>-<kebab-case-summary>` 形式。
+  - **対応する Issue が存在する場合は、その Issue 番号を必ず含める**（例: ✅ `feat/164-toolchain-bootstrap` / ❌ `feat/toolchain-bootstrap`）。ブランチを切る前に対応 Issue の有無を確認する。
+  - 対応 Issue が無い場合に**限り**、番号を省いた `<type>/<kebab-case-summary>` 形式を許容する（例: `docs/branch-naming-issue-number`）。
+  - 区切りは必ず**ハイフン（`-`）**を使い、**アンダースコア（`_`）は使わない**（例: ✅ `docs/144-requirements` / ❌ `docs/144_requirements`）。
+  - `type` はコミット規約と同じ（`feat` / `fix` / `docs` など）。
 - **コミット規約**: Conventional Commits + 日本語。
 
   ```
