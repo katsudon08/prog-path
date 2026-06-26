@@ -1,0 +1,27 @@
+{
+  "name": "prog-path",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.4",
+  "description": "小学生向けプログラミング教育導入アプリ（再開発版）",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "check": "vp check",
+    "fmt": "vp fmt",
+    "test": "vp test"
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "6.0.3",
+    "vite-plus": "0.2.1",
+    "vitest": "4.1.9"
+  }
+}
