@@ -1,0 +1,28 @@
+# mise — ランタイム固定とタスク実行の入口
+# バージョン固定の正は mise に置く（→ CLAUDE.md / docs/architecture.md 2.1）。
+# vp 本体は project-local の vite-plus(npm) に解決されるため [tools] では固定せず、
+# package.json の devDependency(vite-plus) ＋ lockfile で固定する。タスクは pnpm exec vp を呼ぶ。
+
+[tools]
+node = "22.18.0"
+pnpm = "10.34.4"
+
+[tasks.dev]
+description = "開発サーバ起動 (Vite+)"
+run = "pnpm exec vp dev"
+
+[tasks.build]
+description = "本番ビルド (Vite+)"
+run = "pnpm exec vp build"
+
+[tasks.check]
+description = "lint + format + 型チェック 一括 (Vite+)"
+run = "pnpm exec vp check"
+
+[tasks.format]
+description = "フォーマット適用 (Oxfmt via Vite+)"
+run = "pnpm exec vp fmt"
+
+[tasks.test]
+description = "テスト (Vitest via Vite+)"
+run = "pnpm exec vp test"

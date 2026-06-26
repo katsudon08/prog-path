@@ -19,7 +19,7 @@
 </p>
 
 > [!NOTE]
-> **本プロジェクトはゼロから全面再開発中です。** 既存実装（Next.js + Electron）は破棄予定で、要件定義を起点に to-be 設計（Vite+ / Tauri / TanStack DB ほか）へ引き直しています。現在はドキュメント整備フェーズで、実装は未着手です。確定済みの設計は [`docs/`](#ドキュメント) を参照してください。
+> **本プロジェクトはゼロから全面再開発中です。** 既存実装（Next.js + Electron）は破棄予定で、要件定義を起点に to-be 設計（Vite+ / Tauri / TanStack DB ほか）へ引き直しています。ドキュメント整備を終え、実装フェーズ（開発基盤＝ツールチェーンの構築）に着手しました。確定済みの設計は [`docs/`](#ドキュメント) を参照してください。
 
 ## サービス概要
 
@@ -81,8 +81,33 @@ ProgPath は、小学校高学年をターゲットとしたプログラミン�
 
 ## セットアップ
 
-> [!IMPORTANT]
-> to-be スタック（mise / pnpm / Vite+ / Tauri）でのセットアップ手順は**整備中**です。実装着手・配布形態の確定後に記載します。ツールチェーンの方針は [docs/architecture.md](docs/architecture.md) を参照してください。
+開発環境は [mise](https://mise.jdx.dev/) でランタイム（Node / pnpm）を固定し、`mise run <task>` を入口に Vite+（vp）を実行します。
+
+### 前提
+
+- [mise](https://mise.jdx.dev/) がインストール済みであること。
+
+### 初回手順
+
+```bash
+mise install   # Node / pnpm を固定バージョンで導入
+pnpm install   # 依存をインストール
+mise run dev   # 開発サーバを起動
+```
+
+### よく使うコマンド
+
+| コマンド | 内容 |
+| --- | --- |
+| `mise run dev` | 開発サーバ起動 |
+| `mise run build` | 本番ビルド |
+| `mise run check` | format + lint（静的検査） |
+| `mise run format` | フォーマット適用 |
+| `mise run test` | テスト実行 |
+
+> 全タスクは `mise tasks` で確認できます。デスクトップ版（Tauri）のセットアップは別途整備予定です。
+
+> ツールチェーンの方針・技術選定の理由は [docs/architecture.md](docs/architecture.md) を参照してください。
 
 ## ライセンス
 
