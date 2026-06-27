@@ -267,8 +267,36 @@ stateDiagram-v2
 
 ### 7.2 Tauri / WebView の留意点
 
-- Tauri のカメラ（`getUserMedia`）は OS の WebView 依存のため**要検証**（Windows = WebView2）。
-- カメラが使用不可の場合のフォールバック方針は未確定〔要確認〕。
+カメラ取得（`getUserMedia`）は AR 背景・QR 読み取りの共通土台で、WebView 実装に依存するため検証を要する（検証の詳細は Issue #175）。
+
+**検証状況（2026-06-27 時点 / Phase A: macOS・Web）**
+
+| 環境 | エンジン | 結果 |
+| --- | --- | --- |
+| Web（Safari / Chrome） | WebKit / Chromium | ✅ `getUserMedia`〜canvas 描画まで動作 |
+| Tauri × macOS（dev） | WKWebView | ✅ 同上（実機 `tauri dev` で確認） |
+| Tauri × Windows | WebView2（Chromium） | ⏳ 未検証（実機確保後・Phase B） |
+
+- Web 標的の両エンジン（WebKit＝WKWebView 相当 / Chromium＝WebView2 相当）はエンジンレベルで `getUserMedia` をサポート。Tauri×mac（実機 dev）でも動作確認済み。デプロイ主標的の **Windows/WebView2 実機検証は未完（Phase B）**。
+
+**必要設定（判明分）**
+
+- **macOS**: `src-tauri/Info.plist` に `NSCameraUsageDescription`（カメラ利用説明文）が必須。未設定だと TCC によりカメラアクセス時にアプリが落ちる。
+- **Tauri capability は不要**: `getUserMedia` は Web 標準 API であり Tauri の権限（capabilities）対象外。`core:default` のみで動作する。
+- **secure context が前提**: `getUserMedia` は secure context でのみ露出する。`tauri dev` は `http://127.0.0.1`（localhost 例外で secure）で配信するが、**本番 bundle は custom protocol**（macOS=`tauri://localhost` / Windows=`http://tauri.localhost`）で配信される。本番経路の secure-context 動作は Phase B で確認する。
+
+**残課題（Phase B / Windows・要実機）**
+
+- WebView2 の custom protocol（`http://tauri.localhost`）が secure context として扱われるか。
+- WebView2 の `PermissionRequested` をホスト（Rust）側で処理する必要があるか（既知の落とし穴。未処理だとカメラ要求が無音で拒否され得る）。
+
+**カメラ不可時のフォールバック方針（候補・暫定）**〔要確認〕
+
+授業は「2〜3 人で 1 台」が単位のため、1 台でもカメラ不可だと体験が崩れる。要件確定時に下記から選定する。
+
+- ① カメラ必須を前提に、不可時は明示エラー＋再試行/権限案内の導線を出す。
+- ② QR 読み取りは静止画撮影からのデコードに切り替える（連続スキャン不可時の代替）。
+- ③ AR 背景なしの 3D-only 表示にフォールバックする（AR の出口を縮退）。
 
 ### 7.3 配布
 
@@ -282,7 +310,7 @@ stateDiagram-v2
 | 箇所 | 内容 |
 | --- | --- |
 | 6.3 | 30fps / 起動 10 秒 / QR 1 秒以内の達成可否（実機検証） |
-| 7.2 | Tauri WebView での getUserMedia 動作 / カメラ不可時のフォールバック |
+| 7.2 | `getUserMedia`: mac/Web は検証済（#175 Phase A）。**Windows/WebView2 は未検証（Phase B・要実機）**。カメラ不可時フォールバックは候補のみで未確定 |
 | 7.3 | Desktop 版の配布元 |
 
 ---
