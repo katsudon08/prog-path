@@ -135,6 +135,8 @@ graph TD
 - **同一レイヤー内の直接参照は禁止**（例: `entities/robot` → `entities/maze`）。必要なら上位（features 等）で組み合わせるか、`shared` へ抽出する。
 - **Public API**: 他スライスからの import は必ずスライス直下の `index.ts` 経由。`export * from` は避け、公開対象を明示する。
 
+> これらの規則は **dependency-cruiser** で自動強制する（`mise run lint:fsd`）。レイヤー逆流・同一レイヤー横断・Public API 迂回（index 非経由の深い import）をエラー検出する（`@/` エイリアスとディレクトリ→index は tsconfig の paths 経由で解決）。全プロジェクト走査のため push 前（lefthook の pre-push）に実行し、CI でも実行する（設定: `.dependency-cruiser.js` / → Issue #167・CI 連携は #173）。
+
 ### 3.3 セグメント
 
 各スライスは以下のセグメントを持つ（`api` は任意）。
