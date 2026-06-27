@@ -26,3 +26,7 @@ run = "pnpm exec vp fmt"
 [tasks.test]
 description = "テスト (Vitest via Vite+)"
 run = "pnpm exec vp test"
+
+[tasks."lint:fsd"]
+description = "FSD 依存境界チェック (dependency-cruiser)"
+run = "pnpm exec depcruise src"

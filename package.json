@@ -10,7 +10,8 @@
     "build": "vp build",
     "check": "vp check",
     "fmt": "vp fmt",
-    "test": "vp test"
+    "test": "vp test",
+    "prepare": "lefthook install"
   },
   "dependencies": {
     "react": "^19.2.7",
@@ -20,6 +21,8 @@
     "@types/node": "^26.0.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "dependency-cruiser": "18.0.0",
+    "lefthook": "2.1.9",
     "typescript": "6.0.3",
     "vite-plus": "0.2.1",
     "vitest": "4.1.9"
