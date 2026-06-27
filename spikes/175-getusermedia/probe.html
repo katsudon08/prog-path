@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#175 getUserMedia 検証 probe</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        line-height: 1.5;
+      }
+      body {
+        margin: 0;
+        padding: 1rem 1.25rem;
+        max-width: 860px;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      button {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        cursor: pointer;
+      }
+      #checks {
+        list-style: none;
+        padding: 0;
+      }
+      #checks li {
+        padding: 0.2rem 0;
+        font-variant-numeric: tabular-nums;
+      }
+      .ok::before {
+        content: "✅ ";
+      }
+      .ng::before {
+        content: "❌ ";
+      }
+      .na::before {
+        content: "⬜ ";
+      }
+      .media {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin: 1rem 0;
+      }
+      video,
+      canvas {
+        background: #111;
+        width: 360px;
+        max-width: 100%;
+        border: 1px solid #ccc;
+      }
+      textarea {
+        width: 100%;
+        height: 220px;
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+      }
+      .env {
+        background: #f5f5f5;
+        padding: 0.75rem;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      code {
+        background: #eee;
+        padding: 0 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>#175 getUserMedia 検証 probe</h1>
+    <p>
+      「カメラ開始」を押し、OS/ブラウザのカメラ許可ダイアログが出たら<strong>許可</strong>してください。
+      下の映像が出れば成功です。最後に <strong>結果 JSON をコピーして貼り戻して</strong>ください。
+    </p>
+
+    <div class="env" id="env">環境情報を取得中…</div>
+
+    <p style="margin-top: 1rem">
+      <button id="start">カメラ開始</button>
+      <button id="stop" disabled>停止</button>
+    </p>
+
+    <ul id="checks">
+      <li class="na" id="c-secure">isSecureContext</li>
+      <li class="na" id="c-api">navigator.mediaDevices.getUserMedia 存在</li>
+      <li class="na" id="c-enum-pre">enumerateDevices（許可前: videoinput 数）</li>
+      <li class="na" id="c-gum">getUserMedia({video:true}) 成功</li>
+      <li class="na" id="c-video">&lt;video&gt; に映像（videoWidth/Height &gt; 0）</li>
+      <li class="na" id="c-enum-post">enumerateDevices（許可後: ラベル取得）</li>
+      <li class="na" id="c-canvas">canvas へ 1 フレーム drawImage</li>
+      <li class="na" id="c-pixels">フレームが実体を持つ（非黒・画素にばらつき）</li>
+    </ul>
+
+    <div class="media">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas" width="360" height="270"></canvas>
+    </div>
+
+    <p>結果 JSON（これをコピーして貼り戻してください）:</p>
+    <textarea id="out" readonly></textarea>
+
+    <script>
+      const result = {
+        startedAt: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        protocol: location.protocol,
+        host: location.host,
+        isSecureContext: window.isSecureContext === true,
+        hasMediaDevices: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        videoInputCountPre: null,
+        videoInputCountPost: null,
+        labelsVisibleAfterGrant: null,
+        getUserMedia: { ok: false, errorName: null, errorMessage: null },
+        videoDimensions: null,
+        canvasDrawOk: false,
+        frameIsReal: null,
+        pixelStats: null,
+        notes: [],
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const set = (id, ok, text) => {
+        const el = $(id);
+        el.className = ok === null ? "na" : ok ? "ok" : "ng";
+        if (text) el.textContent = el.textContent.split("：")[0] + "：" + text;
+      };
+      const dump = () => {
+        $("out").value = JSON.stringify(result, null, 2);
+      };
+
+      // 環境情報を初期表示
+      $("env").innerHTML =
+        "<code>" +
+        result.userAgent +
+        "</code><br>" +
+        "protocol=" +
+        result.protocol +
+        " host=" +
+        (result.host || "(file)") +
+        " / isSecureContext=" +
+        result.isSecureContext +
+        " / mediaDevices=" +
+        result.hasMediaDevices;
+      set("c-secure", result.isSecureContext);
+      set("c-api", result.hasMediaDevices);
+      dump();
+
+      let stream = null;
+
+      async function enumerate() {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const cams = devices.filter((d) => d.kind === "videoinput");
+          return { count: cams.length, labels: cams.map((c) => c.label) };
+        } catch (e) {
+          result.notes.push("enumerateDevices error: " + e.name + " " + e.message);
+          return { count: -1, labels: [] };
+        }
+      }
+
+      async function start() {
+        $("start").disabled = true;
+        if (!result.hasMediaDevices) {
+          result.notes.push(
+            "navigator.mediaDevices.getUserMedia が存在しない（secure context か WebView 制約の可能性）",
+          );
+          dump();
+          return;
+        }
+
+        // 許可前 enumerate（通常ラベルは空）
+        const pre = await enumerate();
+        result.videoInputCountPre = pre.count;
+        set("c-enum-pre", pre.count > 0, "videoinput=" + pre.count);
+
+        // getUserMedia
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          result.getUserMedia.ok = true;
+          set("c-gum", true);
+          $("stop").disabled = false;
+        } catch (e) {
+          result.getUserMedia.errorName = e.name;
+          result.getUserMedia.errorMessage = e.message;
+          set("c-gum", false, e.name + " / " + e.message);
+          dump();
+          return;
+        }
+
+        // video へ流し込み、寸法確認
+        const video = $("video");
+        video.srcObject = stream;
+        await new Promise((res) => {
+          if (video.readyState >= 1) return res();
+          video.onloadedmetadata = () => res();
+        });
+        await video.play().catch((e) => result.notes.push("video.play: " + e.message));
+        result.videoDimensions = { w: video.videoWidth, h: video.videoHeight };
+        set(
+          "c-video",
+          video.videoWidth > 0 && video.videoHeight > 0,
+          video.videoWidth + "x" + video.videoHeight,
+        );
+
+        // 許可後 enumerate（ラベルが出るはず）
+        const post = await enumerate();
+        result.videoInputCountPost = post.count;
+        result.labelsVisibleAfterGrant = post.labels.some((l) => l && l.length > 0);
+        set("c-enum-post", result.labelsVisibleAfterGrant, "labels=" + JSON.stringify(post.labels));
+
+        // 少し待ってから canvas へ 1 フレーム
+        await new Promise((r) => setTimeout(r, 400));
+        try {
+          const canvas = $("canvas");
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          result.canvasDrawOk = true;
+          set("c-canvas", true);
+
+          // 画素統計（非黒・ばらつき判定）
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          let min = 255,
+            max = 0,
+            sum = 0,
+            n = 0;
+          for (let i = 0; i < data.length; i += 4 * 97) {
+            // 間引きサンプル
+            const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            min = Math.min(min, lum);
+            max = Math.max(max, lum);
+            sum += lum;
+            n++;
+          }
+          const avg = sum / n;
+          result.pixelStats = {
+            min: Math.round(min),
+            max: Math.round(max),
+            avg: Math.round(avg),
+            samples: n,
+          };
+          result.frameIsReal = max - min > 10 && avg > 2; // 真っ黒/単色でない
+          set(
+            "c-pixels",
+            result.frameIsReal,
+            "min=" +
+              result.pixelStats.min +
+              " max=" +
+              result.pixelStats.max +
+              " avg=" +
+              result.pixelStats.avg,
+          );
+        } catch (e) {
+          result.notes.push("canvas/getImageData error: " + e.name + " " + e.message);
+          set("c-canvas", false, e.name);
+        }
+        dump();
+      }
+
+      function stop() {
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        $("stop").disabled = true;
+        $("start").disabled = false;
+      }
+
+      $("start").addEventListener("click", () =>
+        start().catch((e) => {
+          result.notes.push("start() uncaught: " + e.name + " " + e.message);
+          dump();
+        }),
+      );
+      $("stop").addEventListener("click", stop);
+    </script>
+  </body>
+</html>
