@@ -28,9 +28,11 @@ export default defineConfig({
       typeAware: true,
       typeCheck: true,
     },
+    // plugins は「上書き」= 許可リスト。新たに promise/* 等のルールを使うときは、
+    // ここに該当プラグインを追加すること（未追加だと rules に書いても黙って無効化される）。
     plugins: ["typescript", "unicorn", "react", "jsx-a11y", "import", "oxc"],
     rules: {
-      // === CLAUDE.md 規約直結（error）===
+      // CLAUDE.md のコーディング規約を強制（すべて error で CI ゲートにする）。
       "typescript/no-explicit-any": "error", // any 禁止（unknown + 型ガードを使う）
       "typescript/explicit-function-return-type": [
         "error",
@@ -40,12 +42,24 @@ export default defineConfig({
           allowHigherOrderFunctions: true,
         },
       ],
-      "unicorn/filename-case": ["error", { case: "kebabCase" }], // ファイル名 kebab-case
+      // ファイル名は kebab-case（例 maze-preview.tsx）。識別子(コンポーネント/型)の
+      // PascalCase とは別で、ファイル名は kebab が本プロジェクト規約（→ docs/directory-structure.md）。
+      "unicorn/filename-case": ["error", { case: "kebabCase" }],
       "react/rules-of-hooks": "error",
-      // === 補助・スタイル（warn）===
-      "no-console": ["warn", { allow: ["warn", "error"] }], // log は warn、error/warn は許可
-      "react/exhaustive-deps": "warn",
+      "react/exhaustive-deps": "error", // hook 依存配列の誤り(stale-closure バグ)を CI で止める
+      "no-console": ["error", { allow: ["warn", "error"] }], // console.log 等は禁止。warn/error は許可
     },
+    // テスト・型宣言ファイルは厳格ルールを緩める（実用上の慣習。テストの as any や
+    // 戻り値型省略、.d.ts の any を許容する）。
+    overrides: [
+      {
+        files: ["**/*.test.{ts,tsx}", "**/*.d.ts"],
+        rules: {
+          "typescript/no-explicit-any": "off",
+          "typescript/explicit-function-return-type": "off",
+        },
+      },
+    ],
   },
   fmt: {
     ignorePatterns: FORMAT_LINT_IGNORE,
