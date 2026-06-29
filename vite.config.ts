@@ -20,7 +20,28 @@ export default defineConfig({
     strictPort: true,
   },
   test: {
+    // 既定は node 環境（純粋ロジック中心）。DOM が要るテストはファイル先頭に
+    // `// @vitest-environment jsdom`(or happy-dom) を付けて opt-in する（規約は CLAUDE.md）。
+    // DOM テスト基盤の本格導入は最初のコンポーネント着手時（#187 等）。
+    environment: "node",
+    // グローバル注入は使わない。各テストで `import { describe, it, expect } from "vitest"` を明示する。
+    globals: false,
     include: ["src/**/*.test.{ts,tsx}"],
+    coverage: {
+      // v8（高速・追加ビルド不要）。閾値(thresholds)は設けない＝計測のみ。
+      // 合格ラインの本格運用はドメインのテスト方針（#209）で決める。
+      provider: "v8",
+      reporter: ["text", "html"], // text=コンソール要約 / html=詳細（coverage/ は .gitignore 済）
+      // include で指定したファイルは未テストでも 0% として報告される（v4 既定。「どこが未チェックか」の地図になる）。
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.test.{ts,tsx}", // テスト自身
+        "src/**/*.d.ts", // 型宣言
+        "src/**/index.ts", // Public API（再エクスポートのみでロジックなし）
+        "src/main.tsx", // アプリのエントリ
+        "src/vite-env.d.ts",
+      ],
+    },
   },
   lint: {
     ignorePatterns: FORMAT_LINT_IGNORE,

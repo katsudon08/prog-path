@@ -63,6 +63,18 @@ Feature-Sliced Design を厳守する。
 - **R3F**: 高頻度更新は `useFrame` 内で `ref.current` を直接操作し `setState` を避ける。アセットは `useGLTF`/`useLoader` でキャッシュ。`useFrame` 内では一時ベクトルを再利用して GC を抑制。
 - **コメント**: 公開関数は JSDoc。3D 座標変換など数式箇所は意図を残す。
 
+## テスト（要点）
+
+テスト基盤は Vitest（`vp` 同梱）。**この節は土台と最低限の規約**。「何を・どこまでテストするか」の戦略は別途定める（Issue #209）。
+
+- **実行**: `mise run test`（CI もローカルも同一入口）。カバレッジは `vp test --coverage`。**閾値ゲートは設けない**（計測のみ。本格運用は #209）。
+- **配置**: テスト対象と **co-location**（`foo.ts` の隣に `foo.test.ts`）。スライス内のセグメント（`model` / `lib` 等）に同居させる。
+- **命名**: `*.test.ts` / `*.test.tsx`。
+- **環境**: 既定 `node`（純粋ロジック中心）。DOM が必要なテストはファイル先頭に `// @vitest-environment jsdom`（or `happy-dom`）を付けて opt-in。DOM テスト基盤の本格導入は最初のコンポーネント着手時。
+- **import**: グローバル注入（`globals`）は使わず `import { describe, it, expect } from "vitest"` を明示。**同一スライス内は相対 import**、**他スライスは Public API（`index.ts`）経由**。
+- **規約緩和**: テストファイルは lint を一部緩和（`any` 許容・戻り値型省略可）。本番コードは緩めない。
+- **代表サンプル**: `src/shared/lib/clamp.test.ts`（疎通用スモークは `src/smoke.test.ts`）。
+
 ## Git 運用
 
 - **ブランチ**:
