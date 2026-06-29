@@ -48,3 +48,8 @@ Thumbs.db
 # prompts / scratch
 repomix-output.xml
 commit_message.txt
+
+# AI 作業場（個人的な議論・調査メモ）。メモ本体は Git 管理しないが、運用ルールを書いた README だけは追跡する。
+# 注: ディレクトリ自体を ignore (/docs/ai/) すると配下の例外(!)が効かないため、中身(*)を ignore する。
+/docs/ai/*
+!/docs/ai/README.md
