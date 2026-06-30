@@ -49,7 +49,8 @@ Thumbs.db
 repomix-output.xml
 commit_message.txt
 
-# AI 作業場（個人的な議論・調査メモ）。メモ本体は Git 管理しないが、運用ルールを書いた README だけは追跡する。
-# 注: ディレクトリ自体を ignore (/docs/ai/) すると配下の例外(!)が効かないため、中身(*)を ignore する。
-/docs/ai/*
-!/docs/ai/README.md
+# AI discussion scratch space
+# docs/ai の議論・調査・計画メモは Git 管理しない（運用ルールは docs/ai/README.md）。
+# 運用ルールを書いた README だけは例外で追跡する（ディレクトリ自体ではなく中身を ignore し、! で再追跡）。
+docs/ai/**
+!docs/ai/README.md
