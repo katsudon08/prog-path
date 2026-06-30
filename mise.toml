@@ -2,10 +2,13 @@
 # バージョン固定の正は mise に置く（→ CLAUDE.md / docs/architecture.md 2.1）。
 # vp 本体は project-local の vite-plus(npm) に解決されるため [tools] では固定せず、
 # package.json の devDependency(vite-plus) ＋ lockfile で固定する。タスクは pnpm exec vp を呼ぶ。
+# Tauri CLI も同様に pnpm devDependency(@tauri-apps/cli) で固定し、タスクは pnpm exec tauri を呼ぶ。
 
 [tools]
 node = "22.18.0"
 pnpm = "10.34.4"
+# Tauri(Desktop) のビルドに必要な Rust ツールチェーン。Tauri v2 の MSRV 以上で固定する。
+rust = "1.96.0"
 
 [tasks.dev]
 description = "開発サーバ起動 (Vite+)"
@@ -14,6 +17,13 @@ run = "pnpm exec vp dev"
 [tasks.build]
 description = "本番ビルド (Vite+)"
 run = "pnpm exec vp build"
+
+# Desktop(Tauri) 起動。tauri.conf.json の beforeDevCommand が vp dev(localhost:5173) を起動し、
+# WebView 窓がそれを表示する。同一フロントコードを Web/Desktop 両方で動かす入口。
+# bundle(tauri build) と Windows 実機は #171 のスコープ外（#175 で検証）。
+[tasks."dev:desktop"]
+description = "Desktop 開発起動 (Tauri v2 / WebView)"
+run = "pnpm exec tauri dev"
 
 [tasks.check]
 description = "lint + format + 型チェック 一括 (Vite+)"

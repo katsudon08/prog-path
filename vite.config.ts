@@ -2,11 +2,20 @@ import { defineConfig } from "vite-plus";
 
 // フォーマット/リント対象から外すパス（手書きの日本語ドキュメント・生成物・ロックファイル等）。
 // 手書きドキュメントを reformat させないための最小スコープ。
-const FORMAT_LINT_IGNORE = ["dist/**", "**/*.md", "public/**", "package.json", "pnpm-lock.yaml"];
+// src-tauri/** は Tauri(Rust/設定)側で FSD の外。フロントの Oxlint/Oxfmt 規約の対象外とする。
+const FORMAT_LINT_IGNORE = [
+  "dist/**",
+  "**/*.md",
+  "public/**",
+  "package.json",
+  "pnpm-lock.yaml",
+  "src-tauri/**",
+];
 
 // Vite+ の統合設定。標準 Vite 設定に加え test(Vitest) / lint(Oxlint) / fmt(Oxfmt) を集約する。
 // lint は type-aware を有効化し、コーディング規約(any 禁止 / 型明示 / 命名 等)をルール化する(#166)。
-// Tauri 向けの本格配線(build.target 等)は #171 で行う。
+// Tauri(Desktop) との接続は src-tauri/tauri.conf.json 側で行う。dev は固定ポート 5173 /
+// clearScreen:false を Tauri が利用する(#171)。WebView 向け build.target 等の最適化は bundle 着手時(#175/M4)。
 export default defineConfig({
   plugins: [],
   // tsconfig.json の paths を単一の正として解決に使う（Vite 8 ネイティブ・build/test 双方に適用）。
