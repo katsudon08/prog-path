@@ -8,3 +8,4 @@
  * （→ docs/directory-structure.md 2.2）。
  */
 export { clamp } from "./clamp";
+export { cn } from "./cn";

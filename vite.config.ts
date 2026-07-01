@@ -1,4 +1,5 @@
-import { defineConfig } from "vite-plus";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig, lazyPlugins } from "vite-plus";
 
 // フォーマット/リント対象から外すパス（手書きの日本語ドキュメント・生成物・ロックファイル等）。
 // 手書きドキュメントを reformat させないための最小スコープ。
@@ -17,7 +18,17 @@ const FORMAT_LINT_IGNORE = [
 // Tauri(Desktop) との接続は src-tauri/tauri.conf.json 側で行う。dev は固定ポート 5173 /
 // clearScreen:false を Tauri が利用する(#171)。WebView 向け build.target 等の最適化は bundle 着手時(#175/M4)。
 export default defineConfig({
-  plugins: [],
+  // Tailwind CSS v4 を Vite パイプラインへ統合(#169)。JSX 変換は vp/oxc が担うため React
+  // プラグインは不要。lazyPlugins で「pipeline 実行時(dev/build/test)だけ評価」にし、
+  // lint/fmt/エディタでの無用なプラグイン評価を避ける（vp 推奨）。
+  //
+  // 型注記: @tailwindcss/vite の Plugin 型は upstream vite 由来で、vp(vite-plus-core)の
+  // PluginOption と identity が異なる。両者は構造・実行時ともに互換（build/dev で確認済み）だが、
+  // 型比較が TS の再帰上限(TS2321)に達し「比較自体を完了できない」ため、この 1 行のみ型検査を
+  // 免除する。キャスト(as unknown as)と違い自浄する: 将来 vite 型が揃えば下記 expect-error
+  // 自体がエラーになり、撤去を促す。
+  // @ts-ignore cross-fork の vite Plugin 型 identity 不一致（実行時は正常。上記参照）
+  plugins: lazyPlugins(() => [tailwindcss()]),
   // tsconfig.json の paths を単一の正として解決に使う（Vite 8 ネイティブ・build/test 双方に適用）。
   resolve: {
     tsconfigPaths: true,
@@ -47,7 +58,7 @@ export default defineConfig({
         "src/**/*.test.{ts,tsx}", // テスト自身
         "src/**/*.d.ts", // 型宣言
         "src/**/index.ts", // Public API（再エクスポートのみでロジックなし）
-        "src/main.tsx", // アプリのエントリ
+        "src/app/entrypoint/main.tsx", // アプリのエントリ
         "src/vite-env.d.ts",
       ],
     },

@@ -16,7 +16,7 @@ ProgPath（再開発版）の **`src/` 配下のディレクトリ構成**を定
 ```
 /
 ├─ src/
-│  ├─ app/        … 初期化・プロバイダ・ルーティング
+│  ├─ app/        … 初期化・エントリ・プロバイダ・ルーティング・グローバルスタイル
 │  ├─ pages/      … 画面
 │  ├─ widgets/    … 画面ブロック
 │  ├─ features/   … 機能単位
@@ -66,8 +66,10 @@ export { createInitialMaze } from "./lib/create-initial-maze";
 ```
 src/
 ├─ app/
+│  ├─ entrypoint/         … アプリ起点（createRoot・global.css 読込）
 │  ├─ providers/          … テーマ等のプロバイダ
 │  ├─ routing/            … ルート定義
+│  ├─ styles/             … グローバルスタイル（Tailwind 読込・@theme）
 │  └─ index.ts
 │
 ├─ pages/
@@ -112,7 +114,10 @@ src/
 
 ### 4.1 app
 
-全体の初期化を担う。プロバイダ（テーマ等）、ルーティング、グローバル設定を置く。ビジネスロジックは持たない。
+全体の初期化を担う。エントリ（`entrypoint`）、プロバイダ（テーマ等）、ルーティング、グローバルスタイル（`styles`）、グローバル設定を置く。ビジネスロジックは持たない。
+
+- **`entrypoint`**: アプリ起点。`entrypoint/main.tsx` を `index.html` が読み込み、`createRoot` で描画する。FSD 公式の `app/entrypoint` セグメントに対応。
+- **`styles`**: グローバルスタイル。`styles/global.css` が Tailwind を読み込み、デザイントークンを `@theme` に定義する（トークンの中身は #174）。`entrypoint` から import する。
 
 > **TanStack DB は Provider 不要**。`useLiveQuery` はコレクションを直接購読し、コレクションは `shared/db` でモジュールレベルのシングルトンとして定義する。`QueryClientProvider` が要るのは Query Collection（サーバ同期）を使う場合のみで、本プロジェクト（オフライン・IndexedDB）では使わない。
 
