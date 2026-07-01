@@ -47,7 +47,7 @@ export default defineConfig({
         "src/**/*.test.{ts,tsx}", // テスト自身
         "src/**/*.d.ts", // 型宣言
         "src/**/index.ts", // Public API（再エクスポートのみでロジックなし）
-        "src/main.tsx", // アプリのエントリ
+        "src/app/entrypoint/main.tsx", // アプリのエントリ
         "src/vite-env.d.ts",
       ],
     },
