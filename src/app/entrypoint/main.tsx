@@ -4,6 +4,7 @@ import { StrictMode, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import type { Mesh } from "three";
 
+import { initTheme, useTheme, type ThemeMode } from "@/shared/theme";
 import { Switch } from "@/shared/ui";
 
 import "../styles/global.css";
