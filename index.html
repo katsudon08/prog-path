@@ -4,6 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ProgPath</title>
+    <!-- テーマの FOUC 防止: React マウント前に .dark を確定する。
+         ロジック/キーは shared/theme の theme-store と一致させること（#174）。 -->
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem("progpath-theme");
+          // theme-store の正規化に一致させる: "light"/"dark" 以外（system・未設定・不正値）は
+          // すべて OS 設定に従う。両者がずれると初回に一瞬テーマが反転する。
+          var dark =
+            mode === "dark" ||
+            (mode !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var root = document.documentElement;
+          if (dark) root.classList.add("dark");
+          root.style.colorScheme = dark ? "dark" : "light";
+        } catch (e) {
+          /* localStorage/matchMedia 不可でもライトで継続 */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
