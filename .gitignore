@@ -54,3 +54,7 @@ commit_message.txt
 # 運用ルールを書いた README だけは例外で追跡する（ディレクトリ自体ではなく中身を ignore し、! で再追跡）。
 docs/ai/**
 !docs/ai/README.md
+
+# spike の vendoring（使い捨て検証用に取得した外部 UMD ビルド）は追跡しない。
+# 取得手順は各 spike の README に curl コマンドとして残す（再現可能）。
+spikes/**/vendor/
