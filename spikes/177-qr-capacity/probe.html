@@ -1,392 +1,594 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>#177 QR収容検証 probe</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body { font-family: system-ui, sans-serif; margin: 24px; line-height: 1.6; }
-    h1 { font-size: 1.3rem; }
-    h2 { font-size: 1.05rem; margin-top: 2rem; }
-    .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
-    button { padding: 6px 14px; font-size: 0.95rem; cursor: pointer; }
-    label { font-size: 0.9rem; }
-    input[type="number"] { width: 4rem; }
-    table { border-collapse: collapse; margin: 10px 0; font-size: 0.82rem; width: 100%; }
-    th, td { border: 1px solid #8888; padding: 3px 7px; text-align: right; white-space: nowrap; }
-    th { background: #8882; }
-    td.l, th.l { text-align: left; }
-    .ok { color: #18794e; font-weight: 600; }
-    .ng { color: #cd2b31; font-weight: 600; }
-    .note { color: #888; font-size: 0.85rem; }
-    pre { background: #8881; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; }
-    .samples { display: flex; gap: 20px; flex-wrap: wrap; }
-    .sample { text-align: center; font-size: 0.8rem; }
-    .sample canvas { image-rendering: pixelated; width: 220px; height: 220px; border: 1px solid #8884; background: #fff; }
-    .verdict { padding: 12px; border-radius: 6px; background: #18794e22; border: 1px solid #18794e55; }
-  </style>
-</head>
-<body>
-  <h1>#177 QRシリアライズ 1迷路=1QR 収容検証 probe</h1>
-  <p class="note">
-    迷路ペイロード（<code>schemaVersion / name / size / floors / tiles</code>）を各エンコード経路で
-    <code>圧縮→(Base64|base45)→QR</code> に通し、最小QRバージョン・収容可否・jsQR読み戻し・可逆性を計測する使い捨て probe。
-    詳細は同ディレクトリの <code>README.md</code>、確定結論は <code>docs/db-design.md §8</code>。
-  </p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>#177 QR収容検証 probe</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 24px;
+        line-height: 1.6;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin-top: 2rem;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 12px 0;
+      }
+      button {
+        padding: 6px 14px;
+        font-size: 0.95rem;
+        cursor: pointer;
+      }
+      label {
+        font-size: 0.9rem;
+      }
+      input[type="number"] {
+        width: 4rem;
+      }
+      table {
+        border-collapse: collapse;
+        margin: 10px 0;
+        font-size: 0.82rem;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #8888;
+        padding: 3px 7px;
+        text-align: right;
+        white-space: nowrap;
+      }
+      th {
+        background: #8882;
+      }
+      td.l,
+      th.l {
+        text-align: left;
+      }
+      .ok {
+        color: #18794e;
+        font-weight: 600;
+      }
+      .ng {
+        color: #cd2b31;
+        font-weight: 600;
+      }
+      .note {
+        color: #888;
+        font-size: 0.85rem;
+      }
+      pre {
+        background: #8881;
+        padding: 12px;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-size: 0.8rem;
+      }
+      .samples {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      .sample {
+        text-align: center;
+        font-size: 0.8rem;
+      }
+      .sample canvas {
+        image-rendering: pixelated;
+        width: 220px;
+        height: 220px;
+        border: 1px solid #8884;
+        background: #fff;
+      }
+      .verdict {
+        padding: 12px;
+        border-radius: 6px;
+        background: #18794e22;
+        border: 1px solid #18794e55;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>#177 QRシリアライズ 1迷路=1QR 収容検証 probe</h1>
+    <p class="note">
+      迷路ペイロード（<code>schemaVersion / name / size / floors / tiles</code
+      >）を各エンコード経路で
+      <code>圧縮→(Base64|base45)→QR</code>
+      に通し、最小QRバージョン・収容可否・jsQR読み戻し・可逆性を計測する使い捨て probe。
+      詳細は同ディレクトリの <code>README.md</code>、確定結論は <code>docs/db-design.md §8</code>。
+    </p>
 
-  <div class="controls">
-    <label>size <input id="size" type="number" min="5" max="7" value="7" /></label>
-    <label>floors <input id="floors" type="number" min="1" max="3" value="3" /></label>
-    <label>name長(全角) <input id="namelen" type="number" min="0" max="200" value="50" /></label>
-    <button id="run">再計測</button>
-    <button id="copy">結果JSONをコピー</button>
-  </div>
+    <div class="controls">
+      <label>size <input id="size" type="number" min="5" max="7" value="7" /></label>
+      <label>floors <input id="floors" type="number" min="1" max="3" value="3" /></label>
+      <label>name長(全角) <input id="namelen" type="number" min="0" max="200" value="50" /></label>
+      <button id="run">再計測</button>
+      <button id="copy">結果JSONをコピー</button>
+    </div>
 
-  <div id="verdict"></div>
-  <div id="tables"></div>
+    <div id="verdict"></div>
+    <div id="tables"></div>
 
-  <h2>サンプル QR（baseline: fflate+Base64 / ECC=M）</h2>
-  <div class="samples" id="samples"></div>
+    <h2>サンプル QR（baseline: fflate+Base64 / ECC=M）</h2>
+    <div class="samples" id="samples"></div>
 
-  <h2>QR 容量参照値（ISO/IEC 18004, v40 上限）</h2>
-  <table>
-    <tr><th class="l">ECC</th><th>バイトモード</th><th>英数モード</th></tr>
-    <tr><td class="l">L</td><td>2953 B</td><td>4296 字</td></tr>
-    <tr><td class="l">M</td><td>2331 B</td><td>3391 字</td></tr>
-    <tr><td class="l">Q</td><td>1663 B</td><td>2420 字</td></tr>
-    <tr><td class="l">H</td><td>1273 B</td><td>1852 字</td></tr>
-  </table>
+    <h2>QR 容量参照値（ISO/IEC 18004, v40 上限）</h2>
+    <table>
+      <tr>
+        <th class="l">ECC</th>
+        <th>バイトモード</th>
+        <th>英数モード</th>
+      </tr>
+      <tr>
+        <td class="l">L</td>
+        <td>2953 B</td>
+        <td>4296 字</td>
+      </tr>
+      <tr>
+        <td class="l">M</td>
+        <td>2331 B</td>
+        <td>3391 字</td>
+      </tr>
+      <tr>
+        <td class="l">Q</td>
+        <td>1663 B</td>
+        <td>2420 字</td>
+      </tr>
+      <tr>
+        <td class="l">H</td>
+        <td>1273 B</td>
+        <td>1852 字</td>
+      </tr>
+    </table>
 
-  <h2>結果 JSON</h2>
-  <pre id="summary"></pre>
+    <h2>結果 JSON</h2>
+    <pre id="summary"></pre>
 
-  <script src="./vendor/qrcode-generator.js"></script>
-  <script src="./vendor/fflate.js"></script>
-  <script src="./vendor/pako.min.js"></script>
-  <script src="./vendor/lz-string.min.js"></script>
-  <script src="./vendor/jsQR.js"></script>
-  <script>
-  "use strict";
+    <script src="./vendor/qrcode-generator.js"></script>
+    <script src="./vendor/fflate.js"></script>
+    <script src="./vendor/pako.min.js"></script>
+    <script src="./vendor/lz-string.min.js"></script>
+    <script src="./vendor/jsQR.js"></script>
+    <script>
+      "use strict";
 
-  // ---- ドメイン定義（docs/db-design.md §3.3 TileKind と一致）-------------------
-  const KINDS = ["floor", "wall", "hole", "start", "goal", "teleportUp", "teleportDown", "key"];
-  const KIND_INDEX = Object.fromEntries(KINDS.map((k, i) => [k, i])); // 8種 → 3bit
-  const SCHEMA_VERSION = 1;
-  const ECCS = ["L", "M", "Q", "H"];
-  const enc = new TextEncoder();
-  const dec = new TextDecoder();
+      // ---- ドメイン定義（docs/db-design.md §3.3 TileKind と一致）-------------------
+      const KINDS = ["floor", "wall", "hole", "start", "goal", "teleportUp", "teleportDown", "key"];
+      const KIND_INDEX = Object.fromEntries(KINDS.map((k, i) => [k, i])); // 8種 → 3bit
+      const SCHEMA_VERSION = 1;
+      const ECCS = ["L", "M", "Q", "H"];
+      const enc = new TextEncoder();
+      const dec = new TextDecoder();
 
-  // ---- 決定論的 PRNG（再現性のため Math.random は使わない）--------------------
-  function mulberry32(seed) {
-    let a = seed >>> 0;
-    return function () {
-      a = (a + 0x6d2b79f5) | 0;
-      let t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
+      // ---- 決定論的 PRNG（再現性のため Math.random は使わない）--------------------
+      function mulberry32(seed) {
+        let a = seed >>> 0;
+        return function () {
+          a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
 
-  // ---- 迷路ペイロード生成 -----------------------------------------------------
-  const NAME_POOL = "あいうえおかきくけこさしすせそたちつてとまみむめもらりるれろ迷路探検大冒険島城森0123abc";
-  function makeName(len, rnd) {
-    let s = "";
-    for (let i = 0; i < len; i++) s += NAME_POOL[Math.floor(rnd() * NAME_POOL.length)];
-    return s;
-  }
+      // ---- 迷路ペイロード生成 -----------------------------------------------------
+      const NAME_POOL =
+        "あいうえおかきくけこさしすせそたちつてとまみむめもらりるれろ迷路探検大冒険島城森0123abc";
+      function makeName(len, rnd) {
+        let s = "";
+        for (let i = 0; i < len; i++) s += NAME_POOL[Math.floor(rnd() * NAME_POOL.length)];
+        return s;
+      }
 
-  /**
-   * @param {{size:number, floors:number, mode:"adversarial"|"realistic", nameLen:number}} o
-   * mode=adversarial: 全セルを8種から一様ランダム（最大エントロピー＝圧縮最悪ケース）。妥当な迷路である必要はない。
-   * mode=realistic: 大半 floor、壁を散らし start/goal 各1、key/hole/teleport を少数配置。
-   */
-  function buildPayload(o) {
-    const rnd = mulberry32(o.mode === "adversarial" ? 0x9e3779b1 : 0x1234abcd);
-    const { size, floors } = o;
-    const name = makeName(o.nameLen, rnd);
-    const tiles = [];
-    for (let f = 0; f < floors; f++) {
-      const floor = [];
-      for (let r = 0; r < size; r++) {
-        const row = [];
-        for (let c = 0; c < size; c++) {
-          if (o.mode === "adversarial") {
-            row.push(KINDS[Math.floor(rnd() * KINDS.length)]);
-          } else {
-            row.push(rnd() < 0.25 ? "wall" : "floor");
+      /**
+       * @param {{size:number, floors:number, mode:"adversarial"|"realistic", nameLen:number}} o
+       * mode=adversarial: 全セルを8種から一様ランダム（最大エントロピー＝圧縮最悪ケース）。妥当な迷路である必要はない。
+       * mode=realistic: 大半 floor、壁を散らし start/goal 各1、key/hole/teleport を少数配置。
+       */
+      function buildPayload(o) {
+        const rnd = mulberry32(o.mode === "adversarial" ? 0x9e3779b1 : 0x1234abcd);
+        const { size, floors } = o;
+        const name = makeName(o.nameLen, rnd);
+        const tiles = [];
+        for (let f = 0; f < floors; f++) {
+          const floor = [];
+          for (let r = 0; r < size; r++) {
+            const row = [];
+            for (let c = 0; c < size; c++) {
+              if (o.mode === "adversarial") {
+                row.push(KINDS[Math.floor(rnd() * KINDS.length)]);
+              } else {
+                row.push(rnd() < 0.25 ? "wall" : "floor");
+              }
+            }
+            floor.push(row);
+          }
+          tiles.push(floor);
+        }
+        if (o.mode === "realistic") {
+          tiles[0][0][0] = "start";
+          tiles[floors - 1][size - 1][size - 1] = "goal";
+          const scatter = (kind, n) => {
+            for (let i = 0; i < n; i++) {
+              const f = Math.floor(rnd() * floors),
+                r = Math.floor(rnd() * size),
+                c = Math.floor(rnd() * size);
+              if (tiles[f][r][c] === "floor") tiles[f][r][c] = kind;
+            }
+          };
+          scatter("key", 5);
+          scatter("hole", 3);
+          if (floors > 1) {
+            scatter("teleportUp", 1);
+            scatter("teleportDown", 1);
           }
         }
-        floor.push(row);
+        return { schemaVersion: SCHEMA_VERSION, name, size, floors, tiles };
       }
-      tiles.push(floor);
-    }
-    if (o.mode === "realistic") {
-      tiles[0][0][0] = "start";
-      tiles[floors - 1][size - 1][size - 1] = "goal";
-      const scatter = (kind, n) => {
-        for (let i = 0; i < n; i++) {
-          const f = Math.floor(rnd() * floors), r = Math.floor(rnd() * size), c = Math.floor(rnd() * size);
-          if (tiles[f][r][c] === "floor") tiles[f][r][c] = kind;
+
+      // ---- Base64 / base45 --------------------------------------------------------
+      function b64FromU8(u8) {
+        let s = "";
+        for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
+        return btoa(s);
+      }
+      function u8FromB64(b64) {
+        const s = atob(b64);
+        const u = new Uint8Array(s.length);
+        for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+        return u;
+      }
+      // RFC 9285 base45（QR 英数モードに収まる45文字集合）
+      const B45 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+      function base45Encode(u8) {
+        let out = "";
+        for (let i = 0; i < u8.length; i += 2) {
+          if (i + 1 < u8.length) {
+            let n = u8[i] * 256 + u8[i + 1];
+            const c = n % 45;
+            n = (n - c) / 45;
+            const d = n % 45;
+            n = (n - d) / 45;
+            out += B45[c] + B45[d] + B45[n];
+          } else {
+            let n = u8[i];
+            const c = n % 45;
+            n = (n - c) / 45;
+            out += B45[c] + B45[n];
+          }
         }
-      };
-      scatter("key", 5); scatter("hole", 3);
-      if (floors > 1) { scatter("teleportUp", 1); scatter("teleportDown", 1); }
-    }
-    return { schemaVersion: SCHEMA_VERSION, name, size, floors, tiles };
-  }
-
-  // ---- Base64 / base45 --------------------------------------------------------
-  function b64FromU8(u8) {
-    let s = "";
-    for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
-    return btoa(s);
-  }
-  function u8FromB64(b64) {
-    const s = atob(b64);
-    const u = new Uint8Array(s.length);
-    for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
-    return u;
-  }
-  // RFC 9285 base45（QR 英数モードに収まる45文字集合）
-  const B45 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
-  function base45Encode(u8) {
-    let out = "";
-    for (let i = 0; i < u8.length; i += 2) {
-      if (i + 1 < u8.length) {
-        let n = u8[i] * 256 + u8[i + 1];
-        const c = n % 45; n = (n - c) / 45;
-        const d = n % 45; n = (n - d) / 45;
-        out += B45[c] + B45[d] + B45[n];
-      } else {
-        let n = u8[i];
-        const c = n % 45; n = (n - c) / 45;
-        out += B45[c] + B45[n];
+        return out;
       }
-    }
-    return out;
-  }
-  function base45Decode(str) {
-    const bytes = [];
-    for (let i = 0; i < str.length; i += 3) {
-      if (i + 2 < str.length) {
-        const n = B45.indexOf(str[i]) + B45.indexOf(str[i + 1]) * 45 + B45.indexOf(str[i + 2]) * 45 * 45;
-        bytes.push((n >> 8) & 0xff, n & 0xff);
-      } else {
-        const n = B45.indexOf(str[i]) + B45.indexOf(str[i + 1]) * 45;
-        bytes.push(n & 0xff);
+      function base45Decode(str) {
+        const bytes = [];
+        for (let i = 0; i < str.length; i += 3) {
+          if (i + 2 < str.length) {
+            const n =
+              B45.indexOf(str[i]) +
+              B45.indexOf(str[i + 1]) * 45 +
+              B45.indexOf(str[i + 2]) * 45 * 45;
+            bytes.push((n >> 8) & 0xff, n & 0xff);
+          } else {
+            const n = B45.indexOf(str[i]) + B45.indexOf(str[i + 1]) * 45;
+            bytes.push(n & 0xff);
+          }
+        }
+        return new Uint8Array(bytes);
       }
-    }
-    return new Uint8Array(bytes);
-  }
 
-  // ---- ビットパック（タイルを3bitで詰める）-----------------------------------
-  function packBits(values, bitsPer) {
-    const out = []; let cur = 0, n = 0;
-    for (const v of values) {
-      for (let b = bitsPer - 1; b >= 0; b--) {
-        cur = (cur << 1) | ((v >> b) & 1); n++;
-        if (n === 8) { out.push(cur); cur = 0; n = 0; }
+      // ---- ビットパック（タイルを3bitで詰める）-----------------------------------
+      function packBits(values, bitsPer) {
+        const out = [];
+        let cur = 0,
+          n = 0;
+        for (const v of values) {
+          for (let b = bitsPer - 1; b >= 0; b--) {
+            cur = (cur << 1) | ((v >> b) & 1);
+            n++;
+            if (n === 8) {
+              out.push(cur);
+              cur = 0;
+              n = 0;
+            }
+          }
+        }
+        if (n > 0) out.push(cur << (8 - n));
+        return new Uint8Array(out);
       }
-    }
-    if (n > 0) out.push(cur << (8 - n));
-    return new Uint8Array(out);
-  }
-  function unpackBits(u8, count, bitsPer) {
-    const vals = []; let pos = 0;
-    for (let i = 0; i < count; i++) {
-      let v = 0;
-      for (let b = 0; b < bitsPer; b++) {
-        const bit = (u8[pos >> 3] >> (7 - (pos & 7))) & 1;
-        v = (v << 1) | bit; pos++;
+      function unpackBits(u8, count, bitsPer) {
+        const vals = [];
+        let pos = 0;
+        for (let i = 0; i < count; i++) {
+          let v = 0;
+          for (let b = 0; b < bitsPer; b++) {
+            const bit = (u8[pos >> 3] >> (7 - (pos & 7))) & 1;
+            v = (v << 1) | bit;
+            pos++;
+          }
+          vals.push(v);
+        }
+        return vals;
       }
-      vals.push(v);
-    }
-    return vals;
-  }
-  function packPayload(p) {
-    const nameB = enc.encode(p.name);
-    const idx = [];
-    for (let f = 0; f < p.floors; f++)
-      for (let r = 0; r < p.size; r++)
-        for (let c = 0; c < p.size; c++) idx.push(KIND_INDEX[p.tiles[f][r][c]]);
-    const tileBytes = packBits(idx, 3);
-    const header = [p.schemaVersion, p.size, p.floors, (nameB.length >> 8) & 0xff, nameB.length & 0xff];
-    const out = new Uint8Array(header.length + nameB.length + tileBytes.length);
-    out.set(header, 0);
-    out.set(nameB, header.length);
-    out.set(tileBytes, header.length + nameB.length);
-    return out;
-  }
-  function unpackPayload(u8) {
-    const schemaVersion = u8[0], size = u8[1], floors = u8[2];
-    const nameLen = (u8[3] << 8) | u8[4];
-    const name = dec.decode(u8.slice(5, 5 + nameLen));
-    const idx = unpackBits(u8.slice(5 + nameLen), size * size * floors, 3);
-    const tiles = []; let k = 0;
-    for (let f = 0; f < floors; f++) {
-      const floor = [];
-      for (let r = 0; r < size; r++) {
-        const row = [];
-        for (let c = 0; c < size; c++) row.push(KINDS[idx[k++]]);
-        floor.push(row);
+      function packPayload(p) {
+        const nameB = enc.encode(p.name);
+        const idx = [];
+        for (let f = 0; f < p.floors; f++)
+          for (let r = 0; r < p.size; r++)
+            for (let c = 0; c < p.size; c++) idx.push(KIND_INDEX[p.tiles[f][r][c]]);
+        const tileBytes = packBits(idx, 3);
+        const header = [
+          p.schemaVersion,
+          p.size,
+          p.floors,
+          (nameB.length >> 8) & 0xff,
+          nameB.length & 0xff,
+        ];
+        const out = new Uint8Array(header.length + nameB.length + tileBytes.length);
+        out.set(header, 0);
+        out.set(nameB, header.length);
+        out.set(tileBytes, header.length + nameB.length);
+        return out;
       }
-      tiles.push(floor);
-    }
-    return { schemaVersion, name, size, floors, tiles };
-  }
+      function unpackPayload(u8) {
+        const schemaVersion = u8[0],
+          size = u8[1],
+          floors = u8[2];
+        const nameLen = (u8[3] << 8) | u8[4];
+        const name = dec.decode(u8.slice(5, 5 + nameLen));
+        const idx = unpackBits(u8.slice(5 + nameLen), size * size * floors, 3);
+        const tiles = [];
+        let k = 0;
+        for (let f = 0; f < floors; f++) {
+          const floor = [];
+          for (let r = 0; r < size; r++) {
+            const row = [];
+            for (let c = 0; c < size; c++) row.push(KINDS[idx[k++]]);
+            floor.push(row);
+          }
+          tiles.push(floor);
+        }
+        return { schemaVersion, name, size, floors, tiles };
+      }
 
-  // ---- エンコード・パイプライン ----------------------------------------------
-  // 各 encode: payload/json → { encoded:string, qrMode:"Byte"|"Alphanumeric", binBytes:number }
-  // 各 decode: encoded → payload（可逆性検証用）
-  const PIPELINES = [
-    {
-      id: "fflate+b64", qrMode: "Byte", desc: "JSON→deflate(fflate)→Base64【設計ベースライン】",
-      encode: (p, json, u8) => { const c = fflate.deflateSync(u8, { level: 9 }); return { encoded: b64FromU8(c), binBytes: c.length }; },
-      decode: (s) => JSON.parse(dec.decode(fflate.inflateSync(u8FromB64(s)))),
-    },
-    {
-      id: "pako+b64", qrMode: "Byte", desc: "JSON→deflate(pako)→Base64【圧縮ライブラリ比較】",
-      encode: (p, json, u8) => { const c = pako.deflate(u8, { level: 9 }); return { encoded: b64FromU8(c), binBytes: c.length }; },
-      decode: (s) => JSON.parse(dec.decode(pako.inflate(u8FromB64(s)))),
-    },
-    {
-      id: "lz-string+b64", qrMode: "Byte", desc: "JSON→LZString.compressToBase64【LZ系比較】",
-      encode: (p, json) => { const s = LZString.compressToBase64(json); return { encoded: s, binBytes: LZString.compressToUint8Array(json).length }; },
-      decode: (s) => JSON.parse(LZString.decompressFromBase64(s)),
-    },
-    {
-      id: "fflate+base45", qrMode: "Alphanumeric", desc: "JSON→deflate(fflate)→base45【英数モード】",
-      encode: (p, json, u8) => { const c = fflate.deflateSync(u8, { level: 9 }); return { encoded: base45Encode(c), binBytes: c.length }; },
-      decode: (s) => JSON.parse(dec.decode(fflate.inflateSync(base45Decode(s)))),
-    },
-    {
-      id: "bitpack+base45", qrMode: "Alphanumeric", desc: "3bitパック→base45（無圧縮）【最悪ケース最小】",
-      encode: (p) => { const b = packPayload(p); return { encoded: base45Encode(b), binBytes: b.length }; },
-      decode: (s) => unpackPayload(base45Decode(s)),
-    },
-    {
-      id: "bitpack+deflate+base45", qrMode: "Alphanumeric", desc: "3bitパック→deflate→base45【低エントロピー向き】",
-      encode: (p) => { const b = packPayload(p); const c = fflate.deflateSync(b, { level: 9 }); return { encoded: base45Encode(c), binBytes: c.length }; },
-      decode: (s) => unpackPayload(fflate.inflateSync(base45Decode(s))),
-    },
-  ];
+      // ---- エンコード・パイプライン ----------------------------------------------
+      // 各 encode: payload/json → { encoded:string, qrMode:"Byte"|"Alphanumeric", binBytes:number }
+      // 各 decode: encoded → payload（可逆性検証用）
+      const PIPELINES = [
+        {
+          id: "fflate+b64",
+          qrMode: "Byte",
+          desc: "JSON→deflate(fflate)→Base64【設計ベースライン】",
+          encode: (p, json, u8) => {
+            const c = fflate.deflateSync(u8, { level: 9 });
+            return { encoded: b64FromU8(c), binBytes: c.length };
+          },
+          decode: (s) => JSON.parse(dec.decode(fflate.inflateSync(u8FromB64(s)))),
+        },
+        {
+          id: "pako+b64",
+          qrMode: "Byte",
+          desc: "JSON→deflate(pako)→Base64【圧縮ライブラリ比較】",
+          encode: (p, json, u8) => {
+            const c = pako.deflate(u8, { level: 9 });
+            return { encoded: b64FromU8(c), binBytes: c.length };
+          },
+          decode: (s) => JSON.parse(dec.decode(pako.inflate(u8FromB64(s)))),
+        },
+        {
+          id: "lz-string+b64",
+          qrMode: "Byte",
+          desc: "JSON→LZString.compressToBase64【LZ系比較】",
+          encode: (p, json) => {
+            const s = LZString.compressToBase64(json);
+            return { encoded: s, binBytes: LZString.compressToUint8Array(json).length };
+          },
+          decode: (s) => JSON.parse(LZString.decompressFromBase64(s)),
+        },
+        {
+          id: "fflate+base45",
+          qrMode: "Alphanumeric",
+          desc: "JSON→deflate(fflate)→base45【英数モード】",
+          encode: (p, json, u8) => {
+            const c = fflate.deflateSync(u8, { level: 9 });
+            return { encoded: base45Encode(c), binBytes: c.length };
+          },
+          decode: (s) => JSON.parse(dec.decode(fflate.inflateSync(base45Decode(s)))),
+        },
+        {
+          id: "bitpack+base45",
+          qrMode: "Alphanumeric",
+          desc: "3bitパック→base45（無圧縮）【最悪ケース最小】",
+          encode: (p) => {
+            const b = packPayload(p);
+            return { encoded: base45Encode(b), binBytes: b.length };
+          },
+          decode: (s) => unpackPayload(base45Decode(s)),
+        },
+        {
+          id: "bitpack+deflate+base45",
+          qrMode: "Alphanumeric",
+          desc: "3bitパック→deflate→base45【低エントロピー向き】",
+          encode: (p) => {
+            const b = packPayload(p);
+            const c = fflate.deflateSync(b, { level: 9 });
+            return { encoded: base45Encode(c), binBytes: c.length };
+          },
+          decode: (s) => unpackPayload(fflate.inflateSync(base45Decode(s))),
+        },
+      ];
 
-  // ---- QR 生成・計測・読み戻し ------------------------------------------------
-  function measureQR(encoded, qrMode, ecc) {
-    const qr = qrcode(0, ecc); // 0 = 最小バージョン自動選択、>40 は make() で throw
-    qr.addData(encoded, qrMode);
-    try { qr.make(); }
-    catch (e) { return { fits: false, version: null, count: null, roundtrip: false, err: String(e) }; }
-    const count = qr.getModuleCount();
-    const version = (count - 17) / 4;
-    // ピクセル完璧な描画（4px/module + 4module quiet zone）→ jsQR で読み戻し
-    const cell = 4, quiet = 4;
-    const dim = (count + quiet * 2) * cell;
-    const cv = document.createElement("canvas");
-    cv.width = dim; cv.height = dim;
-    const ctx = cv.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, dim, dim);
-    ctx.fillStyle = "#000";
-    for (let r = 0; r < count; r++)
-      for (let c = 0; c < count; c++)
-        if (qr.isDark(r, c)) ctx.fillRect((c + quiet) * cell, (r + quiet) * cell, cell, cell);
-    const img = ctx.getImageData(0, 0, dim, dim);
-    const res = jsQR(img.data, dim, dim);
-    return { fits: true, version, count, roundtrip: !!res && res.data === encoded, canvas: cv };
-  }
+      // ---- QR 生成・計測・読み戻し ------------------------------------------------
+      function measureQR(encoded, qrMode, ecc) {
+        const qr = qrcode(0, ecc); // 0 = 最小バージョン自動選択、>40 は make() で throw
+        qr.addData(encoded, qrMode);
+        try {
+          qr.make();
+        } catch (e) {
+          return { fits: false, version: null, count: null, roundtrip: false, err: String(e) };
+        }
+        const count = qr.getModuleCount();
+        const version = (count - 17) / 4;
+        // ピクセル完璧な描画（4px/module + 4module quiet zone）→ jsQR で読み戻し
+        const cell = 4,
+          quiet = 4;
+        const dim = (count + quiet * 2) * cell;
+        const cv = document.createElement("canvas");
+        cv.width = dim;
+        cv.height = dim;
+        const ctx = cv.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, dim, dim);
+        ctx.fillStyle = "#000";
+        for (let r = 0; r < count; r++)
+          for (let c = 0; c < count; c++)
+            if (qr.isDark(r, c)) ctx.fillRect((c + quiet) * cell, (r + quiet) * cell, cell, cell);
+        const img = ctx.getImageData(0, 0, dim, dim);
+        const res = jsQR(img.data, dim, dim);
+        return { fits: true, version, count, roundtrip: !!res && res.data === encoded, canvas: cv };
+      }
 
-  // ---- 実行 -------------------------------------------------------------------
-  const $ = (id) => document.getElementById(id);
-  let lastSummary = null;
+      // ---- 実行 -------------------------------------------------------------------
+      const $ = (id) => document.getElementById(id);
+      let lastSummary = null;
 
-  function run() {
-    const size = Math.max(5, Math.min(7, +$("size").value | 0));
-    const floors = Math.max(1, Math.min(3, +$("floors").value | 0));
-    const nameLen = Math.max(0, Math.min(200, +$("namelen").value | 0));
-    const modes = ["adversarial", "realistic"];
-    const rows = [];
-    const summary = { config: { size, floors, nameLen, cells: size * size * floors }, results: [] };
-    $("tables").innerHTML = "";
-    $("samples").innerHTML = "";
+      function run() {
+        const size = Math.max(5, Math.min(7, +$("size").value | 0));
+        const floors = Math.max(1, Math.min(3, +$("floors").value | 0));
+        const nameLen = Math.max(0, Math.min(200, +$("namelen").value | 0));
+        const modes = ["adversarial", "realistic"];
+        const rows = [];
+        const summary = {
+          config: { size, floors, nameLen, cells: size * size * floors },
+          results: [],
+        };
+        $("tables").innerHTML = "";
+        $("samples").innerHTML = "";
 
-    for (const mode of modes) {
-      const payload = buildPayload({ size, floors, mode, nameLen });
-      const json = JSON.stringify(payload);
-      const jsonU8 = enc.encode(json);
-      const jsonBytes = jsonU8.length;
+        for (const mode of modes) {
+          const payload = buildPayload({ size, floors, mode, nameLen });
+          const json = JSON.stringify(payload);
+          const jsonU8 = enc.encode(json);
+          const jsonBytes = jsonU8.length;
 
-      const tbl = document.createElement("table");
-      tbl.innerHTML = `<caption class="l" style="text-align:left;font-weight:600;margin:6px 0">
+          const tbl = document.createElement("table");
+          tbl.innerHTML = `<caption class="l" style="text-align:left;font-weight:600;margin:6px 0">
         mode=${mode}（${size}×${size}×${floors}=${size * size * floors}セル, name=${nameLen}字, JSON=${jsonBytes}B）</caption>
         <tr><th class="l">pipeline</th><th class="l">QRモード</th><th>圧縮後B</th><th>エンコード長</th>
         <th>ECC</th><th>QR版</th><th>モジュール</th><th>収容</th><th>読戻</th><th>可逆</th></tr>`;
 
-      for (const p of PIPELINES) {
-        let out, lossless;
-        try {
-          out = p.encode(payload, json, jsonU8);
-          lossless = JSON.stringify(p.decode(out.encoded)) === json;
-        } catch (e) {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td class="l">${p.id}</td><td colspan="9" class="l ng">encode/decode 失敗: ${e}</td>`;
-          tbl.appendChild(tr);
-          continue;
-        }
-        for (const ecc of ECCS) {
-          const m = measureQR(out.encoded, p.qrMode, ecc);
-          rows.push({ mode, pipeline: p.id, qrMode: p.qrMode, jsonBytes, binBytes: out.binBytes, encLen: out.encoded.length, ecc, version: m.version, count: m.count, fits: m.fits, roundtrip: m.roundtrip, lossless });
-          summary.results.push({ mode, pipeline: p.id, qrMode: p.qrMode, jsonBytes, binBytes: out.binBytes, encLen: out.encoded.length, ecc, version: m.version, fits: m.fits, roundtrip: m.roundtrip, lossless });
-          const tr = document.createElement("tr");
-          tr.innerHTML =
-            `<td class="l">${p.id}</td><td class="l">${p.qrMode}</td>` +
-            `<td>${out.binBytes}</td><td>${out.encoded.length}</td><td>${ecc}</td>` +
-            `<td>${m.fits ? "v" + m.version : "—"}</td><td>${m.count ? m.count + "²" : "—"}</td>` +
-            `<td class="${m.fits ? "ok" : "ng"}">${m.fits ? "収容" : "超過"}</td>` +
-            `<td class="${m.roundtrip ? "ok" : "ng"}">${m.roundtrip ? "OK" : "NG"}</td>` +
-            `<td class="${lossless ? "ok" : "ng"}">${lossless ? "OK" : "NG"}</td>`;
-          tbl.appendChild(tr);
+          for (const p of PIPELINES) {
+            let out, lossless;
+            try {
+              out = p.encode(payload, json, jsonU8);
+              lossless = JSON.stringify(p.decode(out.encoded)) === json;
+            } catch (e) {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `<td class="l">${p.id}</td><td colspan="9" class="l ng">encode/decode 失敗: ${e}</td>`;
+              tbl.appendChild(tr);
+              continue;
+            }
+            for (const ecc of ECCS) {
+              const m = measureQR(out.encoded, p.qrMode, ecc);
+              rows.push({
+                mode,
+                pipeline: p.id,
+                qrMode: p.qrMode,
+                jsonBytes,
+                binBytes: out.binBytes,
+                encLen: out.encoded.length,
+                ecc,
+                version: m.version,
+                count: m.count,
+                fits: m.fits,
+                roundtrip: m.roundtrip,
+                lossless,
+              });
+              summary.results.push({
+                mode,
+                pipeline: p.id,
+                qrMode: p.qrMode,
+                jsonBytes,
+                binBytes: out.binBytes,
+                encLen: out.encoded.length,
+                ecc,
+                version: m.version,
+                fits: m.fits,
+                roundtrip: m.roundtrip,
+                lossless,
+              });
+              const tr = document.createElement("tr");
+              tr.innerHTML =
+                `<td class="l">${p.id}</td><td class="l">${p.qrMode}</td>` +
+                `<td>${out.binBytes}</td><td>${out.encoded.length}</td><td>${ecc}</td>` +
+                `<td>${m.fits ? "v" + m.version : "—"}</td><td>${m.count ? m.count + "²" : "—"}</td>` +
+                `<td class="${m.fits ? "ok" : "ng"}">${m.fits ? "収容" : "超過"}</td>` +
+                `<td class="${m.roundtrip ? "ok" : "ng"}">${m.roundtrip ? "OK" : "NG"}</td>` +
+                `<td class="${lossless ? "ok" : "ng"}">${lossless ? "OK" : "NG"}</td>`;
+              tbl.appendChild(tr);
 
-          // baseline / ECC=M のサンプルQRを表示
-          if (p.id === "fflate+b64" && ecc === "M" && m.canvas) {
-            const box = document.createElement("div");
-            box.className = "sample";
-            box.appendChild(m.canvas);
-            const cap = document.createElement("div");
-            cap.textContent = `${mode} / v${m.version} / ${m.count}²`;
-            box.appendChild(cap);
-            $("samples").appendChild(box);
+              // baseline / ECC=M のサンプルQRを表示
+              if (p.id === "fflate+b64" && ecc === "M" && m.canvas) {
+                const box = document.createElement("div");
+                box.className = "sample";
+                box.appendChild(m.canvas);
+                const cap = document.createElement("div");
+                cap.textContent = `${mode} / v${m.version} / ${m.count}²`;
+                box.appendChild(cap);
+                $("samples").appendChild(box);
+              }
+            }
           }
+          $("tables").appendChild(tbl);
         }
+
+        // 総合判定
+        const baseAdv = rows.filter((r) => r.pipeline === "fflate+b64" && r.mode === "adversarial");
+        const allFit = rows.every((r) => r.fits);
+        const allRT = rows.every((r) => r.roundtrip);
+        const allLossless = rows.every((r) => r.lossless);
+        const baseAdvH = baseAdv.find((r) => r.ecc === "H");
+        summary.verdict = {
+          allFit,
+          allRoundtrip: allRT,
+          allLossless,
+          baselineAdversarialByEcc: Object.fromEntries(
+            baseAdv.map((r) => [r.ecc, r.fits ? "v" + r.version : "超過"]),
+          ),
+        };
+        lastSummary = summary;
+
+        $("verdict").className = "verdict";
+        $("verdict").innerHTML =
+          `<b>総合判定</b>：最悪ケース(adversarial, ${size}×${size}×${floors})の設計ベースライン(fflate+Base64)は ` +
+          ECCS.map((e) => {
+            const r = baseAdv.find((x) => x.ecc === e);
+            return `ECC ${e}=${r.fits ? "v" + r.version : "超過"}`;
+          }).join(" / ") +
+          `。<br>全 ${rows.length} 組合せ: 収容 <span class="${allFit ? "ok" : "ng"}">${rows.filter((r) => r.fits).length}/${rows.length}</span>、` +
+          `読戻 <span class="${allRT ? "ok" : "ng"}">${rows.filter((r) => r.roundtrip).length}/${rows.length}</span>、` +
+          `可逆 <span class="${allLossless ? "ok" : "ng"}">${rows.filter((r) => r.lossless).length}/${rows.length}</span>。`;
+
+        $("summary").textContent = JSON.stringify(summary, null, 2);
       }
-      $("tables").appendChild(tbl);
-    }
 
-    // 総合判定
-    const baseAdv = rows.filter((r) => r.pipeline === "fflate+b64" && r.mode === "adversarial");
-    const allFit = rows.every((r) => r.fits);
-    const allRT = rows.every((r) => r.roundtrip);
-    const allLossless = rows.every((r) => r.lossless);
-    const baseAdvH = baseAdv.find((r) => r.ecc === "H");
-    summary.verdict = { allFit, allRoundtrip: allRT, allLossless, baselineAdversarialByEcc: Object.fromEntries(baseAdv.map((r) => [r.ecc, r.fits ? "v" + r.version : "超過"])) };
-    lastSummary = summary;
-
-    $("verdict").className = "verdict";
-    $("verdict").innerHTML =
-      `<b>総合判定</b>：最悪ケース(adversarial, ${size}×${size}×${floors})の設計ベースライン(fflate+Base64)は ` +
-      ECCS.map((e) => { const r = baseAdv.find((x) => x.ecc === e); return `ECC ${e}=${r.fits ? "v" + r.version : "超過"}`; }).join(" / ") +
-      `。<br>全 ${rows.length} 組合せ: 収容 <span class="${allFit ? "ok" : "ng"}">${rows.filter((r) => r.fits).length}/${rows.length}</span>、` +
-      `読戻 <span class="${allRT ? "ok" : "ng"}">${rows.filter((r) => r.roundtrip).length}/${rows.length}</span>、` +
-      `可逆 <span class="${allLossless ? "ok" : "ng"}">${rows.filter((r) => r.lossless).length}/${rows.length}</span>。`;
-
-    $("summary").textContent = JSON.stringify(summary, null, 2);
-  }
-
-  $("run").addEventListener("click", run);
-  $("copy").addEventListener("click", () => {
-    if (lastSummary) navigator.clipboard.writeText(JSON.stringify(lastSummary, null, 2));
-  });
-  run();
-  </script>
-</body>
+      $("run").addEventListener("click", run);
+      $("copy").addEventListener("click", () => {
+        if (lastSummary) navigator.clipboard.writeText(JSON.stringify(lastSummary, null, 2));
+      });
+      run();
+    </script>
+  </body>
 </html>
