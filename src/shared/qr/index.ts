@@ -14,3 +14,6 @@
  */
 export { decodeQr } from "./model/decode-qr";
 export type { QrSource } from "./model/decode-qr";
+
+export { createQrScanLoop } from "./model/qr-scan-loop";
+export type { QrScanLoop, QrScanLoopOptions, QrResultHandler } from "./model/qr-scan-loop";
