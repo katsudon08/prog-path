@@ -181,7 +181,7 @@ src/
 | `qr` | **QR デコーダ抽象**。`qr-scanner` を内部実装とし、デコード I/F を提供 |
 | `camera` | **カメラ取得抽象**。`getUserMedia` の環境差（Web / Tauri WebView）を吸収 |
 | `db` | **永続化抽象**。TanStack DB のコレクション定義（モジュールレベルのシングルトン）と IndexedDB アクセス（→ [db-design.md](./db-design.md)） |
-| `config` | 定数・設定値（サイズ上限・loop 回数範囲 等） |
+| `config` | 定数・設定値（サイズ上限・loop 回数範囲・未分類フォルダ予約 ID `UNCATEGORIZED_FOLDER_ID` 等） |
 
 > `qr` / `camera` / `db` はインターフェースを公開し、実装を差し替え可能にする。インターフェースの型定義は実装時／[db-design.md](./db-design.md) に委ねる。
 

@@ -30,18 +30,18 @@ ProgPath（再開発版）の**ローカル永続化データの設計**を定�
 erDiagram
     FOLDER ||--o{ MAZE : contains
     FOLDER {
-        string id PK
+        uuid id PK
         string name
         boolean isDefault
         number createdAt
     }
     MAZE {
-        string id PK
+        uuid id PK
         string name
         number size
         number floors
         TileKind tiles "[floor][row][col]"
-        string folderId FK
+        uuid folderId FK
         number createdAt
         number updatedAt
     }
@@ -60,7 +60,7 @@ erDiagram
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `id` | string | 一意 ID。未分類は予約 ID（定数） |
+| `id` | uuid | 一意 ID（UUID v4 / `crypto.randomUUID`）。未分類は予約 nil UUID（`shared/config` の `UNCATEGORIZED_FOLDER_ID`） |
 | `name` | string | フォルダ名（未分類は固定名） |
 | `isDefault` | boolean | 未分類フラグ。`true` は削除・リネーム不可 |
 | `createdAt` | number | 作成時刻（epoch ms）。既定の並び順に使用 |
@@ -69,12 +69,12 @@ erDiagram
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `id` | string | 一意 ID |
+| `id` | uuid | 一意 ID（UUID v4 / `crypto.randomUUID`） |
 | `name` | string | 迷路名 |
 | `size` | number | 一辺のマス数（5〜7）。**全階共通** |
 | `floors` | number | 階層数（1〜3） |
 | `tiles` | TileKind[][][] | タイル配置 `[floor][row][col]`（密配列） |
-| `folderId` | string | 所属フォルダ ID（既定は未分類） |
+| `folderId` | uuid | 所属フォルダ ID（既定は未分類 = `UNCATEGORIZED_FOLDER_ID`） |
 | `createdAt` | number | 作成時刻（epoch ms） |
 | `updatedAt` | number | 更新時刻（epoch ms） |
 
@@ -121,12 +121,12 @@ const MAX_FLOORS = 3;
 
 export const MazeSchema = z
   .object({
-    id: z.string(),
+    id: z.string().uuid(),
     name: z.string().min(1),
     size: z.number().int().min(MIN_SIZE).max(MAX_SIZE),
     floors: z.number().int().min(MIN_FLOORS).max(MAX_FLOORS),
     tiles: z.array(z.array(z.array(TileKindSchema))),
-    folderId: z.string(),
+    folderId: z.string().uuid(),
     createdAt: z.number().int(),
     updatedAt: z.number().int(),
   })
@@ -141,7 +141,7 @@ export const MazeSchema = z
   .refine((m) => countKind(m, "goal") === 1, "ゴールは 1 つ");
 
 export const FolderSchema = z.object({
-  id: z.string(),
+  id: z.string().uuid(),
   name: z.string().min(1),
   isDefault: z.boolean(),
   createdAt: z.number().int(),
@@ -152,6 +152,7 @@ export type Maze = z.infer<typeof MazeSchema>;
 export type Folder = z.infer<typeof FolderSchema>;
 ```
 
+- **ID は UUID v4**。作成時に `crypto.randomUUID()` で採番する（論理型は上表の `uuid`／推論される TS 型は `string`。ブランド型は導入しない）。未分類フォルダは予約 nil UUID（`shared/config` の `UNCATEGORIZED_FOLDER_ID`）。`.uuid()` 検証は**版数を厳格化せず nil を許容**する（生成は v4／予約は nil）。採用する Zod のバージョンで `.uuid()` の版数厳格性が異なるため、予約 nil を確実に通す検証を #179 で確定する。
 - **テレポート整合**（移動先が存在しない/壁・穴・テレポート）は編集時の検証（→ [features.md](./features.md) 4.6）。永続スキーマでは寸法・スタート/ゴール個数の構造検証を行う〔要確認: テレポート整合をスキーマ側でも検証するか〕。
 - 文字数上限（name）は features.md 3.6 の〔要確認〕に従い、確定後に `max` を付す。
 
@@ -204,7 +205,7 @@ TanStack DB の組み込みアダプタには localStorage はあるが IndexedD
 
 ## 7. 初期データと復旧
 
-- **未分類フォルダの保証**: 起動時に未分類フォルダ（予約 ID）の存在を確認し、無ければ作成する。
+- **未分類フォルダの保証**: 起動時に未分類フォルダ（予約 ID = `UNCATEGORIZED_FOLDER_ID` / nil UUID）の存在を確認し、無ければ作成する。
 - **迷路の空状態は正常**: 迷路が 0 件は有効な状態で、ホームは案内 UI を表示する（→ [features.md](./features.md) 3.3）。サンプル迷路の自動投入は**しない**。
 - **不正データの復旧**: Zod 検証に通らないレコードは破棄・初期状態へ復旧する（→ [requirements.md](./requirements.md) 5.5）。未分類フォルダのような必須データは再生成する。
 
@@ -223,7 +224,7 @@ maze（共有用ペイロード） → JSON → 圧縮（deflate / fflate）→ 
 ```
 
 - ペイロードに含める: `schemaVersion` / `name` / `size` / `floors` / `tiles`。
-- ペイロードに含めない: `id`（インポート時に再採番）/ `folderId`（インポート先で決定）/ `createdAt` / `updatedAt`。
+- ペイロードに含めない: `id`（インポート時に UUID v4 で再採番）/ `folderId`（インポート先で決定）/ `createdAt` / `updatedAt`。
 - **収容（#177 で実測確定）**: 仕様内の迷路（5×5〜7×7・1〜3 階＝最大 147 セル）は単一 QR に**余裕を持って収まる**。最悪ケース（全セルを一様ランダム＝最大エントロピー、名前 50 字）でも採用構成（`fflate` deflate + base45 + ECC Q）で **QR v19 相当**、絶対上限 v40 に対し大きな余裕がある。**分割は不要**。
 - **圧縮ライブラリ**: `fflate`（deflate）を採用。`pako` と出力サイズはほぼ同一だがバンドルが小さく（≈8KB）依存ゼロ・tree-shake 可能。`lz-string` は最も非効率で不採用。
 - **テキスト符号化**: `base45`（RFC 9285, QR 英数モード）を採用。同じ圧縮バイトでも Base64（バイトモード）より 2〜3 版低い QR に収まり、低バージョン＝低密度で安価カメラ・低スペック端末でも読みやすい。読取（`qr-scanner`=jsQR）で英数モードのラウンドトリップを確認済み。
@@ -235,7 +236,7 @@ maze（共有用ペイロード） → JSON → 圧縮（deflate / fflate）→ 
 
 1. QR 文字列 → base45 デコード → 解凍（inflate）→ JSON パース。
 2. Zod（共有用スキーマ）で検証。`schemaVersion` を確認。
-3. `id` を新規採番、`folderId` を**未分類**に設定、`createdAt`/`updatedAt` を現在時刻で付与して保存。
+3. `id` を UUID v4 で新規採番、`folderId` を**未分類**（`UNCATEGORIZED_FOLDER_ID`）に設定、`createdAt`/`updatedAt` を現在時刻で付与して保存。
 
 > `schemaVersion` を持たせ、QR 形式・スキーマ変更時の前方/後方互換を判定できるようにする。
 
