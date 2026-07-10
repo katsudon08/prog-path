@@ -5,6 +5,7 @@ ProgPath（再開発版）で用いる主要用語の**統一定義**。ドキ�
 - 対象読者: 新規開発者、および設計判断の参照者（人・AI）。
 - 使い方: 各ドキュメント・コード・UI 文言は本書の表記に合わせる。詳細な振る舞いは各用語の関連ドキュメントを参照。
 - 表記の原則: 日本語名（UI 表示・文章で使う）と、英語名／コード識別子（型・変数・QR 文字列）を対応づける。識別子の大小文字・綴りはコードの正とする。
+- ID の原則: エンティティの `id` は UUID v4（`crypto.randomUUID` で採番）。未分類フォルダのみ予約 nil UUID（`shared/config` の `UNCATEGORIZED_FOLDER_ID`）。
 
 > 用語は [features.md](./features.md) / [architecture.md](./architecture.md) / [directory-structure.md](./directory-structure.md) / [db-design.md](./db-design.md) / [requirements.md](./requirements.md) から集約した。定義の正は各関連ドキュメント。
 
@@ -16,7 +17,7 @@ ProgPath（再開発版）で用いる主要用語の**統一定義**。ドキ�
 | --- | --- | --- | --- |
 | 迷路 | `maze` | ロボットを動かす対象。階層・サイズ・タイル配置を持つドメインの中心。 | [db-design](./db-design.md) 3.2 |
 | フォルダ | `folder` | 迷路を分類する入れ物。迷路は必ず 1 つのフォルダに属する。 | [db-design](./db-design.md) 3.1 |
-| 未分類 | （予約フォルダ） | 既定のフォルダ。常に存在し、削除・リネーム不可（`isDefault: true`）。どのフォルダにも属さない迷路が入る。 | [features](./features.md) 3.4 |
+| 未分類 | （予約フォルダ） | 既定のフォルダ。常に存在し、削除・リネーム不可（`isDefault: true`）。どのフォルダにも属さない迷路が入る。予約 ID は nil UUID（`shared/config` の `UNCATEGORIZED_FOLDER_ID`）。 | [features](./features.md) 3.4 |
 | 階層 | `floors` / `floor` | 迷路の階の数（**1〜3**）。`floor` は各階のインデックス（0 始まり、表示階 = `floor + 1`）。 | [db-design](./db-design.md) 3.4 |
 | サイズ | `size` | 迷路一辺のマス数（**5〜7**）。**全階共通**で正方グリッド。 | [db-design](./db-design.md) 3.2 |
 | タイル | `Tile` / `TileKind` | グリッドの 1 マス。種別を `TileKind` で表す（→ [2](#2-タイル種別tilekind)）。 | [db-design](./db-design.md) 3.3 |
