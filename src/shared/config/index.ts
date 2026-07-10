@@ -9,3 +9,4 @@
  */
 export { MAZE_SIZE_MIN, MAZE_SIZE_MAX, MAZE_FLOOR_COUNT_MIN, MAZE_FLOOR_COUNT_MAX } from "./maze";
 export { LOOP_COUNT_MIN, LOOP_COUNT_MAX } from "./command";
+export { UNCATEGORIZED_FOLDER_ID } from "./folder";
