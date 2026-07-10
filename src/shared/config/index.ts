@@ -7,4 +7,6 @@
  * 公開対象を個別に明示し、公開シンボルは実装着手時に追加する
  * （→ docs/directory-structure.md 2.2）。
  */
-export {};
+export { MAZE_SIZE_MIN, MAZE_SIZE_MAX, MAZE_FLOOR_COUNT_MIN, MAZE_FLOOR_COUNT_MAX } from "./maze";
+export { LOOP_COUNT_MIN, LOOP_COUNT_MAX } from "./command";
+export { UNCATEGORIZED_FOLDER_ID } from "./folder";
