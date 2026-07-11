@@ -131,7 +131,7 @@ ProgPath（再開発版）の「何を作るか」を定義する。本書は全
 
 ### 5.5 データ永続化
 
-- ローカル DB（IndexedDB）に迷路・フォルダを保存する。アクセスは TanStack DB を用いる（→ [db-design.md](./db-design.md)）。
+- ローカル DB（SQLite / ブラウザは WASM+OPFS）に迷路・フォルダを保存する。アクセスは TanStack DB を用いる（→ [db-design.md](./db-design.md)）。
 - 不正・空のデータは初期データで上書き復旧する。
 
 ### 5.6 プラットフォーム差異
@@ -171,7 +171,7 @@ ProgPath（再開発版）の「何を作るか」を定義する。本書は全
 
 ## 8. 制約・前提条件
 
-- 技術スタックは to-be（TypeScript / React / Radix UI + Tailwind / Three.js(R3F) / Tauri / Zod / TanStack DB + IndexedDB / Zustand）。詳細は [CLAUDE.md](../CLAUDE.md) と [architecture.md](./architecture.md)。
+- 技術スタックは to-be（TypeScript / React / Radix UI + Tailwind / Three.js(R3F) / Tauri / Zod / TanStack DB + SQLite / Zustand）。詳細は [CLAUDE.md](../CLAUDE.md) と [architecture.md](./architecture.md)。
 - FSD アーキテクチャを厳守する。
 - Tauri WebView のカメラ取得は実機検証が必要（未検証の前提で設計する）。
 

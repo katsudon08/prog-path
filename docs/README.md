@@ -30,7 +30,7 @@ ProgPath（再開発版）の設計ドキュメント群の索引。各ドキュ
 | [features.md](./features.md) | 機能仕様。ホーム/迷路編集/AR実行/ダウンロードの画面別の振る舞いと確定ドメインルール。 |
 | [architecture.md](./architecture.md) | アーキテクチャ設計。システム構成図・技術スタックの責務・FSD 規則・データフロー・3D/AR 方式。 |
 | [directory-structure.md](./directory-structure.md) | ディレクトリ構成。`src/` 配下のレイヤー/スライス/セグメントと Public API 方針。 |
-| [db-design.md](./db-design.md) | DB 設計。迷路・フォルダのデータモデル・Zod スキーマ・TanStack DB/IndexedDB・QR シリアライズ。 |
+| [db-design.md](./db-design.md) | DB 設計。迷路・フォルダのデータモデル・Zod スキーマ・TanStack DB/SQLite(WASM+OPFS)・QR シリアライズ。 |
 | [glossary.md](./glossary.md) | 用語集。ドメイン・コマンド・タイル種別・FSD・技術スタックの統一定義。 |
 | [design-tokens.md](./design-tokens.md) | デザイントークン。配色（ライト/ダーク）・タイポ・スペーシング・タップ最小サイズ・タイル/コマンドの識別色とアイコンの統一定義。 |
 

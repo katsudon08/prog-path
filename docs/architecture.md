@@ -43,7 +43,7 @@ graph TB
 
         subgraph Data["永続化"]
             TanStack["🗃️ TanStack DB"]
-            IDB["📁 IndexedDB"]
+            IDB["📁 SQLite (WASM+OPFS)"]
         end
     end
 
@@ -81,7 +81,7 @@ graph TB
 | 複雑な遷移 | XState | **AR 実行フロー**の明示的ステートマシン（→ [5.2](#52-状態管理の方針)） |
 | バリデーション | Zod | 入力・QR・永続データのスキーマ検証 |
 | DB アクセス | TanStack DB | 永続データへのリアクティブアクセス |
-| ローカル DB | IndexedDB | 迷路・フォルダの永続化 |
+| ローカル DB | SQLite（ブラウザは WASM+OPFS。TanStack DB persistence 経由） | 迷路・フォルダの永続化 |
 | デスクトップ | Tauri | Desktop 配布（WebView ベース） |
 | ツールチェーン | Vite+（vp） | dev/build・lint/format・型チェック・テスト・パッケージング |
 | 環境管理 | mise | ランタイム固定 + タスク実行の入口 |
@@ -194,7 +194,7 @@ graph TD
 2. **実行**: `maze-simulation` がスタックを先頭から解釈し、`robot` を 1 コマンド = 1 行動で動かす。実行前にスタート位置・初期向き（固定）へリセット。
 3. **判定**: 壁衝突 / 穴落下 / カギ未取得でゴール / コマンド尽きで未到達 → 失敗。全カギ取得＋ゴール到達 → 成功。
 4. **描画**: 状態更新を R3F が購読し、3D 迷路・ロボットへ反映。
-5. **永続化**: 迷路・フォルダは TanStack DB 経由で IndexedDB に保存・読込。
+5. **永続化**: 迷路・フォルダは TanStack DB 経由で SQLite（WASM+OPFS）に保存・読込。
 
 ### 5.2 状態管理の方針
 
@@ -222,7 +222,7 @@ stateDiagram-v2
 
 | 寿命 | 対象 | 置き場所 |
 | --- | --- | --- |
-| **永続** | 迷路 / フォルダ | IndexedDB（TanStack DB 経由） |
+| **永続** | 迷路 / フォルダ | SQLite / WASM+OPFS（TanStack DB 経由） |
 | **揮発（セッション内）** | 選択中の迷路・フォルダ展開状態・コマンドスタック・ロボット実行時状態 | メモリ（Zustand / XState） |
 | 永続化しない | 最後に開いた迷路・UI の表示状態・カメラ映像 | — |
 

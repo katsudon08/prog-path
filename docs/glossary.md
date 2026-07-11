@@ -114,7 +114,8 @@ ProgPath（再開発版）で用いる主要用語の**統一定義**。ドキ�
 | TanStack DB | TanStack DB | 永続データへのリアクティブアクセス層。Provider 不要。 | [architecture](./architecture.md) 2 |
 | コレクション | collection | TanStack DB の正規化キャッシュ。`shared/db` でモジュールレベルのシングルトンとして定義。 | [db-design](./db-design.md) 5 |
 | ライブクエリ | `useLiveQuery` | コレクションを直接購読し、変更で自動再描画する Hook。 | [db-design](./db-design.md) 5 |
-| IndexedDB | IndexedDB | ブラウザ／WebView 内のローカル DB。迷路・フォルダを永続化。 | [db-design](./db-design.md) 6 |
+| SQLite | SQLite | ローカル DB。迷路・フォルダを永続化。ブラウザ／WebView では wa-sqlite(WASM) + OPFS で動作し、TanStack DB の `persistedCollectionOptions` 経由でアクセスする。 | [db-design](./db-design.md) 6 |
+| OPFS | OPFS | Origin Private File System。ブラウザ／WebView のオリジン専用ファイル領域。SQLite(WASM) の永続化バックエンドに用いる。 | [db-design](./db-design.md) 6 |
 | Zod | Zod | スキーマ定義・バリデーションライブラリ。永続データ・QR・入力を検証。 | [db-design](./db-design.md) 4 |
 | qr-scanner | qr-scanner | QR デコードライブラリ（jsQR を Web Worker でラップ）。`shared/qr` の内部実装。 | [architecture](./architecture.md) 2 |
 | Tauri | Tauri | デスクトップ配布のためのフレームワーク（WebView ベース）。 | [architecture](./architecture.md) 7 |

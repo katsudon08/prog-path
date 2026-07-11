@@ -8,7 +8,7 @@ ProgPath（再開発版）の**画面別の機能・振る舞い**を定義す�
 - 用語は [glossary.md](./glossary.md) に統一定義する（整備中）。
 
 > 〔要確認〕が付いた値・挙動は暫定。実機検証・運用で確定させる。
-> 数値・技術前提は to-be（**階層 1〜3 / サイズ 5×5〜7×7 / IndexedDB + TanStack DB / Tauri**）を正とする。
+> 数値・技術前提は to-be（**階層 1〜3 / サイズ 5×5〜7×7 / SQLite(WASM+OPFS) + TanStack DB / Tauri**）を正とする。
 
 ---
 
@@ -101,7 +101,7 @@ flowchart LR
 
 - 迷路の**作成・閲覧・編集・削除**ができる。
 - 削除は確認ダイアログを経て実行する。
-- 迷路データはローカルに永続化する（IndexedDB / TanStack DB、→ [db-design.md](./db-design.md)）。
+- 迷路データはローカルに永続化する（SQLite(WASM+OPFS) / TanStack DB、→ [db-design.md](./db-design.md)）。
 - 迷路が 1 件も無いときは、新規作成を促す案内 UI を表示する。
 
 ### 3.4 フォルダ管理
@@ -309,7 +309,7 @@ stateDiagram-v2
 
 ### 7.2 永続化
 
-- 迷路・フォルダはローカル DB（IndexedDB）に保存し、TanStack DB 経由でアクセスする（→ [db-design.md](./db-design.md)）。
+- 迷路・フォルダはローカル DB（SQLite / WASM+OPFS）に保存し、TanStack DB 経由でアクセスする（→ [db-design.md](./db-design.md)）。
 - オフラインで読み書きできる。
 
 ### 7.3 未確定事項（〔要確認〕一覧）
