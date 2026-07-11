@@ -1,11 +1,11 @@
 # DB 設計
 
-ProgPath（再開発版）の**ローカル永続化データの設計**を定義する。データモデル・スキーマ（Zod）・コレクション設計（TanStack DB）・IndexedDB 永続化・初期データ/復旧・QR シリアライズを扱う。
+ProgPath（再開発版）の**ローカル永続化データの設計**を定義する。データモデル・スキーマ（Zod）・コレクション設計（TanStack DB）・SQLite 永続化・初期データ/復旧・QR シリアライズを扱う。
 
 - 対象読者: 新規開発者、および設計判断の参照者（人・AI）。
 - 前提: 永続化対象は **迷路（maze）・フォルダ（folder）のみ**（→ [architecture.md](./architecture.md) 5.3）。コマンドスタック・実行時状態・UI 状態は永続化しない。
 - ドメインルールは [features.md](./features.md)、配置（`shared/db`）は [directory-structure.md](./directory-structure.md) を正とする。
-- アクセスは TanStack DB（Provider 不要・コレクションはシングルトン）、ローカル DB は IndexedDB、検証は Zod（→ [CLAUDE.md](../CLAUDE.md)）。
+- アクセスは TanStack DB（Provider 不要・コレクションはシングルトン）、ローカル DB は **SQLite（ブラウザは WASM + OPFS）**、検証は Zod（→ [CLAUDE.md](../CLAUDE.md)）。永続化は TanStack DB の `persistedCollectionOptions`（`@tanstack/browser-db-sqlite-persistence`）で担う。
 
 > 〔要確認〕が付いた箇所は暫定。実装・検証で確定させる。スキーマ例の型は設計意図を示すもので、実装時に調整しうる。
 
@@ -15,7 +15,7 @@ ProgPath（再開発版）の**ローカル永続化データの設計**を定�
 
 | 区分 | 対象 | 保存先 |
 | --- | --- | --- |
-| **永続化する** | 迷路（maze）/ フォルダ（folder） | IndexedDB |
+| **永続化する** | 迷路（maze）/ フォルダ（folder） | SQLite（WASM + OPFS） |
 | 永続化しない（揮発） | コマンドスタック・ロボット実行時状態・選択/展開状態・カメラ映像 | メモリ（Zustand / XState） |
 
 永続化対象は 2 エンティティのみ。手動並び替えは v1 で行わないため、並び順を保持する項目は持たない（既定順＝作成日時）。
@@ -54,7 +54,7 @@ erDiagram
 
 ## 3. エンティティ定義
 
-> **日時は `number`（epoch ms）で持つ**。`Date` 型は IndexedDB（structured clone）には保存できるが、JSON 境界（QR・将来の連携）を跨ぐと文字列化して型が壊れる。number はシリアライズに強く、作成順ソートも数値比較で自明なため既定とする。日時の用途は並び順と更新追跡のみで、児童への日時表示は行わない。
+> **日時は `number`（epoch ms）で持つ**。`Date` 型は JSON 境界（QR・将来の連携）や SQLite の列表現を跨ぐと文字列化して型が壊れやすい。number はシリアライズに強く、作成順ソートも数値比較で自明なため既定とする。日時の用途は並び順と更新追跡のみで、児童への日時表示は行わない。
 
 ### 3.1 folder
 
@@ -152,8 +152,8 @@ export type Maze = z.infer<typeof MazeSchema>;
 export type Folder = z.infer<typeof FolderSchema>;
 ```
 
-- **ID は UUID v4**。作成時に `crypto.randomUUID()` で採番する（論理型は上表の `uuid`／推論される TS 型は `string`。ブランド型は導入しない）。未分類フォルダは予約 nil UUID（`shared/config` の `UNCATEGORIZED_FOLDER_ID`）。`.uuid()` 検証は**版数を厳格化せず nil を許容**する（生成は v4／予約は nil）。採用する Zod のバージョンで `.uuid()` の版数厳格性が異なるため、予約 nil を確実に通す検証を #179 で確定する。
-- **テレポート整合**（移動先が存在しない/壁・穴・テレポート）は編集時の検証（→ [features.md](./features.md) 4.6）。永続スキーマでは寸法・スタート/ゴール個数の構造検証を行う〔要確認: テレポート整合をスキーマ側でも検証するか〕。
+- **ID は UUID v4**。作成時に `crypto.randomUUID()` で採番する（論理型は上表の `uuid`／推論される TS 型は `string`。ブランド型は導入しない）。未分類フォルダは予約 nil UUID（`shared/config` の `UNCATEGORIZED_FOLDER_ID`）。**採用した Zod v4 の `z.uuid()` は版数を検査し nil（全 0）を弾く**ため、ID フィールドは `z.union([z.uuid(), z.literal(UNCATEGORIZED_FOLDER_ID)])`（= 「v4 または予約 nil」）で定義して nil を確実に通す（実装: `shared/db/model/schema.ts` の `uuidField`。#179 で確定）。
+- **テレポート整合**（移動先が存在しない/壁・穴・テレポート）は編集時に検証する（→ [features.md](./features.md) 4.6）。永続スキーマ（`MazeSchema`）では寸法・スタート/ゴール個数の**構造検証のみ**行い、テレポート整合はスキーマ側では検証しない（#179 で確定）。
 - 文字数上限（name）は features.md 3.6 の〔要確認〕に従い、確定後に `max` を付す。
 
 ---
@@ -162,44 +162,48 @@ export type Folder = z.infer<typeof FolderSchema>;
 
 `shared/db` にコレクションを**モジュールレベルのシングルトン**として定義する。Provider は不要で、UI は `useLiveQuery` で直接購読する（→ [directory-structure.md](./directory-structure.md) 4.1）。
 
-```typescript
-// shared/db/collections.ts（設計イメージ）
-export const folderCollection = createCollection(
-  /* IndexedDB バック・options */ {
-    id: "folders",
-    getKey: (f: Folder) => f.id,
-    schema: FolderSchema,
-  },
-);
+SQLite（OPFS）を開くのは非同期のため、コレクションは `initDb()`（`shared/db`）で一度だけ生成し、以後はシングルトンとして共有する。アプリ起動時に `initDb()` を呼び、初期データ保証・不正データ復旧（→ 7）を済ませてから UI をレンダリングする。
 
-export const mazeCollection = createCollection(
-  {
-    id: "mazes",
-    getKey: (m: Maze) => m.id,
-    schema: MazeSchema,
-  },
+```typescript
+// shared/db/model/collections.ts（設計イメージ）
+// persistence は openBrowserWASQLiteOPFSDatabase → createBrowserWASQLitePersistence で生成し、
+// 2 コレクションで共有する。
+const folderCollection = createCollection(
+  persistedCollectionOptions<Folder, string>({
+    id: "folders",
+    getKey: (f) => f.id,
+    persistence,
+    schemaVersion: SCHEMA_VERSION,
+  }),
 );
 ```
 
 - `getKey` は各エンティティの `id`。
 - 読み出しは `useLiveQuery((q) => q.from({ maze: mazeCollection }))` の形。フォルダで絞る場合は `folderId` で where。
 - 変更は `collection.insert / update / delete` で行い、UI はライブクエリで自動更新。
+- **Zod 検証の適用点**: `persistedCollectionOptions` はコレクションの `schema` フックに Zod を取らない（行の型を `<T, TKey>` で与える設計）。よって Zod 検証は **(a) 起動時の復旧掃引（→ 7）** と **(b) 書き込み境界（`entities` / `features` で `insert` 前に parse）** で明示的に行う。スキーマの正は `shared/db/model/schema.ts` に置き、上位スライスが再利用する。
 
 ---
 
-## 6. IndexedDB 永続化
+## 6. SQLite 永続化
 
-TanStack DB の組み込みアダプタには localStorage はあるが IndexedDB は無いため、**IndexedDB バックの永続化層を介してコレクションへ接続**する〔要確認: 接続方式・利用ライブラリ（例 `idb`）〕。
+TanStack DB の組み込みアダプタには localStorage はあるが IndexedDB は無い。IndexedDB を直結する公式経路も無い（TanStack は索引・接続管理の都合で組み込み IndexedDB アダプタを提供しない）。そこで **TanStack DB 公式の永続化 `persistedCollectionOptions`（SQLite バック）を採用**する（#179 で確定）。
 
-### オブジェクトストア
+### 接続方式（確定）
 
-| ストア | keyPath | インデックス |
-| --- | --- | --- |
-| `folders` | `id` | — |
-| `mazes` | `id` | `folderId`（フォルダ別取得用） |
+- ブラウザ／WebView: `@tanstack/browser-db-sqlite-persistence` の `openBrowserWASQLiteOPFSDatabase`（wa-sqlite + OPFS）で DB を開き、`createBrowserWASQLitePersistence` で persistence を生成、2 コレクションで共有する。
+- DB 名は `prog-path`（`shared/db` の `DB_NAME`）。
+- **採用理由**: Zod を単一スキーマに保てる（RxDB は RxJsonSchema と Zod の二重定義が必須）／TanStack 第一者統合で保守が容易／folder 1—N maze の関係データに自然／Tauri 配布のため WASM バンドル増は実質無害。RxDB・localStorage・自作 idb アダプタは却下（→ 経緯は #179）。
 
-- 1 DB・2 ストア構成。サイズが小さい（1 迷路最大 147 セル）ため軽量。
-- DB スキーマには**バージョン番号**を持たせ、将来のマイグレーションに備える〔要確認: 初期バージョン〕。
+### スキーマバージョン
+
+- `persistedCollectionOptions` の `schemaVersion` を **初期値 `1`**（`shared/db` の `SCHEMA_VERSION`）とする。破壊的なスキーマ変更時に増やすとローカルコピーが更新される。
+- データは小さい（1 迷路最大 147 セル）ため軽量。
+
+### 検証状況（スパイク）
+
+- **ブラウザ（Chromium）: 検証済み ✅**。実コード（`initDb()`）で OPFS DB オープン・未分類フォルダ自動生成・迷路の insert/delete がページ再読込を跨いで永続することを確認（→ [spikes/179-sqlite-opfs](../spikes/179-sqlite-opfs/README.md)）。`OPFSCoopSyncVFS` は専用 Worker で動き COOP/COEP は不要。
+- **Tauri WebView: 未検証**。macOS(WKWebView)・Linux(WebKitGTK) の OPFS 対応は WebView 依存のため、実機（`mise run dev:desktop`）で確認する（#175 と併せて）。不成立時は Tauri ネイティブ SQLite アダプタ、最終的に RxDB/IndexedDB へフォールバックする。
 
 ---
 

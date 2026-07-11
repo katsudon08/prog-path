@@ -104,7 +104,7 @@ src/
    ├─ lib/                … 汎用ユーティリティ
    ├─ qr/                 … QR デコーダ抽象（qr-scanner）
    ├─ camera/             … カメラ取得抽象（getUserMedia / 環境差吸収）
-   ├─ db/                 … TanStack DB + IndexedDB アクセス
+   ├─ db/                 … TanStack DB + SQLite(WASM+OPFS) アクセス
    └─ config/             … 定数・設定
 ```
 
@@ -119,7 +119,7 @@ src/
 - **`entrypoint`**: アプリ起点。`entrypoint/main.tsx` を `index.html` が読み込み、`createRoot` で描画する。FSD 公式の `app/entrypoint` セグメントに対応。
 - **`styles`**: グローバルスタイル。`styles/global.css` が Tailwind を読み込み、デザイントークンを `@theme` に定義する（トークンの中身は #174）。`entrypoint` から import する。
 
-> **TanStack DB は Provider 不要**。`useLiveQuery` はコレクションを直接購読し、コレクションは `shared/db` でモジュールレベルのシングルトンとして定義する。`QueryClientProvider` が要るのは Query Collection（サーバ同期）を使う場合のみで、本プロジェクト（オフライン・IndexedDB）では使わない。
+> **TanStack DB は Provider 不要**。`useLiveQuery` はコレクションを直接購読し、コレクションは `shared/db` でモジュールレベルのシングルトンとして定義する。`QueryClientProvider` が要るのは Query Collection（サーバ同期）を使う場合のみで、本プロジェクト（オフライン・SQLite）では使わない。
 
 ### 4.2 pages
 
@@ -180,7 +180,7 @@ src/
 | `lib` | フレームワーク非依存の汎用ユーティリティ |
 | `qr` | **QR デコーダ抽象**。`qr-scanner` を内部実装とし、デコード I/F を提供 |
 | `camera` | **カメラ取得抽象**。`getUserMedia` の環境差（Web / Tauri WebView）を吸収 |
-| `db` | **永続化抽象**。TanStack DB のコレクション定義（モジュールレベルのシングルトン）と IndexedDB アクセス（→ [db-design.md](./db-design.md)） |
+| `db` | **永続化抽象**。TanStack DB のコレクション定義（モジュールレベルのシングルトン）と SQLite(WASM+OPFS) アクセス（→ [db-design.md](./db-design.md)） |
 | `config` | 定数・設定値（サイズ上限・loop 回数範囲・未分類フォルダ予約 ID `UNCATEGORIZED_FOLDER_ID` 等） |
 
 > `qr` / `camera` / `db` はインターフェースを公開し、実装を差し替え可能にする。インターフェースの型定義は実装時／[db-design.md](./db-design.md) に委ねる。

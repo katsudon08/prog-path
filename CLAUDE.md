@@ -35,7 +35,7 @@
 | デスクトップ | Tauri |
 | バリデーション | Zod |
 | DB アクセス | TanStack DB |
-| ローカルDB | IndexedDB |
+| ローカルDB | SQLite（ブラウザ/WebView は wa-sqlite WASM + OPFS。TanStack DB persistence 経由） |
 | 状態管理 | Zustand / 複雑な遷移は XState |
 
 - **Vite+（vp）** は dev/build に加え、lint・format・型チェック（Oxlint/Oxfmt/tsgo）、テスト（`vp test`）、モノレポ対応のタスク実行、パッケージングを一本化する統合 CLI。Vite/Rolldown ベース。

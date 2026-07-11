@@ -11,6 +11,8 @@ const FORMAT_LINT_IGNORE = [
   "package.json",
   "pnpm-lock.yaml",
   "src-tauri/**",
+  // spikes/** は使い捨ての検証コード（tsconfig の include 外＝型情報なし）。FSD/本番規約の対象外。
+  "spikes/**",
 ];
 
 // Vite+ の統合設定。標準 Vite 設定に加え test(Vitest) / lint(Oxlint) / fmt(Oxfmt) を集約する。

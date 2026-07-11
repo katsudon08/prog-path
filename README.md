@@ -58,7 +58,7 @@ ProgPath は、小学校高学年をターゲットとしたプログラミン�
 | QR 認識 | qr-scanner |
 | 状態管理 | Zustand（複雑な遷移は XState） |
 | バリデーション | Zod |
-| 永続化 | TanStack DB + IndexedDB |
+| 永続化 | TanStack DB + SQLite（WASM+OPFS） |
 | デスクトップ | Tauri |
 | ツールチェーン | Vite+（vp） |
 | 環境管理 / パッケージ | mise / pnpm |
