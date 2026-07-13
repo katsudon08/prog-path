@@ -123,9 +123,9 @@ ProgPath（再開発版）で用いる主要用語の**統一定義**。ドキ�
 | R3F | React Three Fiber | Three.js の React バインディング。3D/AR 描画に使用。 | [architecture](./architecture.md) 6.2 |
 | Zustand | Zustand | 既定の状態管理（揮発状態）。 | [architecture](./architecture.md) 5.2 |
 | XState | XState | 明示的ステートマシン。**AR 実行フローのみ**に適用。 | [architecture](./architecture.md) 5.2 |
-| Vite+ | vp | dev/build・lint/format・型チェック・テスト・パッケージングの統合 CLI。 | [CLAUDE.md](../CLAUDE.md) |
+| Vite+ | vp | dev/build・lint/format・型チェック・テスト・パッケージング・依存追加/install（`vp install`。内部で pnpm に委譲）の統合 CLI。 | [CLAUDE.md](../CLAUDE.md) |
 | mise | mise | ランタイム固定とタスク実行の入口。 | [CLAUDE.md](../CLAUDE.md) |
-| pnpm | pnpm | パッケージマネージャー（依存解決）。 | [CLAUDE.md](../CLAUDE.md) |
+| pnpm | pnpm | パッケージマネージャー（依存解決の実体）。`vp install` が内部で委譲する。 | [CLAUDE.md](../CLAUDE.md) |
 
 ---
 

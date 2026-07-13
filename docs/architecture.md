@@ -83,17 +83,17 @@ graph TB
 | DB アクセス | TanStack DB | 永続データへのリアクティブアクセス |
 | ローカル DB | SQLite（ブラウザは WASM+OPFS。TanStack DB persistence 経由） | 迷路・フォルダの永続化 |
 | デスクトップ | Tauri | Desktop 配布（WebView ベース） |
-| ツールチェーン | Vite+（vp） | dev/build・lint/format・型チェック・テスト・パッケージング |
+| ツールチェーン | Vite+（vp） | dev/build・lint/format・型チェック・テスト・パッケージング・依存追加/install（`vp install`。内部で pnpm に委譲） |
 | 環境管理 | mise | ランタイム固定 + タスク実行の入口 |
-| パッケージ管理 | pnpm | 依存解決 |
+| パッケージ管理 | pnpm | 依存解決の実体（`vp install` が委譲する） |
 
 > **QR 認識ライブラリ（qr-scanner）は本書での新規決定**。全環境で同一挙動・QR 特化・軽量で低スペック端末（→ [requirements.md](./requirements.md) 5.3）に適すると判断した。CLAUDE.md の技術スタック表にも反映済み。
 
 ### 2.1 ツールチェーンの住み分け
 
 - **mise**: 言語ランタイム・CLI ツールのバージョン固定と、タスク実行の入口（`mise run <task>`）。
-- **pnpm**: 依存解決。
-- **vp（Vite+）**: ビルド・lint・format・型チェック・テストの実体。
+- **pnpm**: 依存解決の実体（バージョンは mise で固定）。パッケージマネージャーは pnpm に固定し、npm/yarn/bun 等へ切り替えない（＝vp の「PM 選択機能」は使わない）。
+- **vp（Vite+）**: ビルド・lint・format・型チェック・テストの実体。加えて **依存の追加・install も `vp install <pkg>` を入口とし、内部で pnpm に委譲する**（引数があれば `vp add` として働く）。
 - 各 `mise` タスクの中身が `pnpm` / `vp` を呼ぶ構成にする。
 
 ---
