@@ -38,8 +38,8 @@
 | ローカルDB | SQLite（ブラウザ/WebView は wa-sqlite WASM + OPFS。TanStack DB persistence 経由） |
 | 状態管理 | Zustand / 複雑な遷移は XState |
 
-- **Vite+（vp）** は dev/build に加え、lint・format・型チェック（Oxlint/Oxfmt/tsgo）、テスト（`vp test`）、モノレポ対応のタスク実行、パッケージングを一本化する統合 CLI。Vite/Rolldown ベース。
-- 住み分け: **mise** が言語ランタイム・CLI ツールのバージョン固定と、プロジェクトのコマンド/タスク実行（`mise run <task>`、`mise.toml` の `[tasks]`）の入口を担う。各タスクの中身は **pnpm**（依存解決）や **vp**（ビルド・lint・format・型チェック・テスト）を呼び出す。バージョン固定の正は mise に置く（vp 自身もランタイム管理／PM 選択機能を持つが、本プロジェクトでは使わない）。
+- **Vite+（vp）** は dev/build に加え、lint・format・型チェック（Oxlint/Oxfmt/tsgo）、テスト（`vp test`）、依存の追加・install（`vp install`。内部で pnpm に委譲）、モノレポ対応のタスク実行、パッケージングを一本化する統合 CLI。Vite/Rolldown ベース。
+- 住み分け: **mise** が言語ランタイム・CLI ツールのバージョン固定と、プロジェクトのコマンド/タスク実行（`mise run <task>`、`mise.toml` の `[tasks]`）の入口を担う。各タスクの中身は **pnpm**（依存解決の実体）や **vp**（ビルド・lint・format・型チェック・テスト）を呼び出す。**依存の追加・install は `vp install <pkg>` を入口とし、vp が内部で pnpm に委譲する**（引数があれば `vp add` として働く）。バージョン固定の正は mise に置く。なお **vp の「PM 選択機能」（npm/yarn/bun 等どの PM を使うかの切替）は使わず pnpm に固定する**——これは `vp install` 経由の依存追加とは別概念で、後者は使う。
 - AR は「カメラ映像を背景に 3D を重ねる」方式（マーカートラッキングは将来拡張）。
 - Tauri のカメラ（`getUserMedia`）は OS の WebView 依存のため要検証。
 

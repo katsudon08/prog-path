@@ -23,6 +23,12 @@ import { StrictMode, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import type { Mesh } from "three";
 
+import {
+  COMMAND_KIND,
+  CommandItem,
+  LOOP_COMMAND_KIND,
+  type CommandVisualKey,
+} from "@/entities/command";
 import { initTheme, useTheme, type ThemeMode } from "@/shared/theme";
 import { Switch } from "@/shared/ui";
 
@@ -66,6 +72,12 @@ const COMMANDS: readonly Swatch[] = [
   { label: "左にまがる", Icon: RotateCcw, bg: "bg-cmd-turn", fg: "text-cmd-turn-foreground" },
   { label: "穴をうめる", Icon: Shovel, bg: "bg-cmd-fill", fg: "text-cmd-fill-foreground" },
   { label: "ループ", Icon: Repeat, bg: "bg-cmd-loop", fg: "text-cmd-loop-foreground" },
+];
+
+// CommandItem 確認用: QR トークン 6 種 + 構築済み木のノード種別 loop。
+const COMMAND_ITEM_KEYS: readonly CommandVisualKey[] = [
+  ...Object.values(COMMAND_KIND),
+  LOOP_COMMAND_KIND,
 ];
 
 const THEME_OPTIONS: readonly { mode: ThemeMode; label: string; Icon: LucideIcon }[] = [
@@ -174,6 +186,18 @@ const App = (): React.JSX.Element => {
       <section className="flex flex-col items-center gap-3">
         <h2 className="text-lg font-bold">コマンド種別</h2>
         <SwatchRow items={COMMANDS} />
+      </section>
+
+      {/* CommandItem(#184) の動作確認。QR トークン 6 種 + 構築済み loop、および loop の回数表示。
+         本格的な配置は widgets/command-panel(#188) で行う。 */}
+      <section className="flex flex-col items-center gap-3">
+        <h2 className="text-lg font-bold">CommandItem（#184）</h2>
+        <div className="flex flex-wrap justify-center gap-2">
+          {COMMAND_ITEM_KEYS.map((kind) => (
+            <CommandItem key={kind} kind={kind} />
+          ))}
+          <CommandItem kind={LOOP_COMMAND_KIND} count={3} />
+        </div>
       </section>
 
       {/* 3D 描画基盤(Three.js / R3F / drei)の動作確認(#170)。 */}
