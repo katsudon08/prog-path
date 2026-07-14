@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, lazyPlugins } from "vite-plus";
 
@@ -13,6 +15,9 @@ const FORMAT_LINT_IGNORE = [
   "src-tauri/**",
   // spikes/** は使い捨ての検証コード（tsconfig の include 外＝型情報なし）。FSD/本番規約の対象外。
   "spikes/**",
+  // .storybook/** は Storybook 専用の設定（tsconfig include 外＝type-aware lint の対象にできない）。
+  ".storybook/**",
+  "storybook-static/**",
 ];
 
 // Vite+ の統合設定。標準 Vite 設定に加え test(Vitest) / lint(Oxlint) / fmt(Oxfmt) を集約する。
@@ -32,8 +37,14 @@ export default defineConfig({
   // @ts-ignore cross-fork の vite Plugin 型 identity 不一致（実行時は正常。上記参照）
   plugins: lazyPlugins(() => [tailwindcss()]),
   // tsconfig.json の paths を単一の正として解決に使う（Vite 8 ネイティブ・build/test 双方に適用）。
+  // 併せて `@` の明示 alias も持つ: Storybook 導入で標準 vite(7) が devDep に入り、vitest が
+  // そちらへ解決されると `tsconfigPaths`（vite 8 機能）が効かず `@/` が解決不能になるため、
+  // vite バージョン非依存の alias で担保する（tsconfig.json の paths と同一の正: @/* -> src/*）。
   resolve: {
     tsconfigPaths: true,
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
   },
   // dev サーバは固定ポート(後続の Tauri 連携を見据える)。
   clearScreen: false,
@@ -58,6 +69,7 @@ export default defineConfig({
       include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "src/**/*.test.{ts,tsx}", // テスト自身
+        "src/**/*.stories.{ts,tsx}", // Storybook stories（見た目確認用でロジックなし）
         "src/**/*.d.ts", // 型宣言
         "src/**/index.ts", // Public API（再エクスポートのみでロジックなし）
         "src/app/entrypoint/main.tsx", // アプリのエントリ
@@ -96,7 +108,7 @@ export default defineConfig({
     // 戻り値型省略、.d.ts の any を許容する）。
     overrides: [
       {
-        files: ["**/*.test.{ts,tsx}", "**/*.d.ts"],
+        files: ["**/*.test.{ts,tsx}", "**/*.stories.{ts,tsx}", "**/*.d.ts"],
         rules: {
           "typescript/no-explicit-any": "off",
           "typescript/explicit-function-return-type": "off",
