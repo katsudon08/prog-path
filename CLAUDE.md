@@ -39,7 +39,7 @@
 | 状態管理 | Zustand / 複雑な遷移は XState |
 
 - **Vite+（vp）** は dev/build に加え、lint・format・型チェック（Oxlint/Oxfmt/tsgo）、テスト（`vp test`）、依存の追加・install（`vp install`。内部で pnpm に委譲）、モノレポ対応のタスク実行、パッケージングを一本化する統合 CLI。Vite/Rolldown ベース。
-- 住み分け: **mise** が言語ランタイム・CLI ツールのバージョン固定と、プロジェクトのコマンド/タスク実行（`mise run <task>`、`mise.toml` の `[tasks]`）の入口を担う。各タスクの中身は **pnpm**（依存解決の実体）や **vp**（ビルド・lint・format・型チェック・テスト）を呼び出す。**依存の追加・install は `vp install <pkg>` を入口とし、vp が内部で pnpm に委譲する**（引数があれば `vp add` として働く）。バージョン固定の正は mise に置く。なお **vp の「PM 選択機能」（npm/yarn/bun 等どの PM を使うかの切替）は使わず pnpm に固定する**——これは `vp install` 経由の依存追加とは別概念で、後者は使う。
+- 住み分け: **toolchain の入口は `vp` に一本化**する（`vp dev/build/check/fmt/test`。vp が内部で pnpm をラップ）。**mise はその薄いラッパ**で、`mise run <task>`（`mise.toml` の `[tasks]`）を唯一の人手の入口とし、ランタイム/ツールのバージョン固定を担う。mise は `[env] _.path` で `node_modules/.bin` を PATH に通し、タスクは **`vp` / `tauri` / `depcruise` / `storybook` を直接呼ぶ（`pnpm exec` は挟まない）**。vp 本体のバージョンは（vite.config.ts が `import "vite-plus"` で参照するため）npm devDependency + lockfile で固定する（`[tools]` では固定しない）。**複雑・複合タスクの定義は vp の `run.tasks` ではなく `mise.toml` の `[tasks]` に置く**。**依存の追加・install は `vp install <pkg>` を入口とし、vp が内部で pnpm に委譲する**（引数があれば `vp add` として働く）。バージョン固定の正は mise に置く。なお **vp の「PM 選択機能」（npm/yarn/bun 等どの PM を使うかの切替）は使わず pnpm に固定する**——これは `vp install` 経由の依存追加とは別概念で、後者は使う。
 - AR は「カメラ映像を背景に 3D を重ねる」方式（マーカートラッキングは将来拡張）。
 - Tauri のカメラ（`getUserMedia`）は OS の WebView 依存のため要検証。
 
@@ -74,6 +74,16 @@ Feature-Sliced Design を厳守する。
 - **import**: グローバル注入（`globals`）は使わず `import { describe, it, expect } from "vitest"` を明示。**同一スライス内は相対 import**、**他スライスは Public API（`index.ts`）経由**。
 - **規約緩和**: テストファイルは lint を一部緩和（`any` 許容・戻り値型省略可）。本番コードは緩めない。
 - **代表サンプル**: `src/shared/lib/clamp.test.ts`（疎通用スモークは `src/smoke.test.ts`）。
+
+## Storybook / コンポーネント確認
+
+UI コンポーネント（各スライスの `ui` セグメント）は **Storybook で見た目を確認できる状態を必ず用意する**。細かいコンポーネントを実装したら、対応する `*.stories.tsx` を **co-location で必ず書く**（例: `command-item.tsx` の隣に `command-item.stories.tsx`）。
+
+- **起動**: `mise run storybook`（http://localhost:6006）。静的ビルドは `mise run storybook:build`。
+- **ツールチェーン**: dev/build は Vite+（vp / Rolldown）だが、**Storybook は Rolldown 版 Vite を公式サポートしない**ため、**標準 Vite（7 系）の別パイプラインとして併存**させる。設定は `.storybook/`（`main.ts` が `viteConfigPath` で `.storybook/vite.config.ts` を読み、root の vite-plus 設定とは隔離。React プラグインは `@storybook/react-vite` が自動付与、Tailwind と `@` alias のみ追加）。
+- **テーマ**: ツールバーの「テーマ」トグルで light/dark を切替（`.dark` クラス方式・`shared/theme` と一致）。**明暗両方で確認する**。
+- **stories 規約**: CSF3（`Meta`/`StoryObj` を `@storybook/react-vite` から import、`satisfies Meta<typeof X>`）。`title` は FSD 階層に沿う（例 `entities/command/CommandItem`）。R3F コンポーネントは `Canvas` で包む decorator を付ける。stories ファイルは lint 緩和（test と同様）・カバレッジ対象外。
+- **注意（既知の落とし穴）**: 標準 vite が devDep に入ると `vp test`(vitest) が vite 7 側へ解決され、Vite 8 機能の `resolve.tsconfigPaths` が効かず `@/` が解決不能になる。そのため `vite.config.ts` は `resolve.alias` で `@` を明示している（消さない）。
 
 ## Git 運用
 

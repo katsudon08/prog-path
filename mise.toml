@@ -1,8 +1,11 @@
-# mise — ランタイム固定とタスク実行の入口
-# バージョン固定の正は mise に置く（→ CLAUDE.md / docs/architecture.md 2.1）。
-# vp 本体は project-local の vite-plus(npm) に解決されるため [tools] では固定せず、
-# package.json の devDependency(vite-plus) ＋ lockfile で固定する。タスクは pnpm exec vp を呼ぶ。
-# Tauri CLI も同様に pnpm devDependency(@tauri-apps/cli) で固定し、タスクは pnpm exec tauri を呼ぶ。
+# mise — ランタイム固定と「タスクの入口（薄いラッパ）」
+# 方針（この節を単一の正とする）:
+#  - toolchain の入口は vp に一本化する（dev/build/check/fmt/test は `vp <cmd>`。vp が内部で pnpm をラップ）。
+#  - mise はその薄いラッパ（`mise run <task>` を唯一の人手の入口）＋ ランタイム/ツールのバージョン固定を担う。
+#  - vp 本体は vite.config.ts が `import "vite-plus"` で参照するため npm devDependency(vite-plus)＋lockfile で
+#    バージョン固定し（[tools] では固定しない）、[env] で node_modules/.bin を PATH に通して直接呼ぶ。
+#    Tauri CLI(@tauri-apps/cli)・dependency-cruiser・Storybook も同様に直接呼ぶ（pnpm exec は挟まない）。
+#  - 複雑・複合タスクの定義は vp の run.tasks ではなく mise.toml の [tasks] に置く。
 
 [tools]
 node = "22.18.0"
@@ -10,33 +13,47 @@ pnpm = "10.34.4"
 # Tauri(Desktop) のビルドに必要な Rust ツールチェーン。Tauri v2 の MSRV 以上で固定する。
 rust = "1.96.0"
 
+# ローカルの node_modules/.bin を PATH 先頭へ通す。これで vp / tauri / depcruise / storybook を
+# `pnpm exec` なしで直接起動でき、バージョンは lockfile 固定のもの（vp 0.2.1）が使われる
+# （mise の古い global shim より優先される）。
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
 [tasks.dev]
 description = "開発サーバ起動 (Vite+)"
-run = "pnpm exec vp dev"
+run = "vp dev"
 
 [tasks.build]
 description = "本番ビルド (Vite+)"
-run = "pnpm exec vp build"
+run = "vp build"
 
 # Desktop(Tauri) 起動。tauri.conf.json の beforeDevCommand が vp dev(localhost:5173) を起動し、
 # WebView 窓がそれを表示する。同一フロントコードを Web/Desktop 両方で動かす入口。
 # bundle(tauri build) と Windows 実機は #171 のスコープ外（#175 で検証）。
 [tasks."dev:desktop"]
 description = "Desktop 開発起動 (Tauri v2 / WebView)"
-run = "pnpm exec tauri dev"
+run = "tauri dev"
 
 [tasks.check]
 description = "lint + format + 型チェック 一括 (Vite+)"
-run = "pnpm exec vp check"
+run = "vp check"
 
 [tasks.format]
 description = "フォーマット適用 (Oxfmt via Vite+)"
-run = "pnpm exec vp fmt"
+run = "vp fmt"
 
 [tasks.test]
 description = "テスト (Vitest via Vite+)"
-run = "pnpm exec vp test"
+run = "vp test"
 
 [tasks."lint:fsd"]
 description = "FSD 依存境界チェック (dependency-cruiser)"
-run = "pnpm exec depcruise src"
+run = "depcruise src"
+
+[tasks.storybook]
+description = "Storybook 起動（コンポーネント見た目確認 / 標準 Vite 併存）"
+run = "storybook dev -p 6006 --no-open"
+
+[tasks."storybook:build"]
+description = "Storybook 静的ビルド (storybook-static/)"
+run = "storybook build"
