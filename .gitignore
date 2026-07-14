@@ -15,6 +15,10 @@
 # testing / coverage
 /coverage
 
+# Storybook build output / エラー時のデバッグログ
+/storybook-static
+debug-storybook.log
+
 # TypeScript
 *.tsbuildinfo
 
