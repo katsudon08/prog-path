@@ -14,5 +14,5 @@ export {
   MAZE_FLOOR_COUNT_MAX,
   MAZE_DEFAULT_SIZE,
 } from "./maze";
-export { LOOP_COUNT_MIN, LOOP_COUNT_MAX } from "./command";
+export { COMMAND_SCAN_COOLDOWN_MS, LOOP_COUNT_MIN, LOOP_COUNT_MAX } from "./command";
 export { UNCATEGORIZED_FOLDER_ID } from "./folder";

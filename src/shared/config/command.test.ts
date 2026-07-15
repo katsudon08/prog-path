@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { LOOP_COUNT_MAX, LOOP_COUNT_MIN } from "./command";
+import { COMMAND_SCAN_COOLDOWN_MS, LOOP_COUNT_MAX, LOOP_COUNT_MIN } from "./command";
 
 // 値のエコーではなく不変条件を検証する（意図は maze.test.ts のコメント参照）。
 describe("command config", () => {
@@ -13,5 +13,10 @@ describe("command config", () => {
       expect(Number.isInteger(v)).toBe(true);
       expect(v).toBeGreaterThan(0);
     }
+  });
+
+  it("QRスキャンのクールダウンは正の整数", () => {
+    expect(Number.isInteger(COMMAND_SCAN_COOLDOWN_MS)).toBe(true);
+    expect(COMMAND_SCAN_COOLDOWN_MS).toBeGreaterThan(0);
   });
 });
