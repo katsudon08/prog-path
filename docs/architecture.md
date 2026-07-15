@@ -283,22 +283,25 @@ stateDiagram-v2
 
 **必要設定（判明分）**
 
-- **macOS**: `src-tauri/Info.plist` に `NSCameraUsageDescription`（カメラ利用説明文）が必須。未設定だと TCC によりカメラアクセス時にアプリが落ちる。
+- **macOS**: `src-tauri/Info.plist` に `NSCameraUsageDescription`（カメラ利用説明文）を設定し、Hardened Runtime 用の `Entitlements.plist` で `com.apple.security.device.camera` を許可する。マイクは使用しないため音声権限は要求しない。
 - **Tauri capability は不要**: `getUserMedia` は Web 標準 API であり Tauri の権限（capabilities）対象外。`core:default` のみで動作する。
 - **secure context が前提**: `getUserMedia` は secure context でのみ露出する。`tauri dev` は `http://127.0.0.1`（localhost 例外で secure）で配信するが、**本番 bundle は custom protocol**（macOS=`tauri://localhost` / Windows=`http://tauri.localhost`）で配信される。本番経路の secure-context 動作は Phase B で確認する。
+
+**アプリケーション I/F（`shared/camera`）**
+
+- 上位は `openCamera()` から `MediaStream` と冪等な `stop()` を持つセッションを取得し、Web / Tauri を分岐しない。
+- 映像のみ（`audio: false`）を要求し、解像度・カメラ種別は利用環境の既定選択に委ねる。必要な場合だけ呼び出し側が映像制約を指定する。
+- 許可操作が完了しない場合は **15 秒**でタイムアウトする。タイムアウトまたは画面離脱による中断後に遅れて取得できたストリームは直ちに停止する。
+- 失敗は secure context、API 非対応、権限拒否、端末なし、端末利用不可、制約不一致等の理由へ正規化し、上位が案内・再試行に利用する。
 
 **残課題（Phase B / Windows・要実機）**
 
 - WebView2 の custom protocol（`http://tauri.localhost`）が secure context として扱われるか。
-- WebView2 の `PermissionRequested` をホスト（Rust）側で処理する必要があるか（既知の落とし穴。未処理だとカメラ要求が無音で拒否され得る）。
+- WebView2 の既定の許可 UI が Tauri の custom origin でも機能するか、`PermissionRequested` をホスト（Rust）側で処理する必要があるか。
 
-**カメラ不可時のフォールバック方針（候補・暫定）**〔要確認〕
+**カメラ不可時の確定方針**
 
-授業は「2〜3 人で 1 台」が単位のため、1 台でもカメラ不可だと体験が崩れる。要件確定時に下記から選定する。
-
-- ① カメラ必須を前提に、不可時は明示エラー＋再試行/権限案内の導線を出す。
-- ② QR 読み取りは静止画撮影からのデコードに切り替える（連続スキャン不可時の代替）。
-- ③ AR 背景なしの 3D-only 表示にフォールバックする（AR の出口を縮退）。
+カメラは AR 背景と QR カード読み取りの共通土台であるため**必須**とする。AR 実行画面（#187）は表示時に取得を開始し、待機中は loading、失敗時は理由に応じた明示エラー・権限案内・再試行を表示する。静止画 QR 読み取りや 3D-only 表示への縮退は行わない。
 
 ### 7.3 配布
 
@@ -312,7 +315,7 @@ stateDiagram-v2
 | 箇所 | 内容 |
 | --- | --- |
 | 6.3 | 30fps / 起動 10 秒 / QR 1 秒以内の達成可否（実機検証） |
-| 7.2 | `getUserMedia`: mac/Web は検証済（#175 Phase A）。**Windows/WebView2 は未検証（Phase B・要実機）**。カメラ不可時フォールバックは候補のみで未確定 |
+| 7.2 | `getUserMedia`: mac/Web は検証済（#175 Phase A）。**Windows/WebView2 は未検証（Phase B・要実機）** |
 | 7.3 | Desktop 版の配布元 |
 
 ---
