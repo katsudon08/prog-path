@@ -9,6 +9,11 @@ import {
 } from "@/shared/config";
 
 import { countTileKind } from "../lib/count-tile-kind";
+import { validateTeleportLinks } from "../lib/validate-teleport-links";
+import { TILE_KIND, TileKindSchema } from "./tile-kind";
+
+export { TILE_KIND, TileKindSchema } from "./tile-kind";
+export type { TileKind } from "./tile-kind";
 
 /**
  * エンティティ ID フィールド。
@@ -19,26 +24,6 @@ import { countTileKind } from "../lib/count-tile-kind";
  * （→ docs/db-design.md 4 / #179）
  */
 const uuidField = z.union([z.uuid(), z.literal(UNCATEGORIZED_FOLDER_ID)]);
-
-/**
- * タイル種別の名前付き定数。値は永続・QR に保存される文字列そのもの（リネーム不可）。
- * 参照側は `"start"` のような素の文字列でなく `TILE_KIND.START` を使う（→ 可読性・単一定義）。
- * UI パレット（#197）等でも `Object.values(TILE_KIND)` で列挙できる。
- * テレポートは上下を別種別として構造を単純化する（→ docs/db-design.md 3.3）。
- */
-export const TILE_KIND = {
-  FLOOR: "floor",
-  WALL: "wall",
-  HOLE: "hole",
-  START: "start",
-  GOAL: "goal",
-  TELEPORT_UP: "teleportUp",
-  TELEPORT_DOWN: "teleportDown",
-  KEY: "key",
-} as const;
-
-/** タイル種別スキーマ。`z.enum` に enum-like オブジェクトを渡し、値のユニオンとして検証する。 */
-export const TileKindSchema = z.enum(TILE_KIND);
 
 /**
  * フォルダ。未分類は `isDefault: true` かつ予約 nil UUID で常に 1 つ存在する
@@ -55,11 +40,13 @@ export const FolderSchema = z.object({
  * 迷路。サイズは全階共通（5〜7）、階層は 1〜3。日時は epoch ms（number）で持つ
  * （JSON/QR 境界に強く作成順ソートも数値比較で自明。→ docs/db-design.md 3）。
  *
- * 構造検証（`refine`）は永続化の復旧ゲートを兼ねる:
+ * 構造検証（`refine`）のみを行い、永続化の復旧ゲート（起動時 purge）を兼ねる:
  * - 階層数と `tiles` の一致、各階が `size × size` であること
  * - スタート/ゴールは各 1 つ
  *
- * テレポート整合（移動先の存在・種別）は編集時に検証する（→ docs/features.md 4.6）。
+ * テレポート整合（移動先の存在・種別）はここでは検証しない。破壊的な purge で
+ * 迷路を丸ごと削除しないためであり、テレポート整合は {@link PlayableMazeSchema} が
+ * 担う（実行前チェックと保存フロー #195 で使用。→ docs/features.md 4.6 / #179）。
  */
 export const MazeSchema = z
   .object({
@@ -83,6 +70,27 @@ export const MazeSchema = z
   .refine((m) => countTileKind(m.tiles, TILE_KIND.START) === 1, "スタートは 1 つ")
   .refine((m) => countTileKind(m.tiles, TILE_KIND.GOAL) === 1, "ゴールは 1 つ");
 
-export type TileKind = z.infer<typeof TileKindSchema>;
+/**
+ * 実行・保存に耐える「プレイ可能な迷路」スキーマ。
+ *
+ * {@link MazeSchema} の構造検証に加え、テレポートの同位置移動先が存在し、
+ * 壁・穴・テレポートでないことを検証する。実行前チェック（maze-simulation）と
+ * 迷路エディタの保存フロー（#195）で使い、不正な場合は「拒否するだけ」で
+ * 既存データは削除しない（→ docs/features.md 4.6）。
+ */
+export const PlayableMazeSchema = MazeSchema.superRefine((maze, context) => {
+  for (const issue of validateTeleportLinks(maze)) {
+    const destination = `floor=${issue.destination.floor}, row=${issue.destination.row}, col=${issue.destination.col}`;
+    context.addIssue({
+      code: "custom",
+      path: ["tiles", issue.source.floor, issue.source.row, issue.source.col],
+      message:
+        issue.code === "destination-out-of-bounds"
+          ? `テレポート先が迷路の範囲外です（${destination}）`
+          : `テレポート先に移動できないタイルがあります（${destination}）`,
+    });
+  }
+});
+
 export type Folder = z.infer<typeof FolderSchema>;
 export type Maze = z.infer<typeof MazeSchema>;

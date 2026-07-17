@@ -10,8 +10,33 @@
  */
 
 // スキーマ・型・定数（entities/maze(#182)・entities/folder(#192) が再利用する単一の正）
-export { TILE_KIND, TileKindSchema, FolderSchema, MazeSchema } from "./model/schema";
+export {
+  TILE_KIND,
+  TileKindSchema,
+  FolderSchema,
+  MazeSchema,
+  PlayableMazeSchema,
+} from "./model/schema";
 export type { TileKind, Folder, Maze } from "./model/schema";
+export {
+  isBlockedDestination,
+  TELEPORT_VALIDATION_ERROR_CODE,
+  validateTeleportLinks,
+} from "./lib/validate-teleport-links";
+export type {
+  MazeTileCoord,
+  MazeTileGrid,
+  TeleportValidationErrorCode,
+  TeleportValidationIssue,
+} from "./lib/validate-teleport-links";
+
+// チュートリアル（教材）迷路のシード（起動時に予約 ID で存在保証。テスト・将来 UI が参照）
+export {
+  TUTORIAL_FOLDER_NAME,
+  TUTORIAL_MAZE_ID,
+  buildTutorialFolder,
+  buildTutorialMazes,
+} from "./lib/tutorial-seed";
 
 // コレクションと初期化（アプリ起動時に initDb() を呼び、UI は useLiveQuery で購読）
 export { initDb, ensureInitialData } from "./model/bootstrap";

@@ -1,9 +1,12 @@
+import { TUTORIAL_FOLDER_ID } from "@/shared/config";
+
 import { buildUncategorizedFolder, hasUncategorizedFolder, partitionValid } from "../lib/recovery";
 import type { Validatable } from "../lib/recovery";
+import { buildTutorialFolder, buildTutorialMazes } from "../lib/tutorial-seed";
 import { createCollections } from "./collections";
 import type { AppDatabase } from "./collections";
 import { FolderSchema, MazeSchema } from "./schema";
-import type { Folder } from "./schema";
+import type { Folder, Maze } from "./schema";
 
 /** コレクションの読み書き最小インターフェース（テスト時に差し替え可能なよう構造的に受ける）。 */
 interface PurgeableCollection {
@@ -41,11 +44,34 @@ const purgeInvalid = async <T>(
 };
 
 /**
+ * チュートリアル（専用フォルダ＋教材迷路）の存在を保証する。
+ * 予約固定 ID を持ち削除不可の扱い（強制は UI 側）のため、未分類フォルダと同じ発想で
+ * 「無ければ作る／欠損 ID の迷路だけ補う」。既存レコードは上書きしない（編集は保持）。
+ * → docs/db-design.md 7。
+ */
+const ensureTutorialContent = async (db: AppDatabase): Promise<void> => {
+  const folders: ReadonlyArray<Folder> = await db.folderCollection.toArrayWhenReady();
+  if (!folders.some((folder) => folder.id === TUTORIAL_FOLDER_ID)) {
+    db.folderCollection.insert(buildTutorialFolder());
+  }
+
+  const mazes: ReadonlyArray<Maze> = await db.mazeCollection.toArrayWhenReady();
+  const existingIds = new Set(mazes.map((maze) => maze.id));
+  for (const maze of buildTutorialMazes()) {
+    if (!existingIds.has(maze.id)) {
+      db.mazeCollection.insert(maze);
+    }
+  }
+};
+
+/**
  * 起動時の初期データ保証・不正データ復旧を行う。
  * 1. 不正レコードを破棄（迷路・フォルダ）
  * 2. 未分類フォルダ（予約 ID）の存在を保証（無ければ再生成）
+ * 3. チュートリアル（専用フォルダ＋教材迷路）を予約 ID で常に保証（無ければ作る／欠損分を補う）
  *
- * 迷路 0 件は正常状態として扱い、サンプル迷路の自動投入はしない（→ docs/db-design.md 7）。
+ * 迷路 0 件は正常状態だが、チュートリアル迷路は常に存在保証されるため実質 0 件にはならない
+ * （→ docs/db-design.md 7）。
  */
 export const ensureInitialData = async (db: AppDatabase): Promise<void> => {
   await purgeInvalid(db.folderCollection, FolderSchema);
@@ -55,6 +81,8 @@ export const ensureInitialData = async (db: AppDatabase): Promise<void> => {
   if (!hasUncategorizedFolder(folders)) {
     db.folderCollection.insert(buildUncategorizedFolder());
   }
+
+  await ensureTutorialContent(db);
 };
 
 let databasePromise: Promise<AppDatabase> | null = null;
