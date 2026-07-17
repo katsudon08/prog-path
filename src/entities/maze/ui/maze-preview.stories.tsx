@@ -15,15 +15,15 @@ const toMaze = (structure: MazeStructure, name = "サンプル迷路"): Maze => 
   ...structure,
 });
 
-/** 全タイル種別を 1 階に散りばめたサンプル（5×5）。 */
+/** 全タイル種別を 2 階に散りばめたサンプル（5×5）。 */
 const allTilesMaze = (): Maze => {
-  const structure = createInitialMaze(5, 1);
+  const structure = createInitialMaze(5, 2);
   const tiles = structure.tiles.map((floor) => floor.map((row) => [...row]));
   tiles[0][0][2] = TILE_KIND.WALL;
   tiles[0][1][1] = TILE_KIND.HOLE;
   tiles[0][2][3] = TILE_KIND.KEY;
   tiles[0][3][0] = TILE_KIND.TELEPORT_UP;
-  tiles[0][3][4] = TILE_KIND.TELEPORT_DOWN;
+  tiles[1][3][4] = TILE_KIND.TELEPORT_DOWN;
   return toMaze({ ...structure, tiles }, "全タイル");
 };
 
@@ -34,7 +34,7 @@ const twoFloorMaze = (): Maze => {
   // 既定の start[0][0][0] / goal[0][4][4] を作り直す。
   tiles[0][4][4] = TILE_KIND.FLOOR;
   tiles[0][2][2] = TILE_KIND.TELEPORT_UP;
-  tiles[1][2][2] = TILE_KIND.TELEPORT_DOWN;
+  tiles[1][2][3] = TILE_KIND.TELEPORT_DOWN;
   tiles[1][1][3] = TILE_KIND.KEY;
   tiles[1][4][4] = TILE_KIND.GOAL;
   return toMaze({ ...structure, tiles }, "2 階建て");

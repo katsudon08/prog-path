@@ -5,18 +5,20 @@
  * 移動可否・衝突・穴落下・カギ/ゴール判定などの**ゲームルール（意味論）は持たない**——それらは
  * 複数エンティティを合成する features/maze-simulation（#185）の責務（→ docs/architecture.md 3, directory-structure.md 4.5）。
  */
+import type { MazeTileGrid } from "@/shared/db";
+
 import { TILE_KIND } from "./types";
 import type { Maze, MazeCoord, TileKind } from "./types";
 
 /** 座標が迷路の範囲内か（floor/row/col すべてが 0..上限-1）。 */
-export const isWithinBounds = (maze: Maze, { floor, row, col }: MazeCoord): boolean =>
+export const isWithinBounds = (maze: MazeTileGrid, { floor, row, col }: MazeCoord): boolean =>
   floor >= 0 && floor < maze.floors && row >= 0 && row < maze.size && col >= 0 && col < maze.size;
 
 /**
  * 指定位置のタイル種別を返す（O(1)）。範囲外の座標は呼び出し側が {@link isWithinBounds} で
  * 保証する前提とし、範囲外アクセスは例外を投げる（不正な座標を黙って通さない）。
  */
-export const getTileAt = (maze: Maze, coord: MazeCoord): TileKind => {
+export const getTileAt = (maze: MazeTileGrid, coord: MazeCoord): TileKind => {
   if (!isWithinBounds(maze, coord)) {
     throw new RangeError(
       `座標が迷路の範囲外です: floor=${coord.floor}, row=${coord.row}, col=${coord.col}`,
@@ -26,7 +28,7 @@ export const getTileAt = (maze: Maze, coord: MazeCoord): TileKind => {
 };
 
 /** 指定種別のタイルが存在する全座標を、floor→row→col の走査順で返す。 */
-export const findTiles = (maze: Maze, kind: TileKind): MazeCoord[] => {
+export const findTiles = (maze: MazeTileGrid, kind: TileKind): MazeCoord[] => {
   const found: MazeCoord[] = [];
   maze.tiles.forEach((floorTiles, floor) => {
     floorTiles.forEach((rowTiles, row) => {
