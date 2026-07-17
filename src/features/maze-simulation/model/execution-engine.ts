@@ -168,6 +168,7 @@ const createFailureState = (
   reason: (typeof FAILURE_REASON)[keyof typeof FAILURE_REASON],
   position: RobotCoord | undefined,
   commandPath: ExecutionPath | undefined,
+  precedingEvents: readonly ExecutionEvent[] = [],
 ): ExecutionStepResult => ({
   state: {
     ...state,
@@ -177,7 +178,7 @@ const createFailureState = (
     pendingTeleport: null,
     status: "failure",
   },
-  events: [createFailureEvent(reason, position, commandPath)],
+  events: [...precedingEvents, createFailureEvent(reason, position, commandPath)],
 });
 
 interface NextCommand {
@@ -440,34 +441,30 @@ const executeLeafCommand = (
 
   const front = getForwardCoord(robot);
   if (!isWithinBounds(runtimeMaze, front)) {
-    return {
-      ...createFailureState(
-        state,
-        runtimeMaze,
-        robot,
-        frames,
-        FAILURE_REASON.OUT_OF_BOUNDS,
-        front,
-        commandPath,
-      ),
-      events: [...events, createFailureEvent(FAILURE_REASON.OUT_OF_BOUNDS, front, commandPath)],
-    };
+    return createFailureState(
+      state,
+      runtimeMaze,
+      robot,
+      frames,
+      FAILURE_REASON.OUT_OF_BOUNDS,
+      front,
+      commandPath,
+      events,
+    );
   }
 
   const frontTile = getTile(runtimeMaze, front);
   if (frontTile === TILE_KIND.WALL) {
-    return {
-      ...createFailureState(
-        state,
-        runtimeMaze,
-        robot,
-        frames,
-        FAILURE_REASON.WALL_COLLISION,
-        front,
-        commandPath,
-      ),
-      events: [...events, createFailureEvent(FAILURE_REASON.WALL_COLLISION, front, commandPath)],
-    };
+    return createFailureState(
+      state,
+      runtimeMaze,
+      robot,
+      frames,
+      FAILURE_REASON.WALL_COLLISION,
+      front,
+      commandPath,
+      events,
+    );
   }
 
   const nextRobot: Robot = {
