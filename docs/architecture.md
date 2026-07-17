@@ -177,7 +177,7 @@ graph TD
 
 主な features（詳細は directory-structure.md）:
 
-- `features/maze-simulation` — 迷路実行エンジン（コマンド解釈・移動・衝突/落下/カギ/ゴール判定）。AR 実行フローの XState もここ。
+- `features/maze-simulation` — 迷路実行エンジン（コマンド解釈・移動・衝突/落下/カギ/ゴール判定）。AR 実行フローの XState もここ。実行中の迷路は永続データのコピーを使う。
 - `features/command-management` — QR からの命令作成・スタック構築・ループのネスト管理。
 - `features/maze-edit` — グリッド編集・タイル配置・整合チェック。
 - `features/maze-management` / `features/folder-management` — 迷路・フォルダの CRUD。
@@ -191,15 +191,17 @@ graph TD
 ### 5.1 命令作成〜実行のフロー
 
 1. **命令作成**: カメラ映像 → `qr-scanner` がデコード → `command` に変換し、コマンドスタックへ追加（ループは loopStart/loopEnd ＋スタックでネスト管理。→ [features.md](./features.md) 5.3）。
-2. **実行**: `maze-simulation` がスタックを先頭から解釈し、`robot` を 1 コマンド = 1 行動で動かす。実行前にスタート位置・初期向き（固定）へリセット。
-3. **判定**: 壁衝突 / 穴落下 / カギ未取得でゴール / コマンド尽きで未到達 → 失敗。全カギ取得＋ゴール到達 → 成功。
-4. **描画**: 状態更新を R3F が購読し、3D 迷路・ロボットへ反映。
-5. **永続化**: 迷路・フォルダは TanStack DB 経由で SQLite（WASM+OPFS）に保存・読込。
+2. **実行**: `maze-simulation` がコマンド木をフレームスタックで解釈し、`robot` を状態として更新する。実行前にスタート位置・初期向き（南）へリセットし、永続迷路を変更しない実行用コピーを作る。
+3. **判定**: 壁衝突 / 迷路外 / 穴落下 / カギ未取得でゴール / コマンド尽きで未到達 → 失敗。全カギ取得＋ゴール到達 → 成功。
+4. **進行**: XState は `STEP` を受けたときだけ純粋な `stepExecution` を呼び出す。タイマーは持たず、アニメーションの待ち時間は UI 側で調整する。
+5. **描画**: 状態更新を R3F が購読し、3D 迷路・ロボットへ反映。
+6. **永続化**: 迷路・フォルダは TanStack DB 経由で SQLite（WASM+OPFS）に保存・読込。実行状態・プログラムは保存しない。
 
 ### 5.2 状態管理の方針
 
 - **既定は Zustand**: 画面状態・選択状態・コマンドスタックなど大半を扱う。
-- **XState は AR 実行フローのみ**: `Idle → Building → Resetting → Running → Success/Failure` の遷移を明示的に表現する（→ [features.md](./features.md) 5.4）。過剰な導入を避け、複雑な遷移に限定する。
+- **XState は AR 実行フローのみ**: `Idle → Building → Resetting → Running → Success/Failure` の遷移を明示的に表現する（→ [features.md](./features.md) 5.4）。`COMMANDS_CHANGED` は構築中だけ受け付け、Running 中は無視する。成功・失敗後もプログラムを保持し、Retry/Reset は再実行、Close は Building へ戻す。
+- **実行エンジンと制御を分離する**: XState はライフサイクルと入力受付を担当し、迷路上の 1 step の計算は純粋関数 `stepExecution` が担当する。これにより単体テストと UI のアニメーション制御を独立させる。
 - **永続データは TanStack DB**: リアクティブに読み出し、UI と同期する。
 
 ```mermaid
@@ -209,11 +211,13 @@ stateDiagram-v2
   Building --> Building: 追加 / 削除 / ループ構築
   Building --> Resetting: 実行
   Resetting --> Running: スタート位置へリセット
-  Running --> Running: 1 コマンド実行
+  Running --> Running: STEP（外部イベントで1内部step）
   Running --> Success: ゴール到達かつ全カギ取得
-  Running --> Failure: 壁 / 穴 / カギ未取得 / 未到達
-  Success --> Idle
-  Failure --> Idle
+  Running --> Failure: 壁 / 迷路外 / 穴 / カギ未取得 / 未到達
+  Success --> Resetting: Retry / Reset
+  Failure --> Resetting: Retry / Reset
+  Success --> Building: Close（コマンド保持）
+  Failure --> Building: Close（コマンド保持）
 ```
 
 ### 5.3 永続化の範囲
@@ -232,7 +236,7 @@ stateDiagram-v2
 ### 5.4 バリデーションと復旧
 
 - QR・入力・永続データは Zod スキーマで検証する。
-- 不正・空のデータは初期データで上書き復旧する（→ [requirements.md](./requirements.md) 5.5）。
+- 不正データ（構造検証 NG）は破棄して復旧する。チュートリアル迷路（専用フォルダ）は起動時に予約 ID で常に存在保証する（削除不可・UI で制限。→ [requirements.md](./requirements.md) 5.5 / [db-design.md](./db-design.md) 7）。
 
 ---
 

@@ -119,6 +119,7 @@ const MAX_SIZE = 7;
 const MIN_FLOORS = 1;
 const MAX_FLOORS = 3;
 
+// 構造検証のみ（寸法・start/goal）。起動時の破壊的な復旧掃引（→ 7）はこの構造スキーマで判定する
 export const MazeSchema = z
   .object({
     id: z.string().uuid(),
@@ -140,6 +141,15 @@ export const MazeSchema = z
   .refine((m) => countKind(m, "start") === 1, "スタートは 1 つ")
   .refine((m) => countKind(m, "goal") === 1, "ゴールは 1 つ");
 
+// 構造 + テレポート整合。実行開始時の入力検証・将来の編集 UI(#195) の保存前検証で使う。
+// 破壊的な復旧掃引（→ 7）には使わず、テレポート不整合だけで迷路レコードを削除しない。
+// superRefine は推論型を変えないため、PlayableMazeSchema も同じ Maze 型を推論する。
+export const PlayableMazeSchema = MazeSchema.superRefine((maze, ctx) => {
+  for (const issue of validateTeleportLinks(maze)) {
+    ctx.addIssue({ code: "custom", path: [/* source 座標 */], message: /* 迷路外 / 移動先が壁・穴・テレポート */ });
+  }
+});
+
 export const FolderSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
@@ -153,7 +163,7 @@ export type Folder = z.infer<typeof FolderSchema>;
 ```
 
 - **ID は UUID v4**。作成時に `crypto.randomUUID()` で採番する（論理型は上表の `uuid`／推論される TS 型は `string`。ブランド型は導入しない）。未分類フォルダは予約 nil UUID（`shared/config` の `UNCATEGORIZED_FOLDER_ID`）。**採用した Zod v4 の `z.uuid()` は版数を検査し nil（全 0）を弾く**ため、ID フィールドは `z.union([z.uuid(), z.literal(UNCATEGORIZED_FOLDER_ID)])`（= 「v4 または予約 nil」）で定義して nil を確実に通す（実装: `shared/db/model/schema.ts` の `uuidField`。#179 で確定）。
-- **テレポート整合**（移動先が存在しない/壁・穴・テレポート）は編集時に検証する（→ [features.md](./features.md) 4.6）。永続スキーマ（`MazeSchema`）では寸法・スタート/ゴール個数の**構造検証のみ**行い、テレポート整合はスキーマ側では検証しない（#179 で確定）。
+- **テレポート整合**（移動先が存在しない/壁・穴・テレポート）は `shared/db/lib/validate-teleport-links.ts` の純粋関数 `validateTeleportLinks` で検証し、**構造のみの `MazeSchema` とは分けた `PlayableMazeSchema`（= `MazeSchema` + テレポート整合）** に載せる。`PlayableMazeSchema` は実行開始時の入力検証と将来の編集 UI（#195）の保存前検証で同じルールを共有する。**起動時の破壊的な復旧掃引（→ 7）には使わない**ため、テレポート不整合だけで迷路レコードが削除されることはない。反対向きのテレポートは必須にしない（→ [features.md](./features.md) 4.6）。
 - 文字数上限（name）は features.md 3.6 の〔要確認〕に従い、確定後に `max` を付す。
 
 ---
@@ -181,7 +191,7 @@ const folderCollection = createCollection(
 - `getKey` は各エンティティの `id`。
 - 読み出しは `useLiveQuery((q) => q.from({ maze: mazeCollection }))` の形。フォルダで絞る場合は `folderId` で where。
 - 変更は `collection.insert / update / delete` で行い、UI はライブクエリで自動更新。
-- **Zod 検証の適用点**: `persistedCollectionOptions` はコレクションの `schema` フックに Zod を取らない（行の型を `<T, TKey>` で与える設計）。よって Zod 検証は **(a) 起動時の復旧掃引（→ 7）** と **(b) 書き込み境界（`entities` / `features` で `insert` 前に parse）** で明示的に行う。スキーマの正は `shared/db/model/schema.ts` に置き、上位スライスが再利用する。
+- **Zod 検証の適用点**: `persistedCollectionOptions` はコレクションの `schema` フックに Zod を取らない（行の型を `<T, TKey>` で与える設計）。よって Zod 検証は **(a) 起動時の復旧掃引（→ 7）＝構造のみの `MazeSchema`** と **(b) 書き込み境界・実行開始時＝テレポート整合まで見る `PlayableMazeSchema`（`entities` / `features` で `insert` 前に parse）** で明示的に行う。(a) を構造のみに限ることで、テレポート不整合だけで永続レコードを削除しない。スキーマの正は `shared/db/model/schema.ts` に置き、上位スライスが再利用する。
 
 ---
 
@@ -210,10 +220,10 @@ TanStack DB の組み込みアダプタには localStorage はあるが IndexedD
 ## 7. 初期データと復旧
 
 - **未分類フォルダの保証**: 起動時に未分類フォルダ（予約 ID = `UNCATEGORIZED_FOLDER_ID` / nil UUID）の存在を確認し、無ければ作成する。
-- **迷路の空状態は正常**: 迷路が 0 件は有効な状態で、ホームは案内 UI を表示する（→ [features.md](./features.md) 3.3）。サンプル迷路の自動投入は**しない**。
-- **不正データの復旧**: Zod 検証に通らないレコードは破棄・初期状態へ復旧する（→ [requirements.md](./requirements.md) 5.5）。未分類フォルダのような必須データは再生成する。
+- **チュートリアルの存在保証**: 授業導入用の教材迷路を専用「チュートリアル」フォルダ（予約固定 ID）にまとめ、起動時（不正データの掃引・未分類フォルダ保証の後）に**予約 ID で常に保証**する — フォルダ・各迷路とも無ければ作り、欠損 ID だけ補う（既存は上書きしない）。未分類フォルダと同格で、フォルダ・迷路とも**削除不可**（強制は UI 側＝削除操作を出さない）。データ欠損しても次回起動で復元される。迷路は 6 件・易→難のカリキュラム順（内容は今後拡充。→ [features.md](./features.md) 3.3）。
+- **不正データの復旧**: **構造検証（`MazeSchema`）に通らない**レコードのみ破棄・初期状態へ復旧する（→ [requirements.md](./requirements.md) 5.5）。テレポート不整合のような**実行開始時に検出・拒否できる問題では削除せず**、保存済みデータを保護する（実行前は `PlayableMazeSchema`、編集 UI は保存前検証で扱う）。未分類フォルダのような必須データは再生成する。
 
-> 旧実装は「空配列なら初期迷路を投入」だったが、to-be では空は正常（案内 UI）とし、**不正時のみ復旧**に引き直す。
+> 旧実装の「空配列なら初期迷路を投入」とは異なり、to-be では**授業導入用のチュートリアル（教材）を予約 ID で常に保証**する（未分類フォルダと同格の存在保証）。ユーザー作成の迷路が無いときに案内 UI を出すのはユーザー領域の話で、チュートリアルは常に存在する。不正データの扱いは構造検証による破棄・復旧に限定する（上記）。
 
 ---
 

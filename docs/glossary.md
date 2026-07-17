@@ -53,7 +53,7 @@ ProgPath（再開発版）で用いる主要用語の**統一定義**。ドキ�
 | 向き | direction | ロボットの方位（4 方向）。例 `(1,0)/(0,1)/(-1,0)/(0,-1)`。初期向きは**固定**。 | [features](./features.md) 5.6 |
 | 実行 | run | コマンドスタックを先頭から順次解釈し、ロボットを動かすこと。実行前にスタート位置・初期向きへリセット。 | [features](./features.md) 5.4 |
 | 成功 | success | ゴール到達かつ全カギ取得。 | [features](./features.md) 5.5 |
-| 失敗 | failure | 壁衝突／穴落下／カギ未取得でゴール到達／コマンド尽きで未到達のいずれか。 | [features](./features.md) 5.5 |
+| 失敗 | failure | 壁衝突／迷路外／穴落下／カギ未取得でゴール到達／コマンド尽きで未到達のいずれか。 | [features](./features.md) 5.5 |
 | カギ取得 | — | カギタイルを踏むと自動で取得（順不同）。 | [features](./features.md) 5.5 |
 | ミニマップ | mini-map | ロボットの位置・階層を示す俯瞰表示。 | [features](./features.md) 5.2 |
 | 移動カウント | move-count | ロボットが進んだマス数。 | [features](./features.md) 5.4 |
