@@ -53,6 +53,15 @@ const TALL: Command[] = [
   { kind: "ifHole" },
 ];
 
+/**
+ * コンテナ末尾（＝プログラム末尾・append 位置）の挿入位置を返す。
+ * 起動時の既定選択に使う（親が初期 `selected` として末尾を渡す想定。widget 自身は既定を推測しない）。
+ */
+const tailPoint = (commands: readonly Command[]): InsertionPoint => ({
+  containerPath: [],
+  index: commands.length,
+});
+
 /** 木を pre-order で辿り、全ノードのパスを集める（実行中ハイライトのデモ用）。 */
 const collectPaths = (commands: readonly Command[], base: number[] = []): number[][] => {
   const out: number[][] = [];
@@ -158,22 +167,22 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** 空スタック。追加スロットは1つだけ。selected 未指定なので既定ハイライトは無し（最初の追加位置は親が selected で示す）。 */
-export const Empty: Story = { args: { commands: [] } };
+/** 空スタック。追加スロットは1つだけ。起動時の既定として末尾（＝唯一の追加位置）を親が selected に渡しハイライト。 */
+export const Empty: Story = { args: { commands: [], selected: tailPoint([]) } };
 
-/** 単純な命令列。各命令の前後に追加位置スロット。selected 未指定なので既定ハイライトは無し（追加位置は親が selected で示す）。 */
-export const SimpleSequence: Story = { args: { commands: SIMPLE } };
+/** 単純な命令列。各命令の前後に追加位置スロット。起動時の既定として末尾（append 位置）を親が selected に渡しハイライト。 */
+export const SimpleSequence: Story = { args: { commands: SIMPLE, selected: tailPoint(SIMPLE) } };
 
-/** ループの入れ子。字下げ＋左ボーダーでネスト、`×N` で回数を表示。 */
-export const NestedLoops: Story = { args: { commands: NESTED } };
+/** ループの入れ子。字下げ＋左ボーダーでネスト、`×N` で回数を表示。起動時の既定として末尾をハイライト。 */
+export const NestedLoops: Story = { args: { commands: NESTED, selected: tailPoint(NESTED) } };
 
 /** 途中の追加位置を選択した状態（末尾以外のスロットがハイライト）。 */
 export const Selected: Story = {
   args: { commands: SIMPLE, selected: { containerPath: [], index: 1 } },
 };
 
-/** 箱を超える背の高いスタック。内部の overflow-y-auto を手動スクロールで確認できる。 */
-export const Scrollable: Story = { args: { commands: TALL } };
+/** 箱を超える背の高いスタック。内部の overflow-y-auto を手動スクロールで確認できる。起動時の既定として末尾をハイライト。 */
+export const Scrollable: Story = { args: { commands: TALL, selected: tailPoint(TALL) } };
 
 /** 表示専用（実行フェーズ等）。追加スロット・削除ボタンを出さず、命令木を読むだけの状態。 */
 export const ReadOnly: Story = { args: { commands: NESTED, readOnly: true } };
@@ -183,7 +192,7 @@ export const Running: Story = {
   render: () => <RunningDemo commands={TALL} />,
 };
 
-/** 追加位置クリック→選択反映、削除→木から即消える、を実際に操作できる Playground。 */
+/** 追加位置クリック→選択反映、削除→木から即消える、を実際に操作できる Playground。起動時は末尾を選択。 */
 export const Interactive: Story = {
-  render: () => <CommandPanelDemo initialCommands={NESTED} />,
+  render: () => <CommandPanelDemo initialCommands={NESTED} initialSelected={tailPoint(NESTED)} />,
 };
