@@ -15,4 +15,4 @@ export {
   MAZE_DEFAULT_SIZE,
 } from "./maze";
 export { COMMAND_SCAN_COOLDOWN_MS, LOOP_COUNT_MIN, LOOP_COUNT_MAX } from "./command";
-export { UNCATEGORIZED_FOLDER_ID } from "./folder";
+export { UNCATEGORIZED_FOLDER_ID, TUTORIAL_FOLDER_ID } from "./folder";

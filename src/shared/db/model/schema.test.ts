@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { UNCATEGORIZED_FOLDER_ID } from "@/shared/config";
 
 import type { TileKind } from "./schema";
-import { FolderSchema, MazeSchema, TILE_KIND } from "./schema";
+import { FolderSchema, MazeSchema, PlayableMazeSchema, TILE_KIND } from "./schema";
 
 const V4_ID = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
 
@@ -15,6 +15,16 @@ const makeFloor = (size: number): TileKind[][] => {
   floor[0][0] = TILE_KIND.START;
   floor[0][1] = TILE_KIND.GOAL;
   return floor;
+};
+
+const makeTwoFloorTiles = (): TileKind[][][] => {
+  const lower = makeFloor(5);
+  const upper = Array.from({ length: 5 }, () =>
+    Array.from({ length: 5 }, (): TileKind => TILE_KIND.FLOOR),
+  );
+  lower[2][2] = TILE_KIND.TELEPORT_UP;
+  upper[3][3] = TILE_KIND.TELEPORT_DOWN;
+  return [lower, upper];
 };
 
 const validMaze = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
@@ -91,5 +101,39 @@ describe("MazeSchema", () => {
     const floor = makeFloor(5);
     (floor[1] as unknown[])[1] = "lava";
     expect(MazeSchema.safeParse(validMaze({ tiles: [floor] })).success).toBe(false);
+  });
+
+  it("構造が妥当なら、テレポート不正でも通す（purge で消さないため）", () => {
+    // 移動先の階が存在しない（範囲外）テレポート。構造としては妥当。
+    const outOfBounds = makeTwoFloorTiles();
+    outOfBounds[1][1][1] = TILE_KIND.TELEPORT_UP; // 最上階からさらに上はない
+    expect(MazeSchema.safeParse(validMaze({ floors: 2, tiles: outOfBounds })).success).toBe(true);
+
+    // 移動先が壁で着地できないテレポート。構造としては妥当。
+    const blocked = makeTwoFloorTiles();
+    blocked[1][2][2] = TILE_KIND.WALL; // lower[2][2] の TELEPORT_UP の移動先
+    expect(MazeSchema.safeParse(validMaze({ floors: 2, tiles: blocked })).success).toBe(true);
+  });
+});
+
+describe("PlayableMazeSchema", () => {
+  it("有効なテレポートの移動先を通す", () => {
+    expect(
+      PlayableMazeSchema.safeParse(validMaze({ floors: 2, tiles: makeTwoFloorTiles() })).success,
+    ).toBe(true);
+  });
+
+  it("存在しない階へのテレポートを弾く", () => {
+    const tiles = makeTwoFloorTiles();
+    tiles[1][1][1] = TILE_KIND.TELEPORT_UP;
+
+    expect(PlayableMazeSchema.safeParse(validMaze({ floors: 2, tiles })).success).toBe(false);
+  });
+
+  it("壁・穴・テレポートへのテレポートを弾く", () => {
+    const tiles = makeTwoFloorTiles();
+    tiles[1][2][2] = TILE_KIND.WALL;
+
+    expect(PlayableMazeSchema.safeParse(validMaze({ floors: 2, tiles })).success).toBe(false);
   });
 });
