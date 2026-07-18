@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { isLoopCommand, LOOP_COMMAND_KIND } from "@/entities/command";
 import type { Command } from "@/entities/command";
-import { deleteCommandAt } from "@/features/command-management";
+import { COMMAND_BUILDER_OUTCOME_TYPE, deleteCommandAt } from "@/features/command-management";
 import type { CommandPath, InsertionPoint } from "@/features/command-management";
 
 import { CommandPanel } from "./command-panel";
@@ -84,6 +84,10 @@ const CommandPanelDemo = ({
       path,
     );
     setCommands(result.state.commands);
+    // 削除で命令木が変わったら選択を再同期する（stale な selected を残さない＝忠実な鏡の契約）。
+    if (result.outcome.type === COMMAND_BUILDER_OUTCOME_TYPE.COMMAND_DELETED) {
+      setSelected(result.outcome.nextInsertionPoint);
+    }
   };
 
   return (
@@ -113,6 +117,7 @@ const RunningDemo = ({ commands }: { commands: Command[] }): React.JSX.Element =
     <CommandPanel
       commands={commands}
       activePath={paths[index]}
+      readOnly
       onSelectInsertionPoint={() => {}}
       onDeleteCommand={() => {}}
       className="h-full"
@@ -153,10 +158,10 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** 空スタック。末尾スロット（＝最初の追加位置）だけが既定ハイライトされる。 */
+/** 空スタック。追加スロットは1つだけ。selected 未指定なので既定ハイライトは無し（最初の追加位置は親が selected で示す）。 */
 export const Empty: Story = { args: { commands: [] } };
 
-/** 単純な命令列。各命令の前後に追加位置スロット、既定で末尾がハイライト。 */
+/** 単純な命令列。各命令の前後に追加位置スロット。selected 未指定なので既定ハイライトは無し（追加位置は親が selected で示す）。 */
 export const SimpleSequence: Story = { args: { commands: SIMPLE } };
 
 /** ループの入れ子。字下げ＋左ボーダーでネスト、`×N` で回数を表示。 */
@@ -169,6 +174,9 @@ export const Selected: Story = {
 
 /** 箱を超える背の高いスタック。内部の overflow-y-auto を手動スクロールで確認できる。 */
 export const Scrollable: Story = { args: { commands: TALL } };
+
+/** 表示専用（実行フェーズ等）。追加スロット・削除ボタンを出さず、命令木を読むだけの状態。 */
+export const ReadOnly: Story = { args: { commands: NESTED, readOnly: true } };
 
 /** 実行中コマンドの強調＋オートスクロールを自動再生する。 */
 export const Running: Story = {

@@ -50,7 +50,10 @@ export const CommandNode = ({ command, path, context }: CommandNodeProps): React
       >
         {/* loop ノードは kind 自体が "loop" なので CommandItem がループチップ（Repeat・×N）を描く。 */}
         <CommandItem kind={command.kind} count={loopCommand?.count} />
-        <DeleteButton onDelete={() => context.onDeleteCommand(path)} className="ml-auto" />
+        {/* 表示専用（実行フェーズ等）では削除させない。実行中強調・オートスクロールは維持。 */}
+        {!context.readOnly && (
+          <DeleteButton onDelete={() => context.onDeleteCommand(path)} className="ml-auto" />
+        )}
       </div>
 
       {loopCommand !== null && (

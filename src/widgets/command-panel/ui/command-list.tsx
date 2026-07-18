@@ -20,13 +20,15 @@ import { InsertionSlot } from "./insertion-slot";
  * 再帰描画で全ノードへ引き回す表示情報とコールバックの束。
  *
  * React Context ではなく素の props として明示的に手渡す（controlled・追跡容易のため）。
- * `effectiveSelected` は既定（未指定なら root 末尾）を解決済みの単一の挿入位置。
+ * `selected` は親が指定した追加位置。未指定なら widget は既定を推測せずハイライトなし。
  */
 export interface CommandTreeContext {
-  /** ハイライトする追加位置（既定解決済み・単一）。 */
-  effectiveSelected: InsertionPoint;
+  /** 親が指定した追加位置。未指定ならどのスロットもハイライトしない。 */
+  selected?: InsertionPoint;
   /** 実行中コマンドへのパス。未指定なら強調・オートスクロールをしない。 */
   activePath?: CommandPath;
+  /** 表示専用（実行フェーズ等）。`true` なら追加スロット・削除ボタンを描かない。 */
+  readOnly: boolean;
   /** 位置選択スロット押下時に対応する挿入位置を通知。 */
   onSelectInsertionPoint: (point: InsertionPoint) => void;
   /** 削除ボタン押下時に対象コマンドパスを上位へ通知（確認は上位で行う）。 */
@@ -55,17 +57,20 @@ export const CommandList = ({
   const items: React.JSX.Element[] = [];
 
   // index を 0..length まで回し、スロット→（末尾以外は）ノード の順に積む。
+  // 表示専用（readOnly）ではスロットを描かず、ノードのみを縦に積む（実行中は追加不可）。
   for (let index = 0; index <= commands.length; index += 1) {
-    const point: InsertionPoint = { containerPath, index };
-    items.push(
-      <InsertionSlot
-        key={`slot-${containerKey}-${index}`}
-        point={point}
-        selected={isSameInsertionPoint(context.effectiveSelected, point)}
-        isTail={isTailInsertionPoint(point, commands.length)}
-        onSelect={context.onSelectInsertionPoint}
-      />,
-    );
+    if (!context.readOnly) {
+      const point: InsertionPoint = { containerPath, index };
+      items.push(
+        <InsertionSlot
+          key={`slot-${containerKey}-${index}`}
+          point={point}
+          selected={isSameInsertionPoint(context.selected, point)}
+          isTail={isTailInsertionPoint(point, commands.length)}
+          onSelect={context.onSelectInsertionPoint}
+        />,
+      );
+    }
 
     if (index < commands.length) {
       const childPath: CommandPath = [...containerPath, index];

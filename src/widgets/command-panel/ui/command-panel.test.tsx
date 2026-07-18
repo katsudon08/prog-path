@@ -99,10 +99,10 @@ describe("CommandPanel", () => {
     expect(slots[0].getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("selected 未指定なら root 末尾スロットが既定ハイライト", () => {
+  it("selected 未指定ならどのスロットも既定ハイライトしない", () => {
     render(<CommandPanel commands={SIMPLE} onSelectInsertionPoint={noop} onDeleteCommand={noop} />);
     const slots = screen.getAllByLabelText("ここに追加");
-    expect(slots.at(-1)?.getAttribute("aria-pressed")).toBe("true");
+    expect(slots.every((slot) => slot.getAttribute("aria-pressed") === "false")).toBe(true);
   });
 
   it("削除ボタン押下で正しい CommandPath を通知する（確認は挟まない）", () => {
@@ -152,5 +152,33 @@ describe("CommandPanel", () => {
     );
     expect(container.querySelectorAll('[aria-current="step"]')).toHaveLength(0);
     expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("readOnly は追加スロットも削除ボタンも描かない（実行中は編集不可）", () => {
+    render(
+      <CommandPanel
+        commands={SIMPLE}
+        readOnly
+        onSelectInsertionPoint={noop}
+        onDeleteCommand={noop}
+      />,
+    );
+    expect(screen.queryAllByLabelText("ここに追加")).toHaveLength(0);
+    expect(screen.queryAllByLabelText("けす")).toHaveLength(0);
+  });
+
+  it("readOnly でもノードは描き、activePath の強調・オートスクロールは効く", () => {
+    const { container } = render(
+      <CommandPanel
+        commands={SIMPLE}
+        readOnly
+        activePath={[0]}
+        onSelectInsertionPoint={noop}
+        onDeleteCommand={noop}
+      />,
+    );
+    // 命令チップは描かれる（実行中ノードが aria-current="step" で 1 つ強調される）。
+    expect(container.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
+    expect(scrollIntoView).toHaveBeenCalled();
   });
 });
