@@ -9,3 +9,4 @@
  */
 export { clamp } from "./clamp";
 export { cn } from "./cn";
+export { shallowArrayEqual } from "./shallow-array-equal";

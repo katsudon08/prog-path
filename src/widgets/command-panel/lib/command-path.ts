@@ -2,10 +2,12 @@
  * コマンドパス比較・キー化ユーティリティ（FSD: widgets/command-panel/lib）
  *
  * ID を持たないコマンド木を描くとき、描画時のパスから決定的にキーと選択判定を作る。
- * `features/command-management` の非公開 `pathsEqual` には依存せず、widget 内に自前で閉じる
- * （型は Public API 経由で借りるが、比較ロジックは widget の見た目責務として独立させる）。
+ * 比較の素は `shared/lib` の `shallowArrayEqual` を用い、`features/command-management` の
+ * 非公開 `pathsEqual` には依存しない（型は Public API 経由で借りる。パス比較の意味論は
+ * ドメイン固有ではなく汎用の配列一致なので shared のプリミティブに集約する）。
  */
 import type { CommandPath, InsertionPoint } from "@/features/command-management";
+import { shallowArrayEqual } from "@/shared/lib";
 
 /**
  * 2 つのコマンドパスが同一（長さと各 index）かを判定する。
@@ -18,8 +20,7 @@ import type { CommandPath, InsertionPoint } from "@/features/command-management"
  */
 export const isSamePath = (a: CommandPath | undefined, b: CommandPath | undefined): boolean => {
   if (a === undefined || b === undefined) return false;
-  if (a.length !== b.length) return false;
-  return a.every((value, index) => value === b[index]);
+  return shallowArrayEqual(a, b);
 };
 
 /**
