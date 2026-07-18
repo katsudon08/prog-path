@@ -12,6 +12,7 @@ import {
 } from "@/entities/command";
 import type { Command, CommandKind, LoopCommand } from "@/entities/command";
 import { COMMAND_SCAN_COOLDOWN_MS, LOOP_COUNT_MAX, LOOP_COUNT_MIN } from "@/shared/config";
+import { shallowArrayEqual } from "@/shared/lib";
 
 import {
   COMMAND_BUILDER_ERROR_CODE,
@@ -54,7 +55,7 @@ const copyInsertionPoint = (point: InsertionPoint): InsertionPoint => ({
 });
 
 const pathsEqual = (left: CommandPath, right: CommandPath): boolean =>
-  left.length === right.length && left.every((value, index) => value === right[index]);
+  shallowArrayEqual(left, right);
 
 const isPathPrefix = (prefix: CommandPath, path: CommandPath): boolean =>
   prefix.length <= path.length && prefix.every((value, index) => value === path[index]);
