@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { LOOP_COMMAND_KIND } from "@/entities/command";
@@ -8,9 +8,18 @@ import type { InsertionPoint } from "@/features/command-management";
 
 import { CommandPanel } from "./command-panel";
 
-// jsdom は scrollIntoView 未実装。オートスクロール呼び出しを観測するためスタブする。
+// jsdom は scrollIntoView 未実装。オートスクロール呼び出しを観測するため一時的にスタブする。
 const scrollIntoView = vi.fn();
-Element.prototype.scrollIntoView = scrollIntoView;
+
+beforeAll(() => {
+  Element.prototype.scrollIntoView = scrollIntoView;
+});
+
+afterAll(() => {
+  // テスト後は jsdom 本来の「未実装」状態へ戻し、他ファイルへ mock を漏らさない
+  // （必須プロパティのため Partial にキャストして delete する）。
+  delete (Element.prototype as Partial<Element>).scrollIntoView;
+});
 
 afterEach(() => {
   cleanup();
