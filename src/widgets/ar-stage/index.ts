@@ -8,4 +8,8 @@
  * 公開対象を個別に明示し、公開シンボルは実装着手時に追加する
  * （→ docs/directory-structure.md 2.2）。
  */
-export {};
+export { useArStage } from "./model/use-ar-stage";
+export type { ArStageController, CommandStackOutcome, RunStatus } from "./model/types";
+export type { OpenCameraFn } from "./model/use-camera-stream";
+export { ArStage } from "./ui/ar-stage";
+export type { ArStageProps } from "./ui/ar-stage";
