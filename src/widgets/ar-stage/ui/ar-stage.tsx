@@ -26,6 +26,7 @@ import { CameraBackground } from "./camera-background";
 import { CameraError } from "./camera-error";
 import { CameraLoading } from "./camera-loading";
 import { CommandFeedbackOverlay } from "./command-feedback-overlay";
+import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { FloorSwitcher } from "./floor-switcher";
 import { LoopCountDialog } from "./loop-count-dialog";
 import { MiniMap } from "./mini-map";
@@ -113,6 +114,12 @@ export const ArStage = ({ controller, openCamera, className }: ArStageProps): Re
             open={controller.loopDialogOpen}
             onConfirm={controller.confirmLoop}
             onCancel={controller.cancelLoop}
+          />
+          <DeleteConfirmDialog
+            open={controller.deleteDialogOpen}
+            targetLabel={controller.deleteTargetLabel}
+            onConfirm={controller.confirmDelete}
+            onCancel={controller.cancelDelete}
           />
           <ResultSuccessDialog
             open={controller.successOpen}

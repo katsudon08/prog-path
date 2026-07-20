@@ -44,9 +44,9 @@ export interface UseCommandStackResult {
   /** 保留中 loopStart を破棄する。 */
   cancelLoop: () => void;
   /**
-   * 指定パスの命令を削除する。
+   * 指定パスの命令を即時削除する。
    *
-   * 確認なしの即時削除（暫定）。誤操作対策の確認フローは #239 で差し替える予定。
+   * 誤操作対策の削除確認（#239）は useArStage 層の責務で、本フックは確定済みの削除だけを受け取る。
    */
   deleteCommand: (path: CommandPath) => void;
   /** 追加位置を選択する（CommandPanel のスロット押下に対応）。 */

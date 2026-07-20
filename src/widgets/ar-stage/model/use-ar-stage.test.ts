@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
 
-import { COMMAND_KIND } from "@/entities/command";
+import { COMMAND_KIND, LOOP_COMMAND_KIND } from "@/entities/command";
 import { createInitialMaze, TILE_KIND } from "@/entities/maze";
 import type { Maze } from "@/entities/maze";
 import { FAILURE_REASON } from "@/features/maze-simulation";
@@ -149,6 +149,133 @@ describe("useArStage", () => {
     });
     expect(result.current.commands).toHaveLength(2);
     expect(result.current.lastOutcome).toBe(lastOutcomeBeforeRun);
+    // 削除要求も no-op（確認ダイアログは開かない）。
+    expect(result.current.deleteDialogOpen).toBe(false);
+  });
+
+  describe("削除確認フロー", () => {
+    it("deleteCommand は即削除せず、確認ダイアログを開いて対象の表示名を出す", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.FORWARD);
+      });
+      act(() => {
+        result.current.deleteCommand([0]);
+      });
+
+      expect(result.current.deleteDialogOpen).toBe(true);
+      expect(result.current.deleteTargetLabel).toBe("前にすすむ");
+      // まだ削除されていない。
+      expect(result.current.commands).toEqual([{ kind: COMMAND_KIND.FORWARD }]);
+    });
+
+    it("confirmDelete で実削除され、selected が削除位置へ再同期される", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.FORWARD);
+      });
+      expect(result.current.selected).toEqual({ containerPath: [], index: 1 });
+
+      act(() => {
+        result.current.deleteCommand([0]);
+      });
+      act(() => {
+        result.current.confirmDelete();
+      });
+
+      expect(result.current.commands).toEqual([]);
+      expect(result.current.selected).toEqual({ containerPath: [], index: 0 });
+      expect(result.current.deleteDialogOpen).toBe(false);
+      expect(result.current.deleteTargetLabel).toBeNull();
+    });
+
+    it("cancelDelete はコマンド木を変えずダイアログを閉じる", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.FORWARD);
+      });
+      act(() => {
+        result.current.deleteCommand([0]);
+      });
+      act(() => {
+        result.current.cancelDelete();
+      });
+
+      expect(result.current.deleteDialogOpen).toBe(false);
+      expect(result.current.deleteTargetLabel).toBeNull();
+      expect(result.current.commands).toEqual([{ kind: COMMAND_KIND.FORWARD }]);
+    });
+
+    it("loop 自身は「くりかえし」、loop の子はネストパスで表示名を解決する", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.LOOP_START);
+      });
+      act(() => {
+        result.current.confirmLoop(3);
+      });
+      passCooldown();
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.TURN_RIGHT);
+      });
+
+      act(() => {
+        result.current.deleteCommand([0]);
+      });
+      expect(result.current.deleteTargetLabel).toBe("くりかえし");
+
+      act(() => {
+        result.current.deleteCommand([0, 0]);
+      });
+      expect(result.current.deleteTargetLabel).toBe("右にまがる");
+
+      act(() => {
+        result.current.confirmDelete();
+      });
+      expect(result.current.commands).toEqual([
+        { kind: LOOP_COMMAND_KIND, count: 3, children: [] },
+      ]);
+    });
+
+    it("存在しないパスへの削除要求は無視される（ダイアログを開かない）", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.FORWARD);
+      });
+      act(() => {
+        result.current.deleteCommand([5]);
+      });
+
+      expect(result.current.deleteDialogOpen).toBe(false);
+      expect(result.current.deleteTargetLabel).toBeNull();
+    });
+
+    it("run 開始で保留中の削除確認を破棄する（実行中にダイアログが残らない）", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.FORWARD);
+      });
+      act(() => {
+        result.current.deleteCommand([0]);
+      });
+      expect(result.current.deleteDialogOpen).toBe(true);
+
+      act(() => {
+        result.current.run();
+      });
+
+      expect(result.current.status).toBe("running");
+      expect(result.current.deleteDialogOpen).toBe(false);
+      expect(result.current.deleteTargetLabel).toBeNull();
+      // 削除は確定していないため木は保持される。
+      expect(result.current.commands).toEqual([{ kind: COMMAND_KIND.FORWARD }]);
+    });
   });
 
   it("成功で successOpen が立ち、closeResult で編集可能へ戻る", () => {

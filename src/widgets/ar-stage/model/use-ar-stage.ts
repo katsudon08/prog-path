@@ -3,16 +3,18 @@
  *
  * `useCommandStack`（コマンド構築）と `useMazeSimulation`（実行）を束ね、ページ（#190）と
  * ArStage UI の契約 {@link ArStageController} を返す。編集と実行の排他
- * （実行中は編集操作を no-op 化）はここで一元的に担う。
+ * （実行中は編集操作を no-op 化）と、削除の確認フロー（削除要求 → 中央オーバーレイで
+ * 明示確定 → 実削除）はここで一元的に担う。
  *
  * カメラ（use-camera-stream）は含めない — カメラのライフサイクルは AR 背景を描く
  * ArStage UI が内部で `useCameraStream` を使って管理する分担のため。
  */
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { Maze } from "@/entities/maze";
 import type { CommandPath, InsertionPoint } from "@/features/command-management";
 
+import { commandAtPath, getCommandLabel } from "../lib/command-at-path";
 import { useCommandStack } from "./use-command-stack";
 import { useMazeSimulation } from "./use-maze-simulation";
 import type { ArStageController } from "./types";
@@ -32,6 +34,9 @@ import type { ArStageController } from "./types";
 export const useArStage = (maze: Maze): ArStageController => {
   const commandStack = useCommandStack();
   const simulation = useMazeSimulation(maze);
+
+  // 削除確認（#239）: 確認待ちの削除対象パス。null は「確認中でない」。
+  const [pendingDeletePath, setPendingDeletePath] = useState<CommandPath | null>(null);
 
   const {
     handleQr: handleQrRaw,
@@ -73,9 +78,12 @@ export const useArStage = (maze: Maze): ArStageController => {
   const deleteCommand = useCallback(
     (path: CommandPath): void => {
       if (!isEditable) return;
-      deleteCommandRaw(path);
+      // 即削除せず確認待ちに積む（画面中央のオーバーレイで明示確定させる）。
+      // 解決できないパス（描画とモデルのずれ等）は要求ごと無視する。
+      if (commandAtPath(commandStack.commands, path) === null) return;
+      setPendingDeletePath(path);
     },
-    [isEditable, deleteCommandRaw],
+    [isEditable, commandStack.commands],
   );
 
   const selectInsertionPoint = useCallback(
@@ -85,6 +93,31 @@ export const useArStage = (maze: Maze): ArStageController => {
     },
     [isEditable, selectInsertionPointRaw],
   );
+
+  // --- 削除確認（#239: 即削除ではなく中央オーバーレイでの明示確定を挟む） ---
+
+  const confirmDelete = useCallback((): void => {
+    if (!isEditable || pendingDeletePath === null) return;
+    // 実削除。outcome の nextInsertionPoint による selected の再同期は useCommandStack が担う。
+    deleteCommandRaw(pendingDeletePath);
+    setPendingDeletePath(null);
+  }, [isEditable, pendingDeletePath, deleteCommandRaw]);
+
+  const cancelDelete = useCallback((): void => {
+    setPendingDeletePath(null);
+  }, []);
+
+  // readOnly 化（実行開始など）では保留中の削除確認を破棄する（実行中にダイアログを残さない）。
+  useEffect(() => {
+    if (!isEditable) {
+      setPendingDeletePath(null);
+    }
+  }, [isEditable]);
+
+  const pendingDeleteCommand =
+    pendingDeletePath === null ? null : commandAtPath(commandStack.commands, pendingDeletePath);
+  const deleteTargetLabel =
+    pendingDeleteCommand === null ? null : getCommandLabel(pendingDeleteCommand);
 
   const setVisibleFloor = useCallback(
     (floor: number): void => {
@@ -99,6 +132,8 @@ export const useArStage = (maze: Maze): ArStageController => {
 
   const run = useCallback((): void => {
     if (!canRun) return;
+    // 実行開始と同時に削除確認を破棄する（effect を待たず同一更新で閉じる）。
+    setPendingDeletePath(null);
     runSimulation(commandStack.commands);
   }, [canRun, runSimulation, commandStack.commands]);
 
@@ -135,6 +170,12 @@ export const useArStage = (maze: Maze): ArStageController => {
     readOnly,
     selectInsertionPoint,
     deleteCommand,
+
+    // 削除確認ダイアログ
+    deleteDialogOpen: pendingDeletePath !== null,
+    deleteTargetLabel,
+    confirmDelete,
+    cancelDelete,
 
     // QR / ループ回数ダイアログ
     handleQr,

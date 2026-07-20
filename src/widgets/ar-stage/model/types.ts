@@ -98,8 +98,18 @@ export interface ArStageController {
   readonly readOnly: boolean;
   /** 追加位置の選択を受け付ける（編集時のみ有効）。 */
   selectInsertionPoint: (point: InsertionPoint) => void;
-  /** 指定パスの命令を削除する（編集時のみ有効。確認なし即時 — #239 で確認フローへ差し替え予定）。 */
+  /** 指定パスの命令の削除を要求する（編集時のみ有効。即削除せず確認ダイアログを開く）。 */
   deleteCommand: (path: CommandPath) => void;
+
+  // --- 削除確認ダイアログ（削除は画面中央のオーバーレイでの明示確定を経る） ---
+  /** 削除確認ダイアログを開くか（削除要求から確定/キャンセルまで true）。 */
+  readonly deleteDialogOpen: boolean;
+  /** 削除対象の児童向け表示名（例「前にすすむ」「くりかえし」）。確認中でなければ null。 */
+  readonly deleteTargetLabel: string | null;
+  /** 保留中の削除を確定して実削除する（追加位置は削除位置へ再同期される）。 */
+  confirmDelete: () => void;
+  /** 保留中の削除要求を破棄する（コマンド木は変えない）。 */
+  cancelDelete: () => void;
 
   // --- QR / ループ回数ダイアログ ---
   /** QR ペイロードを命令構築へ適用する（編集時のみ有効。実行中は無視）。 */
