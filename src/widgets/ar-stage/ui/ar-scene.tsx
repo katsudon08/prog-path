@@ -2,13 +2,15 @@
  * ArScene（FSD: widgets/ar-stage/ui）
  *
  * カメラ映像へ重畳する 3D シーン。透過 Canvas（`gl.alpha`）に `Maze3d`（全階を積んで描画）と
- * `Robot3d` を合成する表示専用コンポーネント。カメラは lib/scene-camera の純粋関数で
- * 迷路全体が収まる固定フレーミングを計算する（マーカートラッキングは将来拡張）。
+ * `Robot3d` を合成する表示専用コンポーネント。`OrbitControls` による視点操作（オービット）で
+ * 3D を全方位から確認できる — 背景のカメラ映像は固定のまま、3D シーンのみ回転する。初期フレーミングは
+ * lib/scene-camera の純粋関数で迷路全体が収まるよう計算する（マーカートラッキングは将来拡張）。
  *
  * `robot` が null（未実行・結果クローズ後）の間は、スタート位置の初期姿勢
  * （`createInitialRobot`）を表示する — 実行前から「どこから動くか」を見せるため。
  */
 import { useMemo } from "react";
+import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 
 import { findTiles, Maze3d, TILE_KIND } from "@/entities/maze";
@@ -53,8 +55,9 @@ export const ArScene = ({
 
   return (
     <Canvas
-      // オーバーレイ操作を妨げないよう Canvas はポインタを取らない（3D 側に操作は無い）。
-      className={cn("pointer-events-none absolute inset-0", className)}
+      // OrbitControls のドラッグを受けるため Canvas はポインタを取る（オーバーレイの操作要素は
+      // pointer-events-auto で個別に受け、それ以外の領域ドラッグは 3D の視点操作に回る）。
+      className={cn("pointer-events-auto absolute inset-0", className)}
       gl={{ alpha: true }}
       camera={{ position: [...camera.position], fov: camera.fov }}
       onCreated={({ gl, camera: threeCamera }) => {
@@ -67,6 +70,8 @@ export const ArScene = ({
       <directionalLight position={[6, 10, 4]} intensity={1.1} />
       <Maze3d maze={maze} />
       <Robot3d robot={displayRobot} action={robotAction ?? undefined} gridSize={maze.size} />
+      {/* 視点オービット。target を初期フレーミングの注視点に合わせ、初期視点は固定カメラと一致させる。 */}
+      <OrbitControls target={[...camera.target]} />
     </Canvas>
   );
 };

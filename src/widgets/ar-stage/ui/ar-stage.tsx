@@ -3,10 +3,10 @@
  *
  * AR 描画＋実行ブロックのルート。`useArStage`（controller）を受け取り、
  *  - 最背面: カメラ映像（CameraBackground。取得は内部の useCameraStream）
- *  - 中間: 透過 3D シーン（ArScene = Maze3d + Robot3d）
+ *  - 中間: 透過 3D シーン（ArScene = Maze3d + Robot3d。OrbitControls で視点操作できる）
  *  - 最前面: オーバーレイ群（移動回数・実行操作・ミニマップ・階切替・トースト）とダイアログ群
  * を重畳する。オーバーレイ層は `pointer-events-none` を基本とし、操作要素だけ
- * `pointer-events-auto` で受ける。
+ * `pointer-events-auto` で受ける — 操作要素以外の領域ドラッグは下層の ArScene へ届き、視点操作に回る。
  *
  * QR スキャンは背景 video を入力に use-qr-scan が連続デコードし、結果を
  * `controller.handleQr` へ渡す。実行中（`controller.readOnly`）はスキャンを停止する。

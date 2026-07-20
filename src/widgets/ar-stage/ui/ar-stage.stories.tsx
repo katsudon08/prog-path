@@ -199,7 +199,7 @@ type Story = StoryObj<typeof meta>;
 /**
  * フル体験: フェイクカメラ映像＋3D 重畳。下の QR ボタンで命令を追加（cooldown 2 秒）し、
  * ［じっこう］で実行 → 成功/失敗ダイアログまで一通り確認できる。
- * loopStart を押すと回数ダイアログが開く。
+ * loopStart を押すと回数ダイアログが開く。操作ボタン以外の領域をドラッグすると視点をオービットできる。
  */
 export const Default: Story = {};
 
