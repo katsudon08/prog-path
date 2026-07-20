@@ -19,21 +19,12 @@ import { useFrame } from "@react-three/fiber";
 import { Vector3 } from "three";
 import type { Group } from "three";
 
+import { FLOOR_GAP, SURFACE_OFFSET, gridToWorldInto } from "@/shared/grid";
 import { clamp } from "@/shared/lib";
 
 import { directionToYaw } from "../model/direction";
 import { ROBOT_ACTION } from "../model/types";
 import type { Robot, RobotAction, RobotCoord } from "../model/types";
-
-/**
- * ワールド変換の定数。⚠️ maze-3d（entities/maze/ui）のローカル定数と値を一致させること
- * （同一シーンで重畳するため。座標系がズレると迷路とロボットが噛み合わない）。
- * 将来 #187 で両者を合成する際に共有先へ hoist する余地がある（→ 計画のフォローアップ）。
- */
-const CELL = 1;
-const FLOOR_GAP = 1.2;
-/** 床スラブ上面までのオフセット（maze-3d の SLAB_HEIGHT/2 に一致）。 */
-const SLAB_HALF = 0.075;
 
 /** 本体（胴）の寸法。カプセルの円柱部が正の長さになるよう HEIGHT > 2*RADIUS とする。 */
 const BODY_HEIGHT = 0.7;
@@ -43,7 +34,7 @@ const NOSE_LENGTH = 0.28;
 const NOSE_RADIUS = 0.14;
 
 /** マス中心・スラブ上面からの本体中心の高さ。 */
-const REST_Y = SLAB_HALF + BODY_HEIGHT / 2;
+const REST_Y = SURFACE_OFFSET + BODY_HEIGHT / 2;
 
 /** 仮アセット色（hex。R3F material は Tailwind/CSS 変数不可、→ maze-3d と同方針）。 */
 const BODY_COLOR = "#3e63dd"; // indigo-9
@@ -94,18 +85,15 @@ interface Robot3dProps {
 export const Robot3d = ({ robot, action, gridSize }: Robot3dProps): React.JSX.Element => {
   const groupRef = useRef<Group>(null);
 
-  // マス中心をグリッド中央に合わせる offset（maze-3d と同式）。
-  const offset = (gridSize - 1) / 2;
-
   // 座標 → ワールド位置。scratch 再利用のため out に書き込む（GC 抑制）。
+  // 基準位置（タイル中心・スラブ中央）は shared/grid に集約。休止高さ REST_Y は本 entity 側で上乗せする。
   const toWorld = useMemo(() => {
-    return (coord: RobotCoord, out: Vector3): Vector3 =>
-      out.set(
-        (coord.col - offset) * CELL,
-        coord.floor * FLOOR_GAP + REST_Y,
-        (coord.row - offset) * CELL,
-      );
-  }, [offset]);
+    return (coord: RobotCoord, out: Vector3): Vector3 => {
+      gridToWorldInto(coord, gridSize, out);
+      out.y += REST_Y;
+      return out;
+    };
+  }, [gridSize]);
 
   // 位置は primitive で扱い、effect が正確に「変化時のみ」発火するようにする。
   const { floor, row, col } = robot.position;
