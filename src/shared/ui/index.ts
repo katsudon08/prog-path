@@ -9,6 +9,8 @@
  */
 export { Button } from "./button";
 export type { ButtonProps, ButtonSize, ButtonTone, ButtonVariant } from "./button";
+export { ConfirmModal } from "./confirm-modal";
+export type { ConfirmModalProps } from "./confirm-modal";
 export { Modal } from "./modal";
 export type { ModalProps, ModalSize, ModalTone } from "./modal";
 export { Switch } from "./switch";
