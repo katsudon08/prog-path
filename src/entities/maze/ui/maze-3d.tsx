@@ -15,12 +15,12 @@
 import { useMemo } from "react";
 import { BoxGeometry } from "three";
 
+import { CELL, SURFACE_OFFSET, gridToWorld } from "@/shared/grid";
+
 import { TILE_COLOR_3D } from "../model/tile-visual";
 import { TILE_KIND } from "../model/types";
 import type { Maze, TileKind } from "../model/types";
 
-/** 1 マスの間隔（ワールド単位）。 */
-const CELL = 1;
 /** タイル本体の一辺。間隔よりわずかに小さくし、マス間に隙間（グリッド線）を作って視認性を上げる。 */
 const TILE = CELL * 0.92;
 /** 床スラブの厚み。 */
@@ -29,8 +29,6 @@ const SLAB_HEIGHT = 0.15;
 const WALL_HEIGHT = 0.9;
 /** start/goal/teleport/key を示すマーカー立方体の一辺。 */
 const MARKER_SIZE = 0.4;
-/** 階と階の垂直間隔。 */
-const FLOOR_GAP = 1.2;
 
 /** セル間で共有するジオメトリ一式（Maze3d が useMemo で生成し、各タイルへ渡す）。 */
 interface TileGeometries {
@@ -88,7 +86,7 @@ const makeMarkerTile3d = (kind: TileKind): TileComponent => {
         <mesh geometry={geometries.slab} position={position}>
           <meshStandardMaterial color={color} roughness={0.85} />
         </mesh>
-        <mesh geometry={geometries.marker} position={[x, y + SLAB_HEIGHT / 2 + MARKER_SIZE / 2, z]}>
+        <mesh geometry={geometries.marker} position={[x, y + SURFACE_OFFSET + MARKER_SIZE / 2, z]}>
           <meshStandardMaterial color={color} roughness={0.85} />
         </mesh>
       </group>
@@ -129,9 +127,6 @@ export const Maze3d = ({ maze }: Maze3dProps): React.JSX.Element => {
     [],
   );
 
-  // マスの中心をグリッド中央に合わせるためのオフセット。
-  const offset = (maze.size - 1) / 2;
-
   return (
     <group>
       {maze.tiles.flatMap((floorTiles, floor) =>
@@ -141,7 +136,7 @@ export const Maze3d = ({ maze }: Maze3dProps): React.JSX.Element => {
             return (
               <Tile
                 key={`${floor}-${row}-${col}`}
-                position={[(col - offset) * CELL, floor * FLOOR_GAP, (row - offset) * CELL]}
+                position={gridToWorld({ floor, row, col }, maze.size)}
                 geometries={geometries}
               />
             );

@@ -150,3 +150,53 @@
     font-family: var(--font-sans);
   }
 }
+
+/* モーダル（shared/ui/Modal・#239 ConfirmModal 共用）の開閉アニメーション。
+   tailwindcss-animate は未導入のため keyframes を自前定義し、Radix の
+   data-[state=open] / data-[state=closed] に arbitrary な `animate-[...]` で当てる。
+   Content は flexbox で中央寄せするため transform は scale のみ（translate 中央寄せに
+   干渉させない）。アニメーションが無くても機能する（見た目のみの上乗せ）。 */
+@keyframes progpath-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes progpath-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes progpath-content-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes progpath-content-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* 動きを抑える設定では即時化（Radix Presence は animationend を待つため 0 にはしない）。 */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="modal-overlay"],
+  [data-slot="modal-content"] {
+    animation-duration: 0.01ms !important;
+  }
+}

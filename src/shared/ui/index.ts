@@ -7,4 +7,8 @@
  * 公開対象を個別に明示し、公開シンボルは実装着手時に追加する
  * （→ docs/directory-structure.md 2.2）。
  */
+export { Button } from "./button";
+export type { ButtonProps, ButtonSize, ButtonTone, ButtonVariant } from "./button";
+export { Modal } from "./modal";
+export type { ModalProps, ModalSize, ModalTone } from "./modal";
 export { Switch } from "./switch";
