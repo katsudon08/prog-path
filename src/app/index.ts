@@ -1,11 +1,10 @@
 /**
  * Public API — `app` レイヤー
  *
- * アプリ全体の初期化を担う合成ルート。プロバイダ（テーマ等）・ルーティング・
- * グローバル設定を配置し、ビジネスロジックは持たない。
- * `providers/` ・ `routing/` は実装着手時に追加する。
+ * アプリ全体の初期化を担う合成ルート。プロバイダ（`AsyncBoundary` ＋ DB 起動ゲート）・
+ * ルーティング（react-router declarative・history）・グローバル設定を配置し、
+ * ビジネスロジックは持たない。
  *
- * `export * from` は使わず公開対象を個別に明示し、公開シンボルは実装着手時に
- * 追加する（→ docs/directory-structure.md 2.2）。
+ * `export * from` は使わず公開対象を個別に明示する（→ docs/directory-structure.md 2.2）。
  */
-export {};
+export { App } from "./app";

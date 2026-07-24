@@ -39,6 +39,6 @@ export {
 } from "./lib/tutorial-seed";
 
 // コレクションと初期化（アプリ起動時に initDb() を呼び、UI は useLiveQuery で購読）
-export { initDb, ensureInitialData } from "./model/bootstrap";
+export { initDb, ensureInitialData, resetDb } from "./model/bootstrap";
 export type { AppDatabase, FolderCollection, MazeCollection } from "./model/collections";
 export { DB_NAME, SCHEMA_VERSION } from "./model/persistence";
