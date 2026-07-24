@@ -99,3 +99,17 @@ export const initDb = (): Promise<AppDatabase> => {
   });
   return databasePromise;
 };
+
+/**
+ * 起動ゲートのリトライ用: キャッシュした Promise（成功・失敗のどちらも）を破棄し、次回 `initDb()`
+ * で作り直せるようにする。
+ *
+ * `initDb` 自身は失敗 Promise を保持し続ける（自動で null に戻さない）。これは `use(initDb())` が
+ * 失敗を Error Boundary へ throw するために必須で、もし失敗時に null へ戻すと、Error Boundary へ
+ * 向かうリプレイレンダーで `initDb()` が新しい pending Promise を生成して再サスペンドし、境界に
+ * 到達せず無限ループになる。リトライは AsyncBoundary の reset から本関数を呼び、その後の再レンダーで
+ * `initDb()` が新しい Promise を作る形で行う。
+ */
+export const resetDb = (): void => {
+  databasePromise = null;
+};
