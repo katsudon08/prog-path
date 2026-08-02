@@ -59,6 +59,17 @@ Feature-Sliced Design を厳守する。
 
 - **命名**: ファイル/ディレクトリ `kebab-case` / コンポーネント・型 `PascalCase` / 変数・関数 `camelCase` / 定数 `UPPER_SNAKE_CASE`。Hook は `use-` 始まり（例 `use-maze-state.ts`）。
 - **TypeScript**: `any` 禁止（`unknown` + 型ガード）。オブジェクト形状は `interface`、ユニオン/交差/別名は `type`。関数は引数・戻り値の型を明示。`async/await` は `try-catch` を伴う。
+- **網羅 switch**: 判別共用体・文字列ユニオンを `switch` で分岐するときは、必ず `default` で `never` に代入して網羅性を強制する（種別が増えたら型エラーになる）。「戻り値型 + `default` 無し」でも同等に検出できるが、読み手が「`default` が抜けている」と誤読して足すと守りが消えるため、**意図が見える `never` 方式に統一**する。
+
+  ```ts
+  default: {
+    // 種別が増えたらここが型エラーになる（網羅性の強制）。
+    const exhaustive: never = outcome;
+    return exhaustive;
+  }
+  ```
+
+  ただし**入力が閉じたユニオンでない場合**（`DOMException.name` など任意文字列）や、**意図的に一部だけ処理する場合**（イベントの取捨選択）は網羅チェックの対象外。その `default` には「無視してよい理由」をコメントで残す。
 - **React**: `const` アロー関数で定義。Props はデストラクチャ + デフォルト値。ビジネスロジックは UI に直接書かず Hook / model に分離。
 - **R3F**: 高頻度更新は `useFrame` 内で `ref.current` を直接操作し `setState` を避ける。アセットは `useGLTF`/`useLoader` でキャッシュ。`useFrame` 内では一時ベクトルを再利用して GC を抑制。
 - **コメント**: 公開関数は JSDoc。3D 座標変換など数式箇所は意図を残す。
