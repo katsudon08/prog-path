@@ -35,6 +35,8 @@ export interface UseCommandStackResult {
   readonly commands: readonly Command[];
   /** ハイライト中の追加位置。操作の outcome が返す `nextInsertionPoint` で常に再同期される。 */
   readonly selected: InsertionPoint;
+  /** まだ loopEnd を読み取っていない構築中 loop のパス（外側 → 内側）。空なら未完了ループ無し。 */
+  readonly openLoopPaths: readonly CommandPath[];
   /** 回数入力待ちの loopStart。入力待ちの間は QR 追加を受け付けない（features 側で ignored）。 */
   readonly pendingLoopStart: PendingLoopStart | null;
   /** 直近操作の outcome（トースト表示用・連番付き）。未操作時は null。 */
@@ -149,6 +151,7 @@ export const useCommandStack = (): UseCommandStackResult => {
   return {
     commands: state.builder.commands,
     selected: state.selected,
+    openLoopPaths: state.builder.openLoopPaths,
     pendingLoopStart: state.builder.pendingLoopStart,
     lastOutcome: state.lastOutcome,
     handleQr,

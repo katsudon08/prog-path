@@ -8,7 +8,7 @@
  * を重畳する。オーバーレイ層は `pointer-events-none` を基本とし、操作要素だけ
  * `pointer-events-auto` で受ける — 操作要素以外の領域ドラッグは下層の ArScene へ届き、視点操作に回る。
  *
- * ダイアログ群（ループ回数・削除確認・結果）とフィードバックトーストは、カメラ状態に
+ * ダイアログ群（ループ回数・削除確認・未完了ループ警告・結果）とフィードバックトーストは、カメラ状態に
  * 依存させず常に描く。コマンドパネルは ArStage の外（pages/ar-run）に置かれるため、
  * カメラが切断・再取得中でもパネル発の削除要求を確認ダイアログで確定でき、その結果も通知できる。
  *
@@ -38,6 +38,7 @@ import { MoveCountBadge } from "./move-count-badge";
 import { ResultFailureDialog } from "./result-failure-dialog";
 import { ResultSuccessDialog } from "./result-success-dialog";
 import { RunControls } from "./run-controls";
+import { UnclosedLoopDialog } from "./unclosed-loop-dialog";
 
 export interface ArStageProps {
   /** `useArStage(maze)` が返す view-model（ページ #190 が生成して渡す）。 */
@@ -131,6 +132,11 @@ export const ArStage = ({ controller, openCamera, className }: ArStageProps): Re
         targetLabel={controller.deleteTargetLabel}
         onConfirm={controller.confirmDelete}
         onCancel={controller.cancelDelete}
+      />
+      <UnclosedLoopDialog
+        open={controller.unclosedLoopDialogOpen}
+        openLoopCount={controller.openLoopPaths.length}
+        onClose={controller.dismissUnclosedLoop}
       />
       <ResultSuccessDialog
         open={controller.successOpen}

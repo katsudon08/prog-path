@@ -50,6 +50,7 @@ const createController = (overrides: Partial<ArStageController> = {}): ArStageCo
   failureReason: null,
   commands: [],
   selected: { containerPath: [], index: 0 },
+  openLoopPaths: [],
   activePath: null,
   readOnly: false,
   selectInsertionPoint: noop,
@@ -58,6 +59,8 @@ const createController = (overrides: Partial<ArStageController> = {}): ArStageCo
   deleteTargetLabel: null,
   confirmDelete: noop,
   cancelDelete: noop,
+  unclosedLoopDialogOpen: false,
+  dismissUnclosedLoop: noop,
   handleQr: noop,
   lastOutcome: null,
   loopDialogOpen: false,
@@ -109,6 +112,22 @@ describe("ArStage", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
     expect(screen.getByText("ゴールできた！")).toBeTruthy();
     expect(screen.getByText("めいれいを けしたよ")).toBeTruthy();
+  });
+
+  it("未完了ループの警告ダイアログを、残っている数と次の行動つきで描く", () => {
+    render(
+      <ArStage
+        controller={createController({
+          unclosedLoopDialogOpen: true,
+          openLoopPaths: [[0], [0, 1]],
+        })}
+        openCamera={pendingOpenCamera}
+      />,
+    );
+
+    expect(screen.getByText("まだ とじてない くりかえしが あるよ")).toBeTruthy();
+    expect(screen.getByText(/2こ/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "わかった" })).toBeTruthy();
   });
 
   it("カメラ取得中はカメラ準備中の表示を出し、ダイアログは閉じたままにする", () => {

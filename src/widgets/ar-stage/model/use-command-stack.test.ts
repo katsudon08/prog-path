@@ -113,6 +113,25 @@ describe("useCommandStack", () => {
     expect(result.current.lastOutcome?.outcome.type).toBe(COMMAND_BUILDER_OUTCOME_TYPE.LOOP_CLOSED);
   });
 
+  it("openLoopPaths で構築中 loop を公開し、loopEnd で空になる", () => {
+    const { result } = renderHook(() => useCommandStack());
+    expect(result.current.openLoopPaths).toEqual([]);
+
+    act(() => {
+      result.current.handleQr(COMMAND_KIND.LOOP_START);
+    });
+    act(() => {
+      result.current.confirmLoop(2);
+    });
+    expect(result.current.openLoopPaths).toEqual([[0]]);
+
+    passCooldown();
+    act(() => {
+      result.current.handleQr(COMMAND_KIND.LOOP_END);
+    });
+    expect(result.current.openLoopPaths).toEqual([]);
+  });
+
   it("loopStart → confirmLoop → 子追加 → loopEnd の一連の流れで木と選択位置を同期する", () => {
     const { result } = renderHook(() => useCommandStack());
 

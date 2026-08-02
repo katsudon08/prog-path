@@ -54,7 +54,13 @@ export interface ArStageController {
   readonly isEditable: boolean;
   /** 実行中か（paused を含む）。 */
   readonly isRunning: boolean;
-  /** 実行を開始できるか（編集中・命令が空でない・loop 回数入力待ちが無い）。 */
+  /**
+   * ［じっこう］ボタンを押せるか（編集中・命令が空でない・loop 回数入力待ちが無い）。
+   *
+   * **未完了ループの有無は含めない**。未完了ループがあるときはボタンを押せるままにし、
+   * 押下時に警告ダイアログで抑止する（features.md 5.3）。押せないボタンだけでは
+   * 「なぜ動かないのか」を児童に伝えられないため。
+   */
   readonly canRun: boolean;
   /** 実行中ロボットの状態。未実行・結果クローズ後は null。 */
   readonly robot: Robot | null;
@@ -92,6 +98,13 @@ export interface ArStageController {
   readonly commands: readonly Command[];
   /** ハイライトする追加位置。features 側の outcome で常に再同期済み。 */
   readonly selected: InsertionPoint;
+  /**
+   * まだ loopEnd を読み取っていない構築中 loop のパス（外側 → 内側）。
+   *
+   * CommandPanel が「まだ とじてないよ」を出すために使い、`run` の抑止判定も同じ値を見る。
+   * 実行フェーズでは編集できないため値は変わらない（実行中も構築時の内容が残る）。
+   */
+  readonly openLoopPaths: readonly CommandPath[];
   /** 実行中コマンドへのパス。実行フェーズ以外は null。 */
   readonly activePath: CommandPath | null;
   /** 実行中は true（追加スロット・削除ボタンを描かせない）。`!isEditable` と等価。 */
@@ -110,6 +123,12 @@ export interface ArStageController {
   confirmDelete: () => void;
   /** 保留中の削除要求を破棄する（コマンド木は変えない）。 */
   cancelDelete: () => void;
+
+  // --- 未完了ループの警告（実行抑止） ---
+  /** 未完了ループがある状態で［じっこう］が押されたか（警告ダイアログの開閉）。 */
+  readonly unclosedLoopDialogOpen: boolean;
+  /** 未完了ループの警告を閉じる。 */
+  dismissUnclosedLoop: () => void;
 
   // --- QR / ループ回数ダイアログ ---
   /** QR ペイロードを命令構築へ適用する（編集時のみ有効。実行中は無視）。 */
