@@ -4,9 +4,13 @@
  * AR 描画＋実行ブロックのルート。`useArStage`（controller）を受け取り、
  *  - 最背面: カメラ映像（CameraBackground。取得は内部の useCameraStream）
  *  - 中間: 透過 3D シーン（ArScene = Maze3d + Robot3d。OrbitControls で視点操作できる）
- *  - 最前面: オーバーレイ群（移動回数・実行操作・ミニマップ・階切替・トースト）とダイアログ群
+ *  - 最前面: オーバーレイ群（移動回数・実行操作・ミニマップ・階切替）
  * を重畳する。オーバーレイ層は `pointer-events-none` を基本とし、操作要素だけ
  * `pointer-events-auto` で受ける — 操作要素以外の領域ドラッグは下層の ArScene へ届き、視点操作に回る。
+ *
+ * ダイアログ群（ループ回数・削除確認・結果）とフィードバックトーストは、カメラ状態に
+ * 依存させず常に描く。コマンドパネルは ArStage の外（pages/ar-run）に置かれるため、
+ * カメラが切断・再取得中でもパネル発の削除要求を確認ダイアログで確定でき、その結果も通知できる。
  *
  * QR スキャンは背景 video を入力に use-qr-scan が連続デコードし、結果を
  * `controller.handleQr` へ渡す。実行中（`controller.readOnly`）はスキャンを停止する。
@@ -106,33 +110,38 @@ export const ArStage = ({ controller, openCamera, className }: ArStageProps): Re
               />
             </div>
           </div>
-
-          <CommandFeedbackOverlay lastOutcome={controller.lastOutcome} />
-
-          {/* ダイアログ群（Radix Portal 経由のため配置位置は自由）。 */}
-          <LoopCountDialog
-            open={controller.loopDialogOpen}
-            onConfirm={controller.confirmLoop}
-            onCancel={controller.cancelLoop}
-          />
-          <DeleteConfirmDialog
-            open={controller.deleteDialogOpen}
-            targetLabel={controller.deleteTargetLabel}
-            onConfirm={controller.confirmDelete}
-            onCancel={controller.cancelDelete}
-          />
-          <ResultSuccessDialog
-            open={controller.successOpen}
-            moveCount={controller.moveCount}
-            onClose={controller.closeResult}
-          />
-          <ResultFailureDialog
-            open={controller.failureOpen}
-            failureReason={controller.failureReason}
-            onClose={controller.closeResult}
-          />
         </>
       )}
+
+      {/*
+        カメラ状態に依存しない層。外に置いたコマンドパネル（pages/ar-run）からの削除要求は
+        カメラが ready でない間にも届くため、ready ブロックに閉じ込めると確認ダイアログが
+        出せず削除が確定できなくなる。トーストも同じ理由で常時マウントし、
+        ready → loading の往復で表示中の通知が消えないようにする。
+        ダイアログは Radix Portal 経由、トーストは絶対配置のため、JSX 上の位置は自由。
+      */}
+      <CommandFeedbackOverlay lastOutcome={controller.lastOutcome} />
+      <LoopCountDialog
+        open={controller.loopDialogOpen}
+        onConfirm={controller.confirmLoop}
+        onCancel={controller.cancelLoop}
+      />
+      <DeleteConfirmDialog
+        open={controller.deleteDialogOpen}
+        targetLabel={controller.deleteTargetLabel}
+        onConfirm={controller.confirmDelete}
+        onCancel={controller.cancelDelete}
+      />
+      <ResultSuccessDialog
+        open={controller.successOpen}
+        moveCount={controller.moveCount}
+        onClose={controller.closeResult}
+      />
+      <ResultFailureDialog
+        open={controller.failureOpen}
+        failureReason={controller.failureReason}
+        onClose={controller.closeResult}
+      />
     </div>
   );
 };
