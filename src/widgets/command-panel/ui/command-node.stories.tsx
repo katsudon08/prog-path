@@ -67,6 +67,15 @@ export const Loop: Story = {
   args: { command: LOOP },
 };
 
+/**
+ * 構築中の loop（`openLoopPaths` に自分のパスが含まれる）。破線の枠と
+ * 「まだ とじてないよ」バッジで、まだ loopEnd を読んでいないことを示す。
+ * 完了済みの `Loop` と並べて、破線／実線の差が離れて見ても分かるか確認する。
+ */
+export const OpenLoop: Story = {
+  args: { command: LOOP, context: { ...baseContext, openLoopPaths: [LEAF_PATH] } },
+};
+
 /** 表示専用（readOnly）。削除ボタンを出さない。 */
 export const ReadOnly: Story = {
   args: { context: { ...baseContext, readOnly: true } },

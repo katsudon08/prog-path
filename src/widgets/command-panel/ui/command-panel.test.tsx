@@ -66,6 +66,32 @@ describe("CommandPanel", () => {
     expect(screen.getAllByLabelText("けす")).toHaveLength(4);
   });
 
+  it("openLoopPaths に含まれる loop だけ「まだ とじてないよ」を出す", () => {
+    const nested: Command[] = [
+      {
+        kind: LOOP_COMMAND_KIND,
+        count: 3,
+        children: [{ kind: LOOP_COMMAND_KIND, count: 2, children: [{ kind: "turnRight" }] }],
+      },
+    ];
+    render(
+      <CommandPanel
+        commands={nested}
+        // 外側 [0] は構築中、内側 [0,0] は閉じ済み。
+        openLoopPaths={[[0]]}
+        onSelectInsertionPoint={noop}
+        onDeleteCommand={noop}
+      />,
+    );
+    expect(screen.getAllByText("まだ とじてないよ")).toHaveLength(1);
+  });
+
+  it("openLoopPaths 未指定なら構築中バッジを出さない", () => {
+    const tree: Command[] = [{ kind: LOOP_COMMAND_KIND, count: 2, children: [] }];
+    render(<CommandPanel commands={tree} onSelectInsertionPoint={noop} onDeleteCommand={noop} />);
+    expect(screen.queryByText("まだ とじてないよ")).toBeNull();
+  });
+
   it("root スロット押下で正しい InsertionPoint を通知する", () => {
     const onSelect = vi.fn();
     render(
