@@ -51,14 +51,14 @@ describe("useCommandStack", () => {
     expect(result.current.lastOutcome?.seq).toBe(1);
   });
 
-  it("cooldown 中の QR は ignored になり、seq だけ進む", () => {
+  it("cooldown 中に別のカードを読むと ignored になり、seq だけ進む", () => {
     const { result } = renderHook(() => useCommandStack());
 
     act(() => {
       result.current.handleQr(COMMAND_KIND.FORWARD);
     });
     act(() => {
-      result.current.handleQr(COMMAND_KIND.FORWARD);
+      result.current.handleQr(COMMAND_KIND.TURN_RIGHT);
     });
 
     expect(result.current.commands).toHaveLength(1);
@@ -67,6 +67,50 @@ describe("useCommandStack", () => {
       reason: COMMAND_BUILDER_IGNORED_REASON.COOLDOWN,
     });
     expect(result.current.lastOutcome?.seq).toBe(2);
+  });
+
+  it("同じカードをかざし続けている間は lastOutcome を進めず、直前の通知を保つ", () => {
+    const { result } = renderHook(() => useCommandStack());
+
+    act(() => {
+      result.current.handleQr(COMMAND_KIND.FORWARD);
+    });
+    const accepted = result.current.lastOutcome;
+
+    // カメラは毎秒 10 回デコードする。cooldown 中の連写で seq が進むと、
+    // 「ついかしたよ」トーストが 100ms で警告文言に塗り替えられてしまう。
+    act(() => {
+      result.current.handleQr(COMMAND_KIND.FORWARD);
+      result.current.handleQr(COMMAND_KIND.FORWARD);
+      result.current.handleQr(COMMAND_KIND.FORWARD);
+    });
+
+    expect(result.current.commands).toHaveLength(1);
+    expect(result.current.lastOutcome).toBe(accepted);
+    expect(result.current.lastOutcome?.seq).toBe(1);
+  });
+
+  it("loopEnd を読んだ直後に同じカードを読み続けても LOOP_CLOSED の通知が残る", () => {
+    const { result } = renderHook(() => useCommandStack());
+
+    act(() => {
+      result.current.handleQr(COMMAND_KIND.LOOP_START);
+    });
+    act(() => {
+      result.current.confirmLoop(3);
+    });
+    passCooldown();
+    act(() => {
+      result.current.handleQr(COMMAND_KIND.LOOP_END);
+    });
+    expect(result.current.lastOutcome?.outcome.type).toBe(COMMAND_BUILDER_OUTCOME_TYPE.LOOP_CLOSED);
+
+    // loopEnd は成功してもコマンドスタックの見た目が変わらないため、
+    // ここで通知が潰れると児童は「閉じたかどうか」を知る手段を失う。
+    act(() => {
+      result.current.handleQr(COMMAND_KIND.LOOP_END);
+    });
+    expect(result.current.lastOutcome?.outcome.type).toBe(COMMAND_BUILDER_OUTCOME_TYPE.LOOP_CLOSED);
   });
 
   it("loopStart → confirmLoop → 子追加 → loopEnd の一連の流れで木と選択位置を同期する", () => {

@@ -7,6 +7,10 @@
  *
  * フェードアウト中も直前の文言を保持し続ける（`visible: false` + `message` 残置）ことで、
  * UI 側は opacity トランジションだけで消えるアニメーションを表現できる。
+ *
+ * **注意**: 文言 `null` の outcome は「表示中のトーストを畳む」扱い（ダイアログが前面に出る
+ * ケースを想定）。したがって「直前の通知を残したい」outcome は本フックへ届く前に
+ * `useCommandStack` 側で握りつぶすこと（`lastOutcome` を進めない）。
  */
 import { useEffect, useState } from "react";
 

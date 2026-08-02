@@ -11,6 +11,8 @@ import { useCallback, useState } from "react";
 import type { Command } from "@/entities/command";
 import {
   cancelLoopStart,
+  COMMAND_BUILDER_IGNORED_REASON,
+  COMMAND_BUILDER_OUTCOME_TYPE,
   confirmLoopCount,
   createInitialCommandBuilderState,
   deleteCommandAt,
@@ -73,16 +75,36 @@ const getNextInsertionPoint = (outcome: CommandBuilderOutcome): InsertionPoint |
   "nextInsertionPoint" in outcome ? outcome.nextInsertionPoint : null;
 
 /**
+ * UI へ通知しない outcome か（`lastOutcome` を進めず、表示中の通知を保つ）。
+ *
+ * 同じカードをかざし続けている間の無視がこれに当たる。カメラは毎秒 10 回デコードするため、
+ * これを通知扱いにすると `seq` が 100ms ごとに進み、直前の結果トーストが即座に潰れる。
+ */
+const isSilentOutcome = (outcome: CommandBuilderOutcome): boolean =>
+  outcome.type === COMMAND_BUILDER_OUTCOME_TYPE.IGNORED &&
+  outcome.reason === COMMAND_BUILDER_IGNORED_REASON.HOLDING_SAME_CARD;
+
+/**
  * features の遷移結果を内部状態へ反映する。
  *
  * `lastOutcome` は UI がトースト等の一度きり通知に使うため、同一内容でも `seq` を単調増加させ、
- * 再レンダによる再発火と区別できるようにする。
+ * 再レンダによる再発火と区別できるようにする（{@link isSilentOutcome} を除く）。
  */
-const applyResult = (prev: CommandStackState, result: CommandBuilderResult): CommandStackState => ({
-  builder: result.state,
-  selected: getNextInsertionPoint(result.outcome) ?? prev.selected,
-  lastOutcome: { seq: (prev.lastOutcome?.seq ?? 0) + 1, outcome: result.outcome },
-});
+const applyResult = (prev: CommandStackState, result: CommandBuilderResult): CommandStackState => {
+  if (isSilentOutcome(result.outcome) && result.state === prev.builder) {
+    // 何も変わらないので同じ参照を返し、React の再レンダ自体を起こさせない。
+    // カードをかざしている間は毎秒 10 回ここを通るため、3D シーンごと再レンダすると無駄が大きい。
+    return prev;
+  }
+
+  return {
+    builder: result.state,
+    selected: getNextInsertionPoint(result.outcome) ?? prev.selected,
+    lastOutcome: isSilentOutcome(result.outcome)
+      ? prev.lastOutcome
+      : { seq: (prev.lastOutcome?.seq ?? 0) + 1, outcome: result.outcome },
+  };
+};
 
 /**
  * コマンドスタックの編集状態を保持するフック。

@@ -89,7 +89,13 @@ const CommandPanelDemo = ({
   const handleDelete = (path: CommandPath): void => {
     // 削除ロジックは features の純粋関数を使う（page #190 と同じ配線を模す）。
     const result = deleteCommandAt(
-      { commands, openLoopPaths: [], pendingLoopStart: null, nextQrAcceptedAt: 0 },
+      {
+        commands,
+        openLoopPaths: [],
+        pendingLoopStart: null,
+        nextQrAcceptedAt: 0,
+        lastScanPayload: null,
+      },
       path,
     );
     setCommands(result.state.commands);
