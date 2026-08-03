@@ -41,6 +41,14 @@ export interface CommandBuilderState {
   readonly pendingLoopStart: PendingLoopStart | null;
   /** 次にQRを受け付けられる時刻（ミリ秒）。 */
   readonly nextQrAcceptedAt: number;
+  /**
+   * 直近に cooldown を張ったQRの生ペイロード。未読み取りならnull。
+   *
+   * cooldown中の読み取りが「同じカードをかざし続けているだけ」なのか
+   * 「別のカードを早すぎるタイミングでかざした」のかを区別するために保持する。
+   * 前者はUIへ通知する価値が無く、通知すると直前の結果表示を潰してしまう。
+   */
+  readonly lastScanPayload: string | null;
 }
 
 /** 命令構築で通知するエラーコード。 */
@@ -98,13 +106,17 @@ export type CommandBuilderOutcomeType = z.infer<typeof CommandBuilderOutcomeType
 
 /** ignored Resultの理由。 */
 export const COMMAND_BUILDER_IGNORED_REASON = {
+  /** cooldown中に**別の**カードをかざした。取りこぼしなのでUIは警告する。 */
   COOLDOWN: "cooldown",
+  /** cooldown中に**同じ**カードをかざし続けている。単なる連写なのでUIは通知しない。 */
+  HOLDING_SAME_CARD: "holding-same-card",
   LOOP_COUNT_PENDING: "loop-count-pending",
 } as const;
 
 /** {@link COMMAND_BUILDER_IGNORED_REASON} のランタイム検証スキーマ。 */
 export const CommandBuilderIgnoredReasonSchema = z.enum([
   COMMAND_BUILDER_IGNORED_REASON.COOLDOWN,
+  COMMAND_BUILDER_IGNORED_REASON.HOLDING_SAME_CARD,
   COMMAND_BUILDER_IGNORED_REASON.LOOP_COUNT_PENDING,
 ]);
 export type CommandBuilderIgnoredReason = z.infer<typeof CommandBuilderIgnoredReasonSchema>;

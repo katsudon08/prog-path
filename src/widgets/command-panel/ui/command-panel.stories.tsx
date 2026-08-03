@@ -89,7 +89,13 @@ const CommandPanelDemo = ({
   const handleDelete = (path: CommandPath): void => {
     // 削除ロジックは features の純粋関数を使う（page #190 と同じ配線を模す）。
     const result = deleteCommandAt(
-      { commands, openLoopPaths: [], pendingLoopStart: null, nextQrAcceptedAt: 0 },
+      {
+        commands,
+        openLoopPaths: [],
+        pendingLoopStart: null,
+        nextQrAcceptedAt: 0,
+        lastScanPayload: null,
+      },
       path,
     );
     setCommands(result.state.commands);
@@ -150,6 +156,7 @@ const meta = {
     commands: { control: false },
     selected: { control: false },
     activePath: { control: false },
+    openLoopPaths: { control: false },
     className: { control: false },
   },
   // 固定高さ・縦積みのカードに収め、CommandPanel(h-full) を箱いっぱいに広げて内部スクロール
@@ -175,6 +182,21 @@ export const SimpleSequence: Story = { args: { commands: SIMPLE, selected: tailP
 
 /** ループの入れ子。字下げ＋左ボーダーでネスト、`×N` で回数を表示。起動時の既定として末尾をハイライト。 */
 export const NestedLoops: Story = { args: { commands: NESTED, selected: tailPoint(NESTED) } };
+
+/**
+ * 構築中（loopEnd 未読）のループ。外側だけが `openLoopPaths` に含まれるので、外側が破線＋
+ * 「まだ とじてないよ」、内側は実線になる。閉じ忘れたまま［じっこう］を押すと警告が出る
+ * （→ widgets/ar-stage/UnclosedLoopDialog）。
+ */
+export const OpenLoop: Story = {
+  args: {
+    commands: NESTED,
+    // NESTED の外側 loop は [1]、その内側 loop は [1,1]。
+    openLoopPaths: [[1]],
+    // 構築中は一番内側の loop の末尾が既定の追加位置になる（children は 3 個）。
+    selected: { containerPath: [1], index: 3 },
+  },
+};
 
 /** 途中の追加位置を選択した状態（末尾以外のスロットがハイライト）。 */
 export const Selected: Story = {

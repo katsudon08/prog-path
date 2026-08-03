@@ -52,6 +52,14 @@ describe("getOutcomeMessage", () => {
     }
   });
 
+  it("holding-same-card は連写でしかないためトーストを出さない（null）", () => {
+    const outcome: CommandBuilderOutcome = {
+      type: COMMAND_BUILDER_OUTCOME_TYPE.IGNORED,
+      reason: COMMAND_BUILDER_IGNORED_REASON.HOLDING_SAME_CARD,
+    };
+    expect(getOutcomeMessage(outcome)).toBeNull();
+  });
+
   it("ignored は理由別の文言を返す（全理由を網羅）", () => {
     for (const reason of Object.values(COMMAND_BUILDER_IGNORED_REASON)) {
       const outcome: CommandBuilderOutcome = {

@@ -3,7 +3,7 @@
  *
  * features/command-management の {@link CommandBuilderOutcome} を、QR 読み取りフィードバックの
  * トースト文言へ変換する純粋関数。`null` は「トーストを出さない」を意味する
- * （loop-count-pending は回数ダイアログが開くため二重に通知しない）。
+ * （loop-count-pending は回数ダイアログが開くため、holding-same-card は連写でしかないため）。
  *
  * 網羅性の担保:
  *  - outcome の型判別は switch + `never` チェック（種別が増えるとコンパイルエラー）。
@@ -20,11 +20,19 @@ import type {
 } from "@/features/command-management";
 import { LOOP_COUNT_MAX, LOOP_COUNT_MIN } from "@/shared/config";
 
-/** ignored 理由ごとの文言。キーは {@link CommandBuilderIgnoredReason} の全値を網羅する。 */
+/**
+ * ignored 理由ごとの文言。キーは {@link CommandBuilderIgnoredReason} の全値を網羅する。
+ *
+ * `holding-same-card`（同じカードをかざし続けている）は `null` = トーストを出さない。
+ * ただし `useToast` は文言 `null` を「表示中のトーストを畳む」と解釈するため、**直前の通知を
+ * 守っているのは上流の `useCommandStack`**（この outcome では `lastOutcome` を進めない）。
+ * ここが `null` なのは、万一 outcome が素通りしても誤った警告文言を出さないための保険。
+ */
 export const IGNORED_MESSAGES = {
   cooldown: "よみとりが はやすぎるよ。すこし まってから かざしてね",
+  "holding-same-card": null,
   "loop-count-pending": "さきに くりかえす かいすうを えらんでね",
-} as const satisfies Record<CommandBuilderIgnoredReason, string>;
+} as const satisfies Record<CommandBuilderIgnoredReason, string | null>;
 
 /** エラーコードごとの文言。キーは {@link CommandBuilderErrorCode} の全値を網羅する。 */
 export const ERROR_MESSAGES = {

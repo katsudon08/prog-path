@@ -27,6 +27,8 @@ export interface CommandTreeContext {
   selected?: InsertionPoint;
   /** 実行中コマンドへのパス。未指定なら強調・オートスクロールをしない。 */
   activePath?: CommandPath;
+  /** まだ閉じていない loop のパス集合。未指定ならどの loop も構築中として描かない。 */
+  openLoopPaths?: readonly CommandPath[];
   /** 表示専用（実行フェーズ等）。`true` なら追加スロット・削除ボタンを描かない。 */
   readOnly: boolean;
   /** 位置選択スロット押下時に対応する挿入位置を通知。 */

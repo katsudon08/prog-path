@@ -25,7 +25,11 @@ export const AppShell = (): React.JSX.Element => {
   const currentTitle = currentKey == null ? "" : ROUTE_TITLE[currentKey];
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+    // h-dvh（min-h-dvh ではない）で外殻の高さを確定させる。min-height は下限にすぎず高さを
+    // 決めないため、下位に min-h-0 を連鎖させても内側スクロール領域が高さを持てず、中身の量だけ
+    // ページ全体が縦に伸びる（AR 実行画面のコマンドパネルで顕在化）。画面より高い中身を持つ
+    // ページは自前のスクロール領域（overflow-y-auto）を用意すること。
+    <div className="flex h-dvh flex-col bg-background text-foreground">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-4 py-3">
         <span className="text-lg font-bold">ProgPath</span>
         {currentTitle !== "" && (

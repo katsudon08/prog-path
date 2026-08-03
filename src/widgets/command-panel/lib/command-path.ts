@@ -24,6 +24,21 @@ export const isSamePath = (a: CommandPath | undefined, b: CommandPath | undefine
 };
 
 /**
+ * パスの集合に指定パスが含まれるかを判定する。
+ *
+ * 「このループはまだ閉じていないか」（`openLoopPaths` への所属）の判定に使う。
+ * 集合が未指定なら `false`（判定材料が無いときは通常表示にフォールバックする）。
+ *
+ * @param paths 探索対象のパス集合（未指定可）
+ * @param path 探すパス
+ * @returns いずれかのパスと完全一致すれば `true`
+ */
+export const containsPath = (
+  paths: readonly CommandPath[] | undefined,
+  path: CommandPath,
+): boolean => paths !== undefined && paths.some((candidate) => isSamePath(candidate, path));
+
+/**
  * コマンドパスを React の key / 状態管理に使う安定な文字列へ変換する。
  *
  * root（空配列）は `"root"`、それ以外は index を `/` で連結する（例 `[0,1]` → `"0/1"`）。

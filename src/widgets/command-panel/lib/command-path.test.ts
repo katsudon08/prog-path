@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   commandPathKey,
+  containsPath,
   isSameInsertionPoint,
   isSamePath,
   isTailInsertionPoint,
@@ -25,6 +26,22 @@ describe("isSamePath", () => {
     expect(isSamePath(undefined, [])).toBe(false);
     expect(isSamePath([0], undefined)).toBe(false);
     expect(isSamePath(undefined, undefined)).toBe(false);
+  });
+});
+
+describe("containsPath", () => {
+  it("集合に完全一致するパスがあれば true", () => {
+    expect(containsPath([[0], [1, 2]], [1, 2])).toBe(true);
+  });
+
+  it("前方一致しかしないパスは含まれない", () => {
+    expect(containsPath([[1, 2]], [1])).toBe(false);
+    expect(containsPath([[1]], [1, 2])).toBe(false);
+  });
+
+  it("空集合・未指定は false", () => {
+    expect(containsPath([], [0])).toBe(false);
+    expect(containsPath(undefined, [0])).toBe(false);
   });
 });
 

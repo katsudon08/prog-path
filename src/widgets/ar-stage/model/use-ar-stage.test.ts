@@ -349,4 +349,94 @@ describe("useArStage", () => {
     advanceSteps(1);
     expect(result.current.activePath).toEqual([1]);
   });
+
+  describe("未完了ループの実行抑止", () => {
+    /** loopStart → 回数確定 → 子命令 1 個、で「閉じていないループ」を作る。 */
+    const buildOpenLoop = (result: { current: ReturnType<typeof useArStage> }): void => {
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.LOOP_START);
+      });
+      act(() => {
+        result.current.confirmLoop(2);
+      });
+      passCooldown();
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.FORWARD);
+      });
+    };
+
+    it("未完了ループがあっても canRun は true のまま（ボタンは押せる）", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+      buildOpenLoop(result);
+
+      expect(result.current.openLoopPaths).toEqual([[0]]);
+      expect(result.current.canRun).toBe(true);
+      expect(result.current.unclosedLoopDialogOpen).toBe(false);
+    });
+
+    it("未完了ループがある状態で run すると実行せず警告を開く", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+      buildOpenLoop(result);
+
+      act(() => {
+        result.current.run();
+      });
+
+      expect(result.current.unclosedLoopDialogOpen).toBe(true);
+      expect(result.current.status).toBe("idle");
+      expect(result.current.isEditable).toBe(true);
+    });
+
+    it("dismissUnclosedLoop で警告を閉じる（木は変えない）", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+      buildOpenLoop(result);
+      act(() => {
+        result.current.run();
+      });
+
+      act(() => {
+        result.current.dismissUnclosedLoop();
+      });
+
+      expect(result.current.unclosedLoopDialogOpen).toBe(false);
+      expect(result.current.commands).toHaveLength(1);
+    });
+
+    it("警告表示中に loopEnd を読み取ると警告が自動で閉じ、実行できるようになる", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+      buildOpenLoop(result);
+      act(() => {
+        result.current.run();
+      });
+      expect(result.current.unclosedLoopDialogOpen).toBe(true);
+
+      passCooldown();
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.LOOP_END);
+      });
+      expect(result.current.openLoopPaths).toEqual([]);
+      expect(result.current.unclosedLoopDialogOpen).toBe(false);
+
+      act(() => {
+        result.current.run();
+      });
+      expect(result.current.status).toBe("running");
+    });
+
+    it("ループを閉じたあとは run が警告を出さずに実行を始める", () => {
+      const { result } = renderHook(() => useArStage(createMaze()));
+      buildOpenLoop(result);
+      passCooldown();
+      act(() => {
+        result.current.handleQr(COMMAND_KIND.LOOP_END);
+      });
+
+      act(() => {
+        result.current.run();
+      });
+
+      expect(result.current.unclosedLoopDialogOpen).toBe(false);
+      expect(result.current.status).toBe("running");
+    });
+  });
 });

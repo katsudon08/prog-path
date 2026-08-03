@@ -87,6 +87,11 @@ export const RunControls = ({
             リセット
           </Button>
         );
+      default: {
+        // ボタン種別が増えたらここが型エラーになる（網羅性の強制）。
+        const exhaustive: never = kind;
+        return exhaustive;
+      }
     }
   };
 

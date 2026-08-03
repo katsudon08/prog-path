@@ -261,8 +261,36 @@ describe("command builder", () => {
     expect(outcome.error.code).toBe("loop-end-without-loop");
     expect(result.state.commands).toEqual([]);
 
+    // 同じカードをかざし続けている間は「連写」であって取りこぼしではない。
     const ignored = handleQrPayload(result.state, COMMAND_KIND.LOOP_END, point([], 0), 10 + 1);
-    expect(ignored.outcome).toEqual({ type: "ignored", reason: "cooldown" });
+    expect(ignored.outcome).toEqual({ type: "ignored", reason: "holding-same-card" });
+  });
+
+  it("cooldown中でも、直前と別のカードなら取りこぼしとしてcooldownを通知する", () => {
+    const added = handleQrPayload(
+      createInitialCommandBuilderState(),
+      COMMAND_KIND.FORWARD,
+      point([], 0),
+      0,
+    );
+    expect(added.state.lastScanPayload).toBe(COMMAND_KIND.FORWARD);
+
+    const sameCard = handleQrPayload(added.state, COMMAND_KIND.FORWARD, point([], 1), 100);
+    expect(sameCard.outcome).toEqual({ type: "ignored", reason: "holding-same-card" });
+
+    const otherCard = handleQrPayload(added.state, COMMAND_KIND.TURN_RIGHT, point([], 1), 100);
+    expect(otherCard.outcome).toEqual({ type: "ignored", reason: "cooldown" });
+  });
+
+  it("cooldownを張るエラーでもlastScanPayloadを更新し、同じ不正カードの連写を静かに無視する", () => {
+    const initial = createInitialCommandBuilderState();
+    // 挿入位置が不正（root の範囲外）→ cooldown を張るエラー。
+    const failed = handleQrPayload(initial, COMMAND_KIND.FORWARD, point([], 5), 0);
+    expect(getOutcome(failed, "error").error.code).toBe("invalid-insertion-point");
+    expect(failed.state.lastScanPayload).toBe(COMMAND_KIND.FORWARD);
+
+    const held = handleQrPayload(failed.state, COMMAND_KIND.FORWARD, point([], 5), 100);
+    expect(held.outcome).toEqual({ type: "ignored", reason: "holding-same-card" });
   });
 
   it("構築中は一番内側loop以外の挿入位置を拒否する", () => {

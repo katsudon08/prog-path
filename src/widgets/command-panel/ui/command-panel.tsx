@@ -36,6 +36,11 @@ export interface CommandPanelProps {
   /** 実行中コマンドへのパス。未指定なら強調・オートスクロールをしない。 */
   activePath?: CommandPath;
   /**
+   * まだ loopEnd を読み取っていない loop のパス集合（`CommandBuilderState.openLoopPaths`）。
+   * 該当 loop を破線＋「まだ とじてないよ」バッジで描く。未指定なら全 loop を完了扱いで描く。
+   */
+  openLoopPaths?: readonly CommandPath[];
+  /**
    * 表示専用フラグ。実行フェーズなど編集させたくないとき `true`。
    * `true` のあいだ追加スロット・削除ボタンを描かない（実行中は編集不可を担保）。
    */
@@ -53,6 +58,7 @@ export const CommandPanel = ({
   commands,
   selected,
   activePath,
+  openLoopPaths,
   readOnly = false,
   onSelectInsertionPoint,
   onDeleteCommand,
@@ -61,6 +67,7 @@ export const CommandPanel = ({
   const context: CommandTreeContext = {
     selected,
     activePath,
+    openLoopPaths,
     readOnly,
     onSelectInsertionPoint,
     onDeleteCommand,

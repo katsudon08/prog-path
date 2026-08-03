@@ -34,6 +34,7 @@ export const createInitialCommandBuilderState = (): CommandBuilderState => ({
   openLoopPaths: [],
   pendingLoopStart: null,
   nextQrAcceptedAt: 0,
+  lastScanPayload: null,
 });
 
 const createError = (
@@ -238,17 +239,24 @@ const createNextInsertionPoint = (
   return { containerPath: copyPath(containerPath), index };
 };
 
-const addQrCooldown = (state: CommandBuilderState, now: number): CommandBuilderState => ({
+/** cooldownを張る操作の入力。ペイロードは「同じカードを持ち続けているか」の判定に使う。 */
+interface QrScan {
+  readonly now: number;
+  readonly payload: string;
+}
+
+const addQrCooldown = (state: CommandBuilderState, scan: QrScan): CommandBuilderState => ({
   ...state,
-  nextQrAcceptedAt: now + COMMAND_SCAN_COOLDOWN_MS,
+  nextQrAcceptedAt: scan.now + COMMAND_SCAN_COOLDOWN_MS,
+  lastScanPayload: scan.payload,
 });
 
 const errorResult = (
   state: CommandBuilderState,
   error: CommandBuilderError,
-  now?: number,
+  scan?: QrScan,
 ): CommandBuilderResult =>
-  createResult(now === undefined ? state : addQrCooldown(state, now), {
+  createResult(scan === undefined ? state : addQrCooldown(state, scan), {
     type: COMMAND_BUILDER_OUTCOME_TYPE.ERROR,
     error,
   });
@@ -279,11 +287,18 @@ export const handleQrPayload = (
   }
 
   if (now < state.nextQrAcceptedAt) {
-    return createResult(state, {
-      type: COMMAND_BUILDER_OUTCOME_TYPE.IGNORED,
-      reason: COMMAND_BUILDER_IGNORED_REASON.COOLDOWN,
-    });
+    // 同じカードをかざし続けているだけなら「取りこぼし」ではないので、UIへ通知しない理由を返す。
+    // カメラは毎秒10回デコードするため、ここを一律 cooldown にすると直前の結果通知が
+    // 100ms で警告文言に塗り替えられてしまう（loopEnd はスタック表示が変わらず特に致命的）。
+    const reason =
+      payload === state.lastScanPayload
+        ? COMMAND_BUILDER_IGNORED_REASON.HOLDING_SAME_CARD
+        : COMMAND_BUILDER_IGNORED_REASON.COOLDOWN;
+    return createResult(state, { type: COMMAND_BUILDER_OUTCOME_TYPE.IGNORED, reason });
   }
+
+  // cooldownを張る各分岐へ渡す入力。ペイロードを一緒に記録し、次回の同一カード判定に使う。
+  const scan: QrScan = { now, payload };
 
   if (state.pendingLoopStart !== null) {
     return createResult(state, {
@@ -317,7 +332,7 @@ export const handleQrPayload = (
           COMMAND_BUILDER_ERROR_CODE.LOOP_END_WITHOUT_LOOP,
           "完了できる構築中loopがありません。",
         ),
-        now,
+        scan,
       );
     }
 
@@ -333,7 +348,7 @@ export const handleQrPayload = (
 
     return createResult(
       {
-        ...addQrCooldown(state, now),
+        ...addQrCooldown(state, scan),
         openLoopPaths: nextOpenLoopPaths,
       },
       {
@@ -351,18 +366,18 @@ export const handleQrPayload = (
       createError(COMMAND_BUILDER_ERROR_CODE.INVALID_INSERTION_POINT, "挿入位置の形が不正です。", {
         path: insertionPoint.containerPath,
       }),
-      now,
+      scan,
     );
   }
 
   const validInsertionPoint = parsedInsertionPoint.data;
   const insertionError = validateInsertionPoint(state, validInsertionPoint);
-  if (insertionError !== null) return errorResult(state, insertionError, now);
+  if (insertionError !== null) return errorResult(state, insertionError, scan);
 
   if (commandKind === COMMAND_KIND.LOOP_START) {
     return createResult(
       {
-        ...addQrCooldown(state, now),
+        ...addQrCooldown(state, scan),
         pendingLoopStart: { insertionPoint: copyInsertionPoint(validInsertionPoint) },
       },
       {
@@ -387,13 +402,13 @@ export const handleQrPayload = (
         "命令を挿入できない位置です。",
         { path: validInsertionPoint.containerPath },
       ),
-      now,
+      scan,
     );
   }
 
   return createResult(
     {
-      ...addQrCooldown(state, now),
+      ...addQrCooldown(state, scan),
       commands,
     },
     {

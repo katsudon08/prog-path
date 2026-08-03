@@ -58,10 +58,17 @@ const OverlayDemo = (): React.JSX.Element => {
       },
     },
     {
-      label: "無視（cooldown）",
+      label: "無視（別カードが早すぎた）",
       outcome: {
         type: COMMAND_BUILDER_OUTCOME_TYPE.IGNORED,
         reason: COMMAND_BUILDER_IGNORED_REASON.COOLDOWN,
+      },
+    },
+    {
+      label: "無視（同じカードを継続・トーストは出ない）",
+      outcome: {
+        type: COMMAND_BUILDER_OUTCOME_TYPE.IGNORED,
+        reason: COMMAND_BUILDER_IGNORED_REASON.HOLDING_SAME_CARD,
       },
     },
     {
@@ -116,7 +123,14 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** ボタンで各 outcome を発火 → 2.5 秒で自動フェードアウトする様子を確認できる。 */
+/**
+ * ボタンで各 outcome を発火 → 2.5 秒で自動フェードアウトする様子を確認できる。
+ *
+ * 「別カードが早すぎた」を連打すると、直前の通知が警告文言へ塗り替わる様子が再現できる
+ * （実機ではこれが毎秒 10 回起きていた）。「同じカードを継続」は文言を持たないため、
+ * ここでは表示中のトーストが畳まれる — 実機ではこの outcome が `useCommandStack` で
+ * 握りつぶされて本コンポーネントまで届かないので、直前の通知はそのまま残る。
+ */
 export const Interactive: Story = {
   render: () => <OverlayDemo />,
 };

@@ -27,6 +27,7 @@ import type { ArStageController } from "./types";
  *
  * `canRun` は「編集中（idle）・命令が空でない・loop 回数入力待ちが無い」の合成。
  * コマンド構築状態と実行状態の両方を知るのは本フックだけなので、ここで判定する。
+ * 未完了ループは `canRun` に含めず `run` の中で弾き、警告ダイアログで理由を伝える。
  *
  * @param maze 実行対象の迷路
  * @returns ページ・ArStage UI が使う controller（{@link ArStageController}）
@@ -37,6 +38,8 @@ export const useArStage = (maze: Maze): ArStageController => {
 
   // 削除確認（#239）: 確認待ちの削除対象パス。null は「確認中でない」。
   const [pendingDeletePath, setPendingDeletePath] = useState<CommandPath | null>(null);
+  // 未完了ループがある状態で［じっこう］が押されたか（警告ダイアログの開閉）。
+  const [unclosedLoopDialogOpen, setUnclosedLoopDialogOpen] = useState(false);
 
   const {
     handleQr: handleQrRaw,
@@ -114,6 +117,22 @@ export const useArStage = (maze: Maze): ArStageController => {
     }
   }, [isEditable]);
 
+  // --- 未完了ループの警告（features.md 5.3: 実行操作時に警告し、実行を抑止する） ---
+
+  const openLoopCount = commandStack.openLoopPaths.length;
+
+  // 警告表示中も QR 読み取りは動き続けるため、その場で loopEnd を読ませたら警告を畳む。
+  // 「全部閉じた」状態でフラグを戻すことで、次に loopStart を読んでも勝手に再表示されない。
+  useEffect(() => {
+    if (openLoopCount === 0) {
+      setUnclosedLoopDialogOpen(false);
+    }
+  }, [openLoopCount]);
+
+  const dismissUnclosedLoop = useCallback((): void => {
+    setUnclosedLoopDialogOpen(false);
+  }, []);
+
   const pendingDeleteCommand =
     pendingDeletePath === null ? null : commandAtPath(commandStack.commands, pendingDeletePath);
   const deleteTargetLabel =
@@ -132,10 +151,16 @@ export const useArStage = (maze: Maze): ArStageController => {
 
   const run = useCallback((): void => {
     if (!canRun) return;
+    // 未完了ループがあるうちは実行させない。ボタンは押せるままにして理由を警告で伝える
+    // （disabled だけでは「くりかえし おわり」を読ませればよいと気付けない）。
+    if (openLoopCount > 0) {
+      setUnclosedLoopDialogOpen(true);
+      return;
+    }
     // 実行開始と同時に削除確認を破棄する（effect を待たず同一更新で閉じる）。
     setPendingDeletePath(null);
     runSimulation(commandStack.commands);
-  }, [canRun, runSimulation, commandStack.commands]);
+  }, [canRun, openLoopCount, runSimulation, commandStack.commands]);
 
   return {
     maze,
@@ -166,6 +191,7 @@ export const useArStage = (maze: Maze): ArStageController => {
     // CommandPanel 契約
     commands: commandStack.commands,
     selected: commandStack.selected,
+    openLoopPaths: commandStack.openLoopPaths,
     activePath: simulation.activePath,
     readOnly,
     selectInsertionPoint,
@@ -176,6 +202,10 @@ export const useArStage = (maze: Maze): ArStageController => {
     deleteTargetLabel,
     confirmDelete,
     cancelDelete,
+
+    // 未完了ループの警告
+    unclosedLoopDialogOpen,
+    dismissUnclosedLoop,
 
     // QR / ループ回数ダイアログ
     handleQr,
