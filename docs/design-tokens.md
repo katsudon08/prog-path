@@ -128,6 +128,8 @@ ProgPath（再開発版）の**デザイントークンとビジュアル対応�
 
 > **16px 未満を使わない。** バッジ・キャプション・ツールチップも例外にしない。
 
+> **実装上の落とし穴（必読）。** tailwind-merge は `text-*` を既定スケール（`text-sm` 等）でしか「文字サイズ」と認識できず、知らない `text-body` は**文字色**だと推測する。そのため `cn("text-body", "text-muted-foreground")` は素のままだと `text-muted-foreground` だけを返し、**サイズが黙って消える**。`shared/lib/cn.ts` の `extendTailwindMerge` でこの 4 トークンを `font-size` グループに登録して回避している（回帰テストは `cn.test.ts`）。**サイズトークンを増やしたら必ずここにも追加すること。**
+
 **根拠**: 2〜3 人でノート PC を囲む外側の子の画角（11.6" を 70cm から = 20.8°）は、**55 型 TV を 3m から見る画角（22.6°）とほぼ同じ**。したがって 3-foot UI（デスクトップ）ではなく **10-foot UI の設計則**で作る。ISO 9241-303（最低 16 分角 / 推奨 20〜22 分角）から逆算すると、従来の 16px は視距離 446mm・18px は 501mm までしか届かず、**囲む 2 人目・3 人目（50〜80cm）をカバーできていなかった**。詳細は [screen-specs.md](./screen-specs.md) 2.2。
 
 ### 7.2 ウェイト
@@ -332,7 +334,7 @@ BIZ UDPGothic は **400 / 700 の 2 ウェイトのみ**（medium・semibold は
 
 | 項目 | 状態 |
 | --- | --- |
-| §7.1 サイズ階層（`--text-support/body/label/status`） | 未定義。現行は Tailwind 既定スケールを直書き |
+| §7.1 サイズ階層（`--text-support/body/label/status`） | **定義済み（#192）**。ただし既存 UI の大半は Tailwind 既定スケールを直書きのままで、置換は未了 |
 | §8 `--spacing-tap-xl`(72px) | 未定義 |
 | §8.1 Button スケール（48 / 56 / 72） | 未追従（現行 44 / 48 / 56） |
 | §10.1 duration トークン | 未定義。`modal.tsx` / `robot-3d.tsx` にリテラル |

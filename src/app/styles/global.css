@@ -131,6 +131,14 @@
   --font-sans: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", Meiryo, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
 
+  /* 文字サイズ（4 段・用途で選ぶ）。Tailwind 既定スケール（text-sm 等）は使わない。
+     2〜3 人で 1 台を囲む＝外側の子は 50〜80cm 離れるため 10-foot UI の設計則で決めた値。
+     16px 未満は作らない（バッジ・キャプションも例外にしない）。→ docs/design-tokens.md §7.1 */
+  --text-support: 1.125rem; /* 18px 補助情報。メタ・要件・バッジ・非アクティブ行 */
+  --text-body: 1.375rem; /* 22px 本文。説明文・迷路名・命令チップ */
+  --text-label: 1.875rem; /* 30px 主要ラベル。ボタン文言・見出し・ページ名 */
+  --text-status: 2.25rem; /* 36px 状態表示。移動カウント・実行中の値 */
+
   /* タップターゲット（2〜3 人で 1 台を囲む＝距離があるため大きめ）。
      44px=WCAG 2.5.5(AAA) / 48px=標準(Material 48dp) / 56px=主要操作。 */
   --spacing-tap-min: 2.75rem; /* 44px */

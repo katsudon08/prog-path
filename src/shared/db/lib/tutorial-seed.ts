@@ -18,7 +18,7 @@ import type { Folder, Maze } from "../model/schema";
 import { TILE_KIND } from "../model/tile-kind";
 import type { TileKind } from "../model/tile-kind";
 
-/** 専用「チュートリアル」フォルダの固定名（削除・リネーム不可。強制は UI 側で行う）。 */
+/** 専用「チュートリアル」フォルダの固定名（リネーム不可。削除は可能だが再生成で戻る）。 */
 export const TUTORIAL_FOLDER_NAME = "チュートリアル";
 
 /**
@@ -140,7 +140,6 @@ const buildMaze = (spec: TutorialMazeSpec, order: number): Maze => ({
 export const buildTutorialFolder = (): Folder => ({
   id: TUTORIAL_FOLDER_ID,
   name: TUTORIAL_FOLDER_NAME,
-  isDefault: false,
   createdAt: 1,
 });
 

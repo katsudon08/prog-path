@@ -32,7 +32,6 @@ erDiagram
     FOLDER {
         uuid id PK
         string name
-        boolean isDefault
         number createdAt
     }
     MAZE {
@@ -47,8 +46,10 @@ erDiagram
     }
 ```
 
-- 「未分類」フォルダは予約 ID で常に 1 つ存在し、削除・リネーム不可（`isDefault: true`）。
-- フォルダを削除すると、内包する迷路は**未分類へ移動**する（`folderId` を未分類に張り替え。迷路自体は消さない）〔要確認: features.md 3.4 と連動〕。
+- 予約フォルダは 2 つ（「未分類」= nil UUID / 「チュートリアル」= 固定 v4 UUID）。どちらも起動時に存在保証する（→ 7）。
+- **予約フォルダを表す永続フィールドは持たない。** 種別は予約 ID との一致だけから導く（判別ロジックは `entities/folder` の `getFolderKind`）。フラグを併置すると ID と食い違う余地が生まれ、`maze.folderId` しか持たない呼び出し側が判定できなくなるため（旧 `isDefault` は #192 で廃止）。
+- 種別ごとの可否（削除・リネーム・出入り）は 1 枚の表で持つ（→ [features.md](./features.md) 3.4 の権限マトリクス）。
+- **フォルダを削除すると、内包する迷路も一緒に削除される**（全フォルダ共通。未分類への退避は行わない）。
 
 ---
 
@@ -60,10 +61,11 @@ erDiagram
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `id` | uuid | 一意 ID（UUID v4 / `crypto.randomUUID`）。未分類は予約 nil UUID（`shared/config` の `UNCATEGORIZED_FOLDER_ID`） |
-| `name` | string | フォルダ名（未分類は固定名） |
-| `isDefault` | boolean | 未分類フラグ。`true` は削除・リネーム不可 |
-| `createdAt` | number | 作成時刻（epoch ms）。既定の並び順に使用 |
+| `id` | uuid | 一意 ID（UUID v4 / `crypto.randomUUID`）。未分類は予約 nil UUID（`UNCATEGORIZED_FOLDER_ID`）、チュートリアルは予約 v4 UUID（`TUTORIAL_FOLDER_ID`）。いずれも `shared/config` |
+| `name` | string | フォルダ名（予約フォルダは固定名でリネーム不可） |
+| `createdAt` | number | 作成時刻（epoch ms）。既定の並び順に使用。予約フォルダは常に先頭へ来るよう未分類 = `0` / チュートリアル = `1` を固定値で持つ |
+
+> **フォルダ種別の列は無い。** 「これは未分類か」は `id === UNCATEGORIZED_FOLDER_ID` で判る。旧 `isDefault` は二重管理でしかなく（チュートリアルは予約フォルダなのに `isDefault: false` だった）、#192 で廃止した。
 
 ### 3.2 maze
 
@@ -151,9 +153,8 @@ export const PlayableMazeSchema = MazeSchema.superRefine((maze, ctx) => {
 });
 
 export const FolderSchema = z.object({
-  id: z.string().uuid(),
+  id: uuidField, // 「v4 または予約 nil」。下の ID の項を参照
   name: z.string().min(1),
-  isDefault: z.boolean(),
   createdAt: z.number().int(),
 });
 
@@ -207,7 +208,13 @@ TanStack DB の組み込みアダプタには localStorage はあるが IndexedD
 
 ### スキーマバージョン
 
-- `persistedCollectionOptions` の `schemaVersion` を **初期値 `1`**（`shared/db` の `SCHEMA_VERSION`）とする。破壊的なスキーマ変更時に増やすとローカルコピーが更新される。
+- `persistedCollectionOptions` の `schemaVersion`（`shared/db` の `SCHEMA_VERSION`）で管理する。**現在値は `1`**（#179 の初版のまま）。
+- **`createPersistence` は `schemaMismatchPolicy: "reset"` を明示する。この 1 行を外してはならない**（#192）。
+  - 本アプリは sync を渡さない**ローカル専用**構成なので、省略すると `resolveSchemaMismatchPolicy(undefined, "sync-absent")` が **`sync-absent-error`** を返す（`sync-present-reset` ではない）。
+  - その既定では、保存済みバージョンと食い違ったときアダプタは**テーブルを削除せず** `InvalidPersistedCollectionConfigError` を throw する。さらにその例外を loopback sync が `console.warn` だけして ready 扱いにするため、**エラー画面も出ないまま全件 0 件に見え、以後の書き込みが静かに全て失敗し続ける**。データは消えていないのに到達できず、リロードしても直らず、アプリ内に復旧手段が無い。
+  - `reset` を明示すると本来期待どおり「ローカルを消して作り直す」になり、次回起動以降は正常に動く（#192 のレビューで両方を実機再現して確認）。
+- **上げるとローカルの迷路・フォルダは全て破棄される。** folders / mazes が同じ定数を共有しているのでどちらも消える。起動時の存在保証で未分類・チュートリアルは復帰するが、**ユーザーが作った迷路は戻らない**。判定は単純な不一致（`!==`）なので、**バージョンを戻したとき（リリース差し戻し）も同様に破棄される**。
+- **フィールドの削除では上げなくてよい。** Zod の `z.object` は未知キーを黙って剥がすため、保存済み行に残った旧フィールドはそのままスキーマ検証を通り、起動時の掃引でも消えない。`Folder.isDefault` の廃止（#192）はこれに該当するため据え置いた（前提は `schema.test.ts` / `bootstrap.test.ts` が固定）。
 - データは小さい（1 迷路最大 147 セル）ため軽量。
 
 ### 検証状況（スパイク）
@@ -220,10 +227,14 @@ TanStack DB の組み込みアダプタには localStorage はあるが IndexedD
 ## 7. 初期データと復旧
 
 - **未分類フォルダの保証**: 起動時に未分類フォルダ（予約 ID = `UNCATEGORIZED_FOLDER_ID` / nil UUID）の存在を確認し、無ければ作成する。
-- **チュートリアルの存在保証**: 授業導入用の教材迷路を専用「チュートリアル」フォルダ（予約固定 ID）にまとめ、起動時（不正データの掃引・未分類フォルダ保証の後）に**予約 ID で常に保証**する — フォルダ・各迷路とも無ければ作り、欠損 ID だけ補う（既存は上書きしない）。未分類フォルダと同格で、フォルダ・迷路とも**削除不可**（強制は UI 側＝削除操作を出さない）。データ欠損しても次回起動で復元される。迷路は 6 件・易→難のカリキュラム順（内容は今後拡充。→ [features.md](./features.md) 3.3）。
+- **チュートリアルの存在保証**: 授業導入用の教材迷路を専用「チュートリアル」フォルダ（予約固定 ID）にまとめ、起動時（不正データの掃引・未分類フォルダ保証の後）に**予約 ID で常に保証**する — フォルダ・各迷路とも無ければ作り、欠損 ID だけ補う（既存は上書きしない）。**フォルダも中の迷路も削除できるが、次の保証で戻る**（可否は → [features.md](./features.md) 3.4 の権限マトリクス）。迷路は 6 件・易→難のカリキュラム順（内容は今後拡充。→ [features.md](./features.md) 3.3）。
 - **不正データの復旧**: **構造検証（`MazeSchema`）に通らない**レコードのみ破棄・初期状態へ復旧する（→ [requirements.md](./requirements.md) 5.5）。テレポート不整合のような**実行開始時に検出・拒否できる問題では削除せず**、保存済みデータを保護する（実行前は `PlayableMazeSchema`、編集 UI は保存前検証で扱う）。未分類フォルダのような必須データは再生成する。
+- **再生成の入口は 2 つ、挙動は 1 つ**: 起動時と、UI の再生成ボタン（→ [features.md](./features.md) 3.6）。どちらも同じ `ensureInitialData()` を呼ぶだけで**完全に冪等**。行うのは「上の不正データ掃引」＋「足りない予約データの補充」の 2 つで、**構造検証を通る正常なレコードは 1 件も消さない**（ボタンから呼んでも起動時と同じ＝ボタンで新たに失うものは無い）。全消去する「初期化」処理は用意しない。
+- **迷路の存在判定は ID の有無だけで行う**（`folderId` は見ない）。そのため教材迷路が別フォルダに散らばると「ある」と判定され回収されない。フォルダ削除で中身も消し、チュートリアルの出入りを禁じているのは、この状態を発生させないため（→ [features.md](./features.md) 3.4）。
 
-> 旧実装の「空配列なら初期迷路を投入」とは異なり、to-be では**授業導入用のチュートリアル（教材）を予約 ID で常に保証**する（未分類フォルダと同格の存在保証）。ユーザー作成の迷路が無いときに案内 UI を出すのはユーザー領域の話で、チュートリアルは常に存在する。不正データの扱いは構造検証による破棄・復旧に限定する（上記）。
+> `shared/db` の `resetDb()` は名前が似ているが別物で、起動失敗時のリトライ用に **`initDb()` のキャッシュ Promise を捨てるだけ**。データには一切触れない。再生成の用途に使わないこと。
+
+> 旧実装の「空配列なら初期迷路を投入」とは異なり、to-be では**授業導入用のチュートリアル（教材）を予約 ID で保証**する（未分類フォルダと同格の存在保証）。ユーザー作成の迷路が無いときに案内 UI を出すのはユーザー領域の話。ただし**「常に存在する」わけではない**: 保証されるのは起動時と再生成ボタン押下時で、セッション中はフォルダごと削除できるため一時的に消えている状態がありうる（空状態の設計は → [screen-specs.md](./screen-specs.md) 4.4）。不正データの扱いは構造検証による破棄・復旧に限定する（上記）。
 
 ---
 

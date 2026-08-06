@@ -236,7 +236,7 @@ stateDiagram-v2
 ### 5.4 バリデーションと復旧
 
 - QR・入力・永続データは Zod スキーマで検証する。
-- 不正データ（構造検証 NG）は破棄して復旧する。チュートリアル迷路（専用フォルダ）は起動時に予約 ID で常に存在保証する（削除不可・UI で制限。→ [requirements.md](./requirements.md) 5.5 / [db-design.md](./db-design.md) 7）。
+- 不正データ（構造検証 NG）は破棄して復旧する。チュートリアル（専用フォルダ＋教材迷路）は起動時に予約 ID で常に存在保証する（消しても次の保証で戻る。→ [requirements.md](./requirements.md) 5.5 / [db-design.md](./db-design.md) 7）。
 
 ---
 

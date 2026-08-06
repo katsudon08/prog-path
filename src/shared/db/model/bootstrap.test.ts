@@ -90,8 +90,8 @@ describe("ensureInitialData", () => {
   });
 
   it("不正フォルダを破棄し、妥当フォルダは残し、未分類を補う", async () => {
-    const valid = { id: V4_A, name: "算数", isDefault: false, createdAt: 1 };
-    const invalid = { id: V4_B, name: "", isDefault: false, createdAt: 1 }; // name 空で不正
+    const valid = { id: V4_A, name: "算数", createdAt: 1 };
+    const invalid = { id: V4_B, name: "", createdAt: 1 }; // name 空で不正
     const { db, folderCollection } = makeDb([valid, invalid]);
     await ensureInitialData(db);
     expect(folderCollection.rows.has(V4_A)).toBe(true);
@@ -100,12 +100,28 @@ describe("ensureInitialData", () => {
   });
 
   it("未分類フォルダが既にあれば重複させず、チュートリアルフォルダを補う", async () => {
-    const existing = { id: UNCATEGORIZED_FOLDER_ID, name: "未分類", isDefault: true, createdAt: 0 };
+    const existing = { id: UNCATEGORIZED_FOLDER_ID, name: "未分類", createdAt: 0 };
     const { db, folderCollection } = makeDb([existing]);
     await ensureInitialData(db);
     expect(folderCollection.rows.has(UNCATEGORIZED_FOLDER_ID)).toBe(true);
     expect(folderCollection.rows.has(TUTORIAL_FOLDER_ID)).toBe(true);
     expect(folderCollection.rows.size).toBe(2);
+  });
+
+  it("廃止した isDefault が残る旧フォルダを破棄も重複挿入もしない", async () => {
+    // #192 の移行の安全網。旧フィールドを不正扱いすると purge が既存フォルダを消し、
+    // さらに未分類が「無い」と判定されて重複挿入される、という二重の事故になり得る。
+    const legacyUncategorized = {
+      id: UNCATEGORIZED_FOLDER_ID,
+      name: "未分類",
+      isDefault: true,
+      createdAt: 0,
+    };
+    const legacyUser = { id: V4_A, name: "算数", isDefault: false, createdAt: 1 };
+    const { db, folderCollection } = makeDb([legacyUncategorized, legacyUser]);
+    await ensureInitialData(db);
+    expect(folderCollection.rows.has(V4_A)).toBe(true);
+    expect(folderCollection.rows.size).toBe(3); // 未分類 + 算数 + チュートリアル
   });
 
   it("不正な迷路レコードを破棄する", async () => {
