@@ -26,13 +26,16 @@ export type { TileKind } from "./tile-kind";
 const uuidField = z.union([z.uuid(), z.literal(UNCATEGORIZED_FOLDER_ID)]);
 
 /**
- * フォルダ。未分類は `isDefault: true` かつ予約 nil UUID で常に 1 つ存在する
- * （→ docs/db-design.md 3.1）。
+ * フォルダ。未分類・チュートリアルは予約 ID（`UNCATEGORIZED_FOLDER_ID` /
+ * `TUTORIAL_FOLDER_ID`）を持ち、起動時に存在保証される（→ docs/db-design.md 3.1）。
+ *
+ * 予約フォルダかどうかを表す永続フィールドは持たない。**判別は予約 ID の一致のみ**で行い、
+ * 種別ごとの可否（削除・リネーム・出入り）は entities/folder が決める（→ #192）。
+ * 永続フラグを併置すると ID と食い違う余地が生まれるため、単一の判別根拠に寄せている。
  */
 export const FolderSchema = z.object({
   id: uuidField,
   name: z.string().min(1),
-  isDefault: z.boolean(),
   createdAt: z.number().int(),
 });
 

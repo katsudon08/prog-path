@@ -45,9 +45,11 @@ const purgeInvalid = async <T>(
 
 /**
  * チュートリアル（専用フォルダ＋教材迷路）の存在を保証する。
- * 予約固定 ID を持ち削除不可の扱い（強制は UI 側）のため、未分類フォルダと同じ発想で
- * 「無ければ作る／欠損 ID の迷路だけ補う」。既存レコードは上書きしない（編集は保持）。
- * → docs/db-design.md 7。
+ * フォルダ自体は削除可能だが、未分類フォルダと同じ発想で「無ければ作る／欠損 ID の迷路だけ補う」ため、
+ * 消しても次の保証タイミングで戻る。既存レコードは上書きしない（編集は保持）。
+ *
+ * 冪等なので、起動時とユーザー操作（再生成ボタン）のどちらから呼んでも同じ結果になる
+ * （→ docs/db-design.md 7 / #192）。
  */
 const ensureTutorialContent = async (db: AppDatabase): Promise<void> => {
   const folders: ReadonlyArray<Folder> = await db.folderCollection.toArrayWhenReady();
@@ -70,8 +72,9 @@ const ensureTutorialContent = async (db: AppDatabase): Promise<void> => {
  * 2. 未分類フォルダ（予約 ID）の存在を保証（無ければ再生成）
  * 3. チュートリアル（専用フォルダ＋教材迷路）を予約 ID で常に保証（無ければ作る／欠損分を補う）
  *
- * 迷路 0 件は正常状態だが、チュートリアル迷路は常に存在保証されるため実質 0 件にはならない
- * （→ docs/db-design.md 7）。
+ * 本関数の直後は必ず未分類・チュートリアル 6 件が揃うが、**セッション中は 0 件になりうる**
+ * （チュートリアルはフォルダごと削除できる）。空状態の見せ方は #196 の責務
+ * （→ docs/db-design.md 7 / docs/screen-specs.md 4.4）。
  */
 export const ensureInitialData = async (db: AppDatabase): Promise<void> => {
   await purgeInvalid(db.folderCollection, FolderSchema);

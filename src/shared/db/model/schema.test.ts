@@ -41,23 +41,35 @@ const validMaze = (overrides: Record<string, unknown> = {}): Record<string, unkn
 
 describe("FolderSchema", () => {
   it("妥当なフォルダを通す", () => {
-    const folder = { id: V4_ID, name: "算数", isDefault: false, createdAt: 1 };
+    const folder = { id: V4_ID, name: "算数", createdAt: 1 };
     expect(FolderSchema.safeParse(folder).success).toBe(true);
   });
 
   it("未分類フォルダの予約 nil UUID を id として許容する", () => {
-    const folder = { id: UNCATEGORIZED_FOLDER_ID, name: "未分類", isDefault: true, createdAt: 0 };
+    const folder = { id: UNCATEGORIZED_FOLDER_ID, name: "未分類", createdAt: 0 };
     expect(FolderSchema.safeParse(folder).success).toBe(true);
   });
 
   it("空の name を弾く", () => {
-    const folder = { id: V4_ID, name: "", isDefault: false, createdAt: 1 };
+    const folder = { id: V4_ID, name: "", createdAt: 1 };
     expect(FolderSchema.safeParse(folder).success).toBe(false);
   });
 
   it("UUID でない id を弾く", () => {
-    const folder = { id: "not-a-uuid", name: "算数", isDefault: false, createdAt: 1 };
+    const folder = { id: "not-a-uuid", name: "算数", createdAt: 1 };
     expect(FolderSchema.safeParse(folder).success).toBe(false);
+  });
+
+  it("廃止した isDefault が残る旧レコードも通し、値を剥がす（既存データを purge しない）", () => {
+    // #192 で isDefault を廃止した。既に保存済みの行には残っているため、これを不正と
+    // みなすと起動時の purge が全フォルダを消してしまう。z.object が未知キーを黙って
+    // 剥がすことで移行が無害になる、という前提をここで固定する。
+    // この性質があるからこそ SCHEMA_VERSION を上げずに済んでいる（→ model/persistence.ts）。
+    // ここが壊れたら移行方針そのものを見直すこと。
+    const legacy = { id: V4_ID, name: "算数", isDefault: true, createdAt: 1 };
+    const result = FolderSchema.safeParse(legacy);
+    expect(result.success).toBe(true);
+    expect(result.success && "isDefault" in result.data).toBe(false);
   });
 });
 

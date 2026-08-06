@@ -34,13 +34,12 @@ export const partitionValid = <T>(
 };
 
 /**
- * 未分類フォルダのレコードを生成する。予約 nil UUID・`isDefault: true`・固定名を持ち、
+ * 未分類フォルダのレコードを生成する。予約 nil UUID と固定名を持ち、
  * `createdAt` は 0（既定順で常に先頭）。起動時の存在保証で挿入する（→ docs/db-design.md 7）。
  */
 export const buildUncategorizedFolder = (): Folder => ({
   id: UNCATEGORIZED_FOLDER_ID,
   name: UNCATEGORIZED_FOLDER_NAME,
-  isDefault: true,
   createdAt: 0,
 });
 

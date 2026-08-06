@@ -4,14 +4,19 @@ import { UNCATEGORIZED_FOLDER_ID } from "@/shared/config";
 
 import { FolderSchema } from "../model/schema";
 import type { Folder } from "../model/schema";
-import { buildUncategorizedFolder, hasUncategorizedFolder, partitionValid } from "./recovery";
+import {
+  UNCATEGORIZED_FOLDER_NAME,
+  buildUncategorizedFolder,
+  hasUncategorizedFolder,
+  partitionValid,
+} from "./recovery";
 
 describe("partitionValid", () => {
   it("妥当・不正を振り分ける", () => {
     const rows = [
-      { id: "3f2504e0-4f89-41d3-9a0c-0305e82c3301", name: "算数", isDefault: false, createdAt: 1 },
-      { id: "not-a-uuid", name: "壊れ", isDefault: false, createdAt: 1 }, // 不正
-      { name: "name欠落", isDefault: false }, // 不正
+      { id: "3f2504e0-4f89-41d3-9a0c-0305e82c3301", name: "算数", createdAt: 1 },
+      { id: "not-a-uuid", name: "壊れ", createdAt: 1 }, // 不正
+      { name: "name欠落" }, // 不正
     ];
     const { valid, invalid } = partitionValid(rows, FolderSchema);
     expect(valid).toHaveLength(1);
@@ -26,10 +31,10 @@ describe("partitionValid", () => {
 });
 
 describe("buildUncategorizedFolder", () => {
-  it("予約 ID・isDefault・固定 createdAt を持ち、スキーマ検証を通る", () => {
+  it("予約 ID・固定名・固定 createdAt を持ち、スキーマ検証を通る", () => {
     const folder = buildUncategorizedFolder();
     expect(folder.id).toBe(UNCATEGORIZED_FOLDER_ID);
-    expect(folder.isDefault).toBe(true);
+    expect(folder.name).toBe(UNCATEGORIZED_FOLDER_NAME);
     expect(folder.createdAt).toBe(0);
     expect(FolderSchema.safeParse(folder).success).toBe(true);
   });
@@ -39,7 +44,6 @@ describe("hasUncategorizedFolder", () => {
   const normal: Folder = {
     id: "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
     name: "算数",
-    isDefault: false,
     createdAt: 1,
   };
 
