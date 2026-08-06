@@ -150,7 +150,7 @@ src/
 | feature | 責務 | 代表セグメント |
 | --- | --- | --- |
 | `maze-management` | 迷路 CRUD・空状態 | model（CRUD ロジック）/ ui |
-| `folder-management` | フォルダ作成/リネーム/削除・DnD・未分類 | model / ui |
+| `folder-management` | フォルダ作成/リネーム/削除（中の迷路ごと）・DnD。可否の判定は `entities/folder` の権限マトリクスに従う | model / ui |
 | `maze-qr-management` | 迷路の QR 共有（1 迷路 = 1 QR） | model（エンコード/デコード）/ ui |
 | `maze-edit` | グリッド編集・タイル配置・テレポート整合 | model（整合チェック）/ ui |
 | `command-management` | QR からの命令作成・スタック構築・ループのネスト | model（スタック操作）/ ui |
@@ -168,7 +168,7 @@ src/
 | `maze` | `Maze` / `TileKind` 型、初期迷路生成 | `MazePreview`（2D 俯瞰）、`Maze3d`（3D） |
 | `robot` | 位置・向き・階層・取得カギの状態と型 | `Robot3d`（3D・アニメーション） |
 | `command` | コマンド種別、ループのネスト構造の型 | `CommandItem`（アイコン・名称） |
-| `folder` | フォルダの型（未分類含む） | `FolderItem` |
+| `folder` | `Folder` 型の再エクスポート、フォルダ種別（予約 ID から判別）、種別ごとの権限マトリクス、サイドバー 3 セクションへの振り分け | `FolderItem`（アイコン・名前・件数・行末スロット） |
 
 ### 4.6 shared
 
@@ -181,7 +181,7 @@ src/
 | `qr` | **QR デコーダ抽象**。`qr-scanner` を内部実装とし、デコード I/F を提供 |
 | `camera` | **カメラ取得抽象**。`getUserMedia` の環境差（Web / Tauri WebView）を吸収 |
 | `db` | **永続化抽象**。TanStack DB のコレクション定義（モジュールレベルのシングルトン）と SQLite(WASM+OPFS) アクセス（→ [db-design.md](./db-design.md)） |
-| `config` | 定数・設定値（サイズ上限・loop 回数範囲・未分類フォルダ予約 ID `UNCATEGORIZED_FOLDER_ID` 等） |
+| `config` | 定数・設定値（サイズ上限・loop 回数範囲・予約フォルダ ID `UNCATEGORIZED_FOLDER_ID` / `TUTORIAL_FOLDER_ID` 等） |
 
 > `qr` / `camera` / `db` はインターフェースを公開し、実装を差し替え可能にする。インターフェースの型定義は実装時／[db-design.md](./db-design.md) に委ねる。
 
