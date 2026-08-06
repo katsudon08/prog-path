@@ -45,11 +45,18 @@ export interface AppDatabase {
 /**
  * 迷路・フォルダのコレクションを生成する。OPFS DB を開いてから両コレクションを作るため
  * 非同期。ブラウザ実行時のみ呼べる（→ {@link createPersistence}）。
+ *
+ * @param persistence 差し替え用の永続化。省略時は OPFS 上の DB を開く（＝本番の経路）。
+ *   統合テストが `node:sqlite` バックの persistence を渡すための seam
+ *   （→ `bootstrap.integration.test.ts`）。コレクション ID・`getKey`・`schemaVersion` は
+ *   差し替えられないので、テストも本番と同じ設定で動く。
  */
-export const createCollections = async (): Promise<AppDatabase> => {
-  const persistence = await createPersistence();
+export const createCollections = async (
+  persistence?: PersistedCollectionPersistence,
+): Promise<AppDatabase> => {
+  const resolved = persistence ?? (await createPersistence());
   return {
-    folderCollection: buildFolderCollection(persistence),
-    mazeCollection: buildMazeCollection(persistence),
+    folderCollection: buildFolderCollection(resolved),
+    mazeCollection: buildMazeCollection(resolved),
   };
 };
