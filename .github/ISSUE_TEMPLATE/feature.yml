@@ -1,0 +1,36 @@
+name: 機能追加 (feat)
+description: 新しい機能・改善を提案・実装する
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 解決したい課題
+      description: 今どう困っているかを書く
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 提案する解決策
+      description: 振る舞ってほしい挙動を書く
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件
+      description: これを満たしたらこの Issue は閉じられる、という状態を箇条書きで
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 補足
+      description: 参考リンク、モック画像、関連 Issue など
