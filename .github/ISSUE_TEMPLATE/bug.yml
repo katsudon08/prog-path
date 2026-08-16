@@ -1,0 +1,50 @@
+name: 不具合報告 (fix)
+description: 動作がおかしい箇所を報告・修正する
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 何がどう動かないのかを書く
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: 別の人が同じ状態を作れる粒度で書く
+      placeholder: |
+        1. 〜画面を開く
+        2. 〜をクリックする
+        3. エラーが表示される
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する挙動
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の挙動
+      description: エラーメッセージやスクリーンショットがあれば貼る
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件
+      description: これを満たしたらこの Issue は閉じられる、という状態
+      value: |
+        - [ ] 再現手順どおりに操作しても症状が出ない
+        - [ ] 同じ不具合を検知する回帰テストを追加した
+    validations:
+      required: true
