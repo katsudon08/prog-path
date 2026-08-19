@@ -1,40 +1,37 @@
-/**
- * Public API — `entities/maze` スライス
- *
- * 迷路（構造・タイル）のドメインオブジェクト。`Maze` / `TileKind` 型、初期迷路生成、
- * タイル判定、2D/3D 表示を持つ。型・状態・純粋ロジックのみで、他 entity を参照しない。
- * 型・スキーマの正は shared/db（#179）にあり、本スライスは再エクスポートで単一の正を保つ。
- *
- * 他スライスからの import はこの index.ts 経由のみ。`export * from` は使わず
- * 公開対象を個別に明示する（→ docs/directory-structure.md 2.2）。
- */
+// entities/maze public API (boundary)
+// 内部構造（model, lib, ui）は隠蔽し、必要な公開APIのみをエクスポート
+// カテゴリ（フォルダ）管理は entities/folder に委譲
+// ロボット関連の型は entities/robot に委譲
 
-// 型（正は shared/db。本スライスの補助型 MazeCoord / MazeStructure を含む）
-export type { Maze, TileKind, MazeCoord, MazeStructure } from "./model/types";
-export { TILE_KIND } from "./model/types";
+// Types
+export type { TileType, MazeData } from './model/types'
 
-// タイル判定（構造的・純粋。ゲームルールは features/maze-simulation #185）
-export {
-  getTileAt,
-  isWithinBounds,
-  findTiles,
-  findStartFloor,
-  isFloor,
-  isWall,
-  isHole,
-  isStart,
-  isGoal,
-  isKey,
-  isTeleport,
-} from "./model/tile";
+// Store
+export { useMazeStore } from './model/store'
 
-// 見た目マッピング（2D ユーティリティ / 3D hex 色）
-export { TILE_VISUALS, TILE_COLOR_3D } from "./model/tile-visual";
-export type { TileVisual } from "./model/tile-visual";
+// Constants
+export { MIN_GRID_SIZE, MAX_GRID_SIZE, MIN_LAYERS, MAX_LAYERS } from './model/constants'
 
-// 初期迷路生成
-export { createInitialMaze } from "./lib/create-initial-maze";
+// Validators
+export { validateMaze, validateTeleportPlacement } from './lib/validator'
 
-// 表示コンポーネント
-export { MazePreview } from "./ui/maze-preview";
-export { Maze3d } from "./ui/maze-3d";
+// Utilities
+export { findStartPosition, type StartPosition } from './lib/find-start'
+export { loadMazesFromStorage, saveMazesToStorage, clearMazesFromStorage } from './lib/storage'
+export { getTileColor } from './lib/tile-colors'
+export { getTileIcon, StartIcon, GoalIcon, KeyIcon, TeleportUpIcon, TeleportDownIcon, HoleIcon } from './lib/tile-icons'
+
+// 2D UI Components
+export { MazePreview2D } from './ui/2d/MazePreview2D'
+export { MazeTile2D } from './ui/2d/MazeTile2D'
+export { MazeCard } from './ui/2d/MazeCard'
+
+// 3D UI Components
+export { MazeMap3D } from './ui/3d/MazeMap3D'
+export { MazeStartTile3D } from './ui/3d/MazeStartTile3D'
+export { MazeGoalTile3D } from './ui/3d/MazeGoalTile3D'
+export { MazeHoleTile3D } from './ui/3d/MazeHoleTile3D'
+export { MazeTeleportTile3D } from './ui/3d/MazeTeleportTile3D'
+export { MazeKeyTile3D } from './ui/3d/MazeKeyTile3D'
+export { MazeFloorTile3D } from './ui/3d/MazeFloorTile3D'
+export { MazeWallTile3D } from './ui/3d/MazeWallTile3D'

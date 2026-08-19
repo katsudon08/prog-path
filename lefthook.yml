@@ -1,8 +1,0 @@
-# Git フック管理（lefthook）— #167。
-# FSD 依存境界チェックは全プロジェクト走査のため、pre-commit ではなく push 前に実行する。
-# CI での実行は #173（GitHub Actions）で別途組み込む。
-pre-push:
-  parallel: false
-  commands:
-    fsd-boundaries:
-      run: mise run lint:fsd
