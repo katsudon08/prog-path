@@ -1,0 +1,1 @@
+export { DownloadPage as default } from "@/src/pages/download"

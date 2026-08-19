@@ -1,10 +1,11 @@
-/**
- * Public API — `features/folder-management` スライス
- *
- * フォルダの作成/リネーム/削除・DnD・未分類移動。
- *
- * 他スライスからの import はこの index.ts 経由のみ。`export * from` は使わず
- * 公開対象を個別に明示し、公開シンボルは実装着手時に追加する
- * （→ docs/directory-structure.md 2.2）。
- */
-export {};
+// features/folder-management public API
+// フォルダの作成・削除・名前変更機能を提供
+
+// Model (Stores/Hooks)
+export { useFolderCreate } from './model/useFolderCreate'
+export { useFolderDelete } from './model/useFolderDelete'
+export { useFolderRename } from './model/useFolderRename'
+
+// UI Components
+export { CreateFolderDialog } from './ui/CreateFolderDialog'
+export { DeleteFolderDialog } from './ui/DeleteFolderDialog'
