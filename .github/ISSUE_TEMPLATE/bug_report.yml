@@ -34,7 +34,7 @@ body:
       required: true
 
   - type: dropdown
-    id: browsers
+    id: environment
     attributes:
       label: 発生した環境
       multiple: true
