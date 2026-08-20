@@ -1,0 +1,37 @@
+name: 機能リクエスト
+description: 新しい機能を設計して提案する
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 関連する問題や背景
+      description: この機能リクエストに関連する問題や背景を記述する
+      placeholder: 〜〜〜の処理が重いので、XXXの実装を行うことで改善したい。
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 提案する解決策
+      description: AIと壁打ちして設計した解決策を記述する
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 代替案
+      description: 壁打ちの際に発生した代替案を記述する
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: その他の情報
+      description: スクリーンショットや技術記事などの参考資料があれば追記する
+    validations:
+      required: false
