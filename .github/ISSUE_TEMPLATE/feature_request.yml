@@ -1,5 +1,6 @@
 name: 機能リクエスト
 description: 新しい機能を設計して提案する
+title: "feat: "
 labels: ["enhancement"]
 body:
   - type: textarea
