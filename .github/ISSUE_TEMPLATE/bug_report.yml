@@ -36,11 +36,12 @@ body:
   - type: dropdown
     id: browsers
     attributes:
-      label: 発生したブラウザ
+      label: 発生した環境
       multiple: true
       options:
         - Chrome
         - Firefox
         - Safari
         - Edge
+        - デスクトップ
         - その他
