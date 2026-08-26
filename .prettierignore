@@ -1,0 +1,20 @@
+# 検査対象の範囲は docs/ci.md を参照。移行完了時にこの4行を消す
+/src/
+/app/
+/pages/
+/main.js
+
+# アセットなので整形の対象外にする
+/public/
+
+# md の書き方は指定しない (個人の書き方に委ねる)
+*.md
+
+# 生成物・ロックファイル
+/.next/
+/out/
+/dist/
+/build/
+/package-lock.json
+tsconfig.tsbuildinfo
+next-env.d.ts
