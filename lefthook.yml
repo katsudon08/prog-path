@@ -15,3 +15,9 @@ commit-msg:
   commands:
     commitlint:
       run: npm run --silent commitlint
+
+pre-push:
+  commands:
+    typecheck:
+      # tsc はファイルを引数で渡すと tsconfig.json を無視するため、対象を渡さない
+      run: npm run --silent typecheck
