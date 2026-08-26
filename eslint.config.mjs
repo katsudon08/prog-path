@@ -5,6 +5,10 @@ import importPlugin from "eslint-plugin-import";
 import prettier from "eslint-config-prettier/flat";
 import stylistic from "@stylistic/eslint-plugin";
 
+// max-len はコードの行長も見るが、そこは Prettier の printWidth に任せる
+// off にはできないため、実質無効になる極端な値を入れる
+const CODE_MAX_LEN_DISABLED = 1000;
+
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -26,12 +30,14 @@ export default defineConfig([
     },
     rules: {
       // 長文コメントを検知する。// と /* */ の両方が対象
-      // コードの行長は Prettier の printWidth に任せるので code は実質無効化する
-      "@stylistic/max-len": ["warn", { code: 1000, comments: 60, ignoreUrls: true }],
+      "@stylistic/max-len": [
+        "warn",
+        { code: CODE_MAX_LEN_DISABLED, comments: 60, ignoreUrls: true },
+      ],
     },
   },
   globalIgnores([
-    // 移行で破棄予定の現行実装（.katsudon08/今後の方針.md 参照）。移行時にこの4行を消す
+    // 検査対象の範囲は docs/ci.md を参照。移行完了時にこの4行を消す
     "src/**",
     "app/**",
     "pages/**",

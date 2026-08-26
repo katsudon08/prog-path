@@ -1,4 +1,5 @@
 # 検査内容の定義は package.json の scripts に集約し、ここでは「いつ・何に対して走らせるか」だけを決める
+# lefthook は名前順にコマンドを実行するため、先頭の数字で「整形 → Lint」の順序を固定する
 pre-commit:
   commands:
     1_format:
@@ -13,4 +14,4 @@ pre-commit:
 commit-msg:
   commands:
     commitlint:
-      run: npm run --silent commitlint -- {1}
+      run: npm run --silent commitlint
