@@ -15,6 +15,6 @@
 /out/
 /dist/
 /build/
-/package-lock.json
+/pnpm-lock.yaml
 tsconfig.tsbuildinfo
 next-env.d.ts

@@ -5,6 +5,7 @@
   "private": true,
   "description": "A programming education app for elementary school students. Use cards to control a robot and navigate through mazes.",
   "author": "katsudon08",
+  "packageManager": "pnpm@10.34.0",
   "scripts": {
     "prepare": "lefthook install",
     "commitlint": "commitlint --edit",
@@ -16,9 +17,9 @@
     "format:check": "prettier --check --ignore-unknown",
     "lint": "eslint --max-warnings=0 --no-warn-ignored",
     "lint:fix": "eslint --fix --max-warnings=0 --no-warn-ignored",
-    "check": "npm run --silent format:check -- . && npm run --silent lint -- .",
-    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on tcp:3000 && electron .\"",
-    "electron:build": "npm run build && electron-builder"
+    "check": "pnpm run --silent format:check . && pnpm run --silent lint .",
+    "electron:dev": "concurrently -k \"pnpm dev\" \"wait-on tcp:3000 && electron .\"",
+    "electron:build": "pnpm build && electron-builder"
   },
   "build": {
     "appId": "app.prog-path.vercel",

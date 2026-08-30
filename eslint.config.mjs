@@ -1,7 +1,6 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
-import importPlugin from "eslint-plugin-import";
 import prettier from "eslint-config-prettier/flat";
 import stylistic from "@stylistic/eslint-plugin";
 
@@ -13,11 +12,9 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    plugins: {
-      import: importPlugin,
-    },
     rules: {
-      // _src 内での相対パスインポートを禁止し、エイリアス使用を強制
+      // 相対パスでの親ディレクトリ参照を禁止し、エイリアス使用を強制
+      // import プラグインは eslint-config-next が登録済みのため、ここでは登録しない
       "import/no-relative-parent-imports": "warn",
     },
   },
