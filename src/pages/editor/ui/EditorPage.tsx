@@ -5,7 +5,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from '@/src/shared/lib';
 import { Save, Trash2 } from 'lucide-react';
 import { Navbar, ToastContainer, FloatingActionButton, type FloatingAction } from '@/src/shared/ui';
 import { MazeEditorBoardWidget } from '@/src/widgets/editor';
