@@ -1,16 +1,10 @@
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-
-const rootDir = dirname(fileURLToPath(import.meta.url));
+import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    // 旧コードが使う @/src/... を解決する。エイリアスの再定義は #267
-    alias: { "@": rootDir },
-  },
+  // エイリアスは tsconfig.json の paths を単一の正として読む
+  plugins: [react(), tsconfigPaths()],
   build: {
     // 既定の dist は electron-builder の出力先と衝突するため out にする
     outDir: "out",
