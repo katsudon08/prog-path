@@ -8,19 +8,27 @@ import tseslint from "typescript-eslint";
 // off にはできないため、実質無効になる極端な値を入れる
 const CODE_MAX_LEN_DISABLED = 1000;
 
+// 配列は後ろの要素が前の要素を上書きする。並び順に意味がある
 export default defineConfig([
-  // eslint-config-next が内包していた TypeScript 向けのルールを引き継ぐ
+  // ESLint 単体では TypeScript の構文を読めないため、
+  // 型注釈を解析できるパーサと TS 向けルールをまとめて入れる
+  // 例: no-explicit-any / no-unused-vars / ban-ts-comment
   ...tseslint.configs.recommended,
   {
+    // plugins はルールの持ち込み。この時点ではまだ何も動かない
+    // eslint-plugin-import は import / export 文を検査する
     plugins: {
       import: importPlugin,
     },
+    // rules が実際の点灯。off / warn / error で強さを指定する
     rules: {
       // 親ディレクトリへの相対パスインポートを禁止し、エイリアス使用を強制
       "import/no-relative-parent-imports": "warn",
     },
   },
-  // 整形は Prettier に任せ、衝突する ESLint ルールを無効化する
+  // ルールを足す設定ではなく、Prettier と衝突する整形系ルールを
+  // すべて off にするだけの設定。整形は Prettier に任せる
+  // 配列ではなくオブジェクト1個なので展開せずそのまま置く
   prettier,
   {
     // prettier は max-len も off にするため、必ずその後で有効化する

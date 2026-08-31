@@ -1,5 +1,6 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
+  "$comment": "shadcn/ui の CLI 専用の設定。ビルド時と実行時には読まれないため、コンポーネントライブラリを再選定する際はこのファイルごと不要になる",
   "style": "new-york",
   "rsc": true,
   "tsx": true,

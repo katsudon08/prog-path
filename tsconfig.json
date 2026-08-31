@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    // Vite の build.target (既定: chrome107 / edge107 /
+    // firefox104 / safari16) で使える上限に合わせている。
+    // ES2023 以降の機能は Safari 16.4+ が必要になる
     "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "skipLibCheck": true,
@@ -13,6 +16,8 @@
     "jsx": "react-jsx",
     "incremental": true,
     "baseUrl": ".",
+    // 旧コードが使う @/src/... をそのまま解決するための
+    // 暫定値。一般的な @/* -> ./src/* への見直しは #267
     "paths": {
       "@/*": ["./*"]
     }
