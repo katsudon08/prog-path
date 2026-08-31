@@ -14,8 +14,8 @@ closes #
 
 ## 動作確認
 
-- [ ] `npm run lint` が通る
-- [ ] `npm run build` が通る
+- [ ] `pnpm check` が通る
+- [ ] `pnpm build` が通る
 
 <!-- 上記に加えて、実際に手で操作して確かめたことを書く -->
 

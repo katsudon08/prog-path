@@ -1,23 +1,22 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
-import importPlugin from "eslint-plugin-import";
-import prettier from "eslint-config-prettier/flat";
 import stylistic from "@stylistic/eslint-plugin";
+import { defineConfig, globalIgnores } from "eslint/config";
+import prettier from "eslint-config-prettier/flat";
+import importPlugin from "eslint-plugin-import";
+import tseslint from "typescript-eslint";
 
 // max-len はコードの行長も見るが、そこは Prettier の printWidth に任せる
 // off にはできないため、実質無効になる極端な値を入れる
 const CODE_MAX_LEN_DISABLED = 1000;
 
 export default defineConfig([
-  ...nextVitals,
-  ...nextTs,
+  // eslint-config-next が内包していた TypeScript 向けのルールを引き継ぐ
+  ...tseslint.configs.recommended,
   {
     plugins: {
       import: importPlugin,
     },
     rules: {
-      // _src 内での相対パスインポートを禁止し、エイリアス使用を強制
+      // 親ディレクトリへの相対パスインポートを禁止し、エイリアス使用を強制
       "import/no-relative-parent-imports": "warn",
     },
   },
@@ -37,15 +36,11 @@ export default defineConfig([
     },
   },
   globalIgnores([
-    // 検査対象の範囲は docs/ci.md を参照。移行完了時にこの4行を消す
+    // 検査対象の範囲は docs/ci.md を参照。移行完了時にこの2行を消す
     "src/**",
-    "app/**",
-    "pages/**",
     "main.js",
     // 生成物
-    ".next/**",
     "out/**",
     "build/**",
-    "next-env.d.ts",
   ]),
 ]);

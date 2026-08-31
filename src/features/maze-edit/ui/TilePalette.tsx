@@ -111,7 +111,7 @@ export function TilePalette() {
                 ))}
             </div>
             {/* スプラトゥーン風アニメーション */}
-            <style jsx>{`
+            <style>{`
                 @keyframes inkMorph {
                     0%, 100% {
                         border-radius: 40% 60% 55% 45% / 50% 40% 60% 50%;

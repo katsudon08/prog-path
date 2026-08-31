@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import { MazeData } from '@/src/entities/maze';
 import { MazePreview2D } from '@/src/entities/maze/ui/2d/MazePreview2D';
 import { RobotState, RobotAnimationState } from '@/src/entities/robot';
-import Image from 'next/image';
 
 interface ARMinimapProps {
   maze: MazeData;
@@ -134,10 +133,10 @@ export function ARMinimap({ maze, robotState, animationState }: ARMinimapProps):
                 className={`w-full h-full flex items-center justify-center ${shouldAnimate ? 'transition-transform duration-300' : ''}`}
                 style={{ transform: `rotate(${rotation}deg)` }}
              >
-                <Image 
-                    src="/assets/minimap-arrow.svg" 
-                    alt="Robot" 
-                    width={effectiveCellSize * 0.8} 
+                <img
+                    src="/assets/minimap-arrow.svg"
+                    alt="Robot"
+                    width={effectiveCellSize * 0.8}
                     height={effectiveCellSize * 0.8}
                 />
              </div>

@@ -18,7 +18,7 @@ import { useQRImport } from '@/src/features/maze-qr-management/model/useQRImport
 import { QRImportDialog } from '@/src/features/maze-qr-management/ui/QRImportDialog';
 import { useQRShare } from '@/src/features/maze-qr-management/model/useQRShare';
 import { QRShareDialog } from '@/src/features/maze-qr-management/ui/QRShareDialog';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/src/shared/lib';
 
 /**
  * 迷路サイズラベルを生成

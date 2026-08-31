@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useEffect, useCallback, useState, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from '@/src/shared/lib';
 import { useMazeStore, type MazeData, findStartPosition } from '@/src/entities/maze';
 import { useRobotStore, type RobotState } from '@/src/entities/robot';
 import { type Command, type CommandType } from '@/src/entities/command';

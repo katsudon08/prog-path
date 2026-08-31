@@ -7,8 +7,7 @@
 
 import React from 'react';
 import { Home, Monitor } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname } from '@/src/shared/lib';
 
 /** ページパスとタイトルのマッピング */
 const PAGE_TITLES: Record<string, string> = {
@@ -42,12 +41,12 @@ export function Navbar(): React.ReactElement {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Left: Home link & Logo */}
         <div className="flex items-center gap-4">
-          <Link
+          <a
             href="/"
             className="flex items-center gap-2 text-neon-cyan transition-colors hover:text-neon-cyan/80"
           >
             <Home className="h-5 w-5" />
-          </Link>
+          </a>
           <span className="text-lg font-bold text-neon-blue">ProgPath</span>
         </div>
 
@@ -56,13 +55,13 @@ export function Navbar(): React.ReactElement {
 
         {/* Right: Download link */}
         <div className="flex items-center">
-          <Link
+          <a
             href="/download"
             className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-neon-blue/10 hover:text-neon-cyan"
             title="デスクトップ版をダウンロード"
           >
             <Monitor className="h-5 w-5" />
-          </Link>
+          </a>
         </div>
       </div>
     </nav>

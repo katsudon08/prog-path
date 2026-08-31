@@ -19,8 +19,7 @@ dist-linux/
 # testing
 /coverage
 
-# next.js
-/.next/
+# 生成物
 /out/
 
 # production
@@ -47,7 +46,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # IDEs and editors
 .idea/

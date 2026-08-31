@@ -10,7 +10,9 @@ CIで何が走るのかを把握したいエンジニアです。
 
 ## 検査対象の範囲
 
-`src/` `app/` `pages/` `main.js` は移行にともない破棄する予定のため、フォーマットとLintの対象から除外しています。
+`src/` と `main.js` は移行にともない破棄する予定のため、フォーマットとLintの対象から除外しています。
+ただし Vite への移行で新規に追加したファイル (`src/main.tsx` や `src/app/`) も `src/` 配下にあるため、
+現状はそれらも除外されたままです。範囲の見直しはディレクトリ構成の確定時に行います。
 
 ## コミット前
 
@@ -18,7 +20,7 @@ CIで何が走るのかを把握したいエンジニアです。
 
 `lefthook`を使用しています。
 Goで書かれているため高速で、Gitフックをより簡単にします。
-フックの設置は`npm install`時に`prepare`が行います。
+フックの設置は`pnpm install`時に`prepare`が行います。
 各人が手で`lefthook install`を叩く必要がなくなるためです。
 
 参考記事：[Git フック管理ツール「Lefthook」の紹介](https://zenn.dev/sukesan0720/articles/87a8c005f82522)
@@ -27,10 +29,10 @@ Goで書かれているため高速で、Gitフックをより簡単にします
 
 | 項目 | ツール | 実行されるコマンド |
 | --- | --- | --- |
-| フォーマット | Prettier | `npm run format -- <対象>` |
-| 文法・コーディング規約 (コメントも含む) | ESLint | `npm run lint:fix -- <対象>` |
+| フォーマット | Prettier | `pnpm run format <対象>` |
+| 文法・コーディング規約 (コメントも含む) | ESLint | `pnpm run lint:fix <対象>` |
 | ユニットテスト | 未定 | なし |
-| コミットメッセージ規約 | commitlint | `npm run commitlint` |
+| コミットメッセージ規約 | commitlint | `pnpm run commitlint` |
 
 参考記事：[commitlint の紹介](https://qiita.com/ybiquitous/items/74225bc4bf0a9ddcd7dd)
 
@@ -44,7 +46,7 @@ Goで書かれているため高速で、Gitフックをより簡単にします
 
 | 項目 | ツール | 実行されるコマンド |
 | --- | --- | --- |
-| 型チェック | TypeScript | `npm run typecheck` |
+| 型チェック | TypeScript | `pnpm run typecheck` |
 | インテグレーションテスト | 未定 | なし |
 
 型チェックをコミット前ではなくプッシュ前に置く理由は次の2点です。
@@ -66,9 +68,9 @@ Goで書かれているため高速で、Gitフックをより簡単にします
 
 | 項目 | ツール | 実行されるコマンド |
 | --- | --- | --- |
-| フォーマット | Prettier | `npm run format:check -- .` |
-| 文法・コーディング規約 (コメントも含む) | ESLint | `npm run lint -- .` |
-| 型チェック | TypeScript | `npm run typecheck` |
+| フォーマット | Prettier | `pnpm run format:check .` |
+| 文法・コーディング規約 (コメントも含む) | ESLint | `pnpm run lint .` |
+| 型チェック | TypeScript | `pnpm run typecheck` |
 | ユニットテスト | 未定 | なし |
 | インテグレーションテスト | 未定 | なし |
 | E2Eテスト | 未定 | なし |

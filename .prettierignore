@@ -1,7 +1,5 @@
-# 検査対象の範囲は docs/ci.md を参照。移行完了時にこの4行を消す
+# 検査対象の範囲は docs/ci.md を参照。移行完了時にこの2行を消す
 /src/
-/app/
-/pages/
 /main.js
 
 # アセットなので整形の対象外にする
@@ -11,10 +9,8 @@
 *.md
 
 # 生成物・ロックファイル
-/.next/
 /out/
 /dist/
 /build/
-/package-lock.json
+/pnpm-lock.yaml
 tsconfig.tsbuildinfo
-next-env.d.ts
