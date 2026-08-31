@@ -1,22 +1,18 @@
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-
-const rootDir = dirname(fileURLToPath(import.meta.url));
+import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    // 旧コードが使う @/src/... を解決する。エイリアスの再定義は #267
-    alias: { "@": rootDir },
-  },
+  // エイリアスは tsconfig.json の paths を単一の正として読む
+  plugins: [react(), tsconfigPaths()],
   build: {
     // 既定の dist は electron-builder の出力先と衝突するため out にする
     outDir: "out",
     rollupOptions: {
+      // Rollup の警告ハンドラ。return で握りつぶし、warn() で出力
       onwarn(warning, warn) {
-        // 旧コードに残る "use client" は Vite では意味を持たない
+        // "use client" は Next の RSC 用マーカーで Vite では無意味。
+        // バンドルで先頭から外れる旧コード34ファイル分の警告を消す
         if (warning.code === "MODULE_LEVEL_DIRECTIVE") return;
         warn(warning);
       },
