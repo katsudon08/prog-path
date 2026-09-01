@@ -1,34 +1,19 @@
-import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/react-router";
-import { ARPage } from "@/src/pages/ar";
+import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import { DownloadPage } from "@/src/pages/download";
-import { EditorPage } from "@/src/pages/editor";
 import { HomePage } from "@/src/pages/home";
-import { Navbar, ToastContainer } from "@/src/shared/ui";
 import "./styles/globals.css";
+import { ARRoute } from "./ui/ARRoute";
+import { EditorRoute } from "./ui/EditorRoute";
+import { Shell } from "./ui/Shell";
 
 const rootRoute = createRootRoute();
 
-/**
- * 全画面共通の外枠
- *
- * URL のパスを持たないレイアウトルート。path ではなく id を指定して作る。
- * Navbar と ToastContainer をここ 1 箇所だけで描画する。
- */
+// URL のパスを持たないレイアウトルート。path ではなく id を指定して作る
 const shellRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "shell",
   component: Shell,
 });
-
-function Shell() {
-  return (
-    <>
-      <Navbar />
-      <Outlet />
-      <ToastContainer />
-    </>
-  );
-}
 
 const homeRoute = createRoute({
   getParentRoute: () => shellRoute,
@@ -46,12 +31,6 @@ const editorRoute = createRoute({
   component: EditorRoute,
 });
 
-// ルート定義と同じモジュールなので editorRoute を直接参照でき、循環参照にならない
-function EditorRoute() {
-  const { id } = editorRoute.useSearch();
-  return <EditorPage mazeId={id} />;
-}
-
 const arRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: "/ar",
@@ -62,11 +41,6 @@ const arRoute = createRoute({
   }),
   component: ARRoute,
 });
-
-function ARRoute() {
-  const { id, import: importMode } = arRoute.useSearch();
-  return <ARPage mazeId={id} importMode={importMode} />;
-}
 
 const downloadRoute = createRoute({
   getParentRoute: () => shellRoute,
