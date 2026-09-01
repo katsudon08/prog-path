@@ -73,7 +73,7 @@ export function ARPlaygroundWidget({
   return (
     <div className={`flex flex-col h-screen bg-space-darker ${className}`}>
       {/* メインコンテンツ - 7:3 ratio grid */}
-      <div className="grid grid-cols-[7fr_3fr] flex-1 min-h-0 p-6 gap-6 pt-24">
+      <div className="grid grid-cols-[7fr_3fr] flex-1 min-h-0 p-6 gap-6 pt-16">
         {/* 3Dビュー（左側・カメラ領域） */}
         <div className="relative rounded-lg overflow-hidden border-2 border-neon-cyan shadow-lg shadow-neon-cyan/30">
           {view3D}

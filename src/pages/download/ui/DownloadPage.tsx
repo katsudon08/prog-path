@@ -35,7 +35,7 @@ export function DownloadPage(): React.ReactElement {
       />
 
       {/* Main Hero Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 pt-24 pb-12">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 pt-16 pb-12">
         <AppDownloadPanel />
       </main>
     </div>
