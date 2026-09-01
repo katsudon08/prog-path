@@ -11,7 +11,7 @@ import { CommandStack, useCommandStore } from '@/src/features/command-management
 import { useSimulationStore } from '@/src/features/maze-simulation/model/useSimulationStore';
 import { useSimulationRunner } from '@/src/features/maze-simulation/model/useSimulationRunner';
 import { useMazeStore } from '@/src/entities/maze';
-import { FloatingActionButton, type FloatingAction, Navbar, ToastContainer, useToast } from '@/src/shared/ui';
+import { FloatingActionButton, type FloatingAction, useToast } from '@/src/shared/ui';
 import { ARMinimap } from './ARMinimap';
 import { useRobotStore } from '@/src/entities/robot';
 
@@ -72,9 +72,6 @@ export function ARPlaygroundWidget({
 
   return (
     <div className={`flex flex-col h-screen bg-space-darker ${className}`}>
-      {/* Navbar */}
-      <Navbar />
-
       {/* メインコンテンツ - 7:3 ratio grid */}
       <div className="grid grid-cols-[7fr_3fr] flex-1 min-h-0 p-6 gap-6 pt-24">
         {/* 3Dビュー（左側・カメラ領域） */}
@@ -121,9 +118,6 @@ export function ARPlaygroundWidget({
 
       {/* FAB: リボルバー型メニュー */}
       <FloatingActionButton actions={fabActions} />
-
-      {/* トースト通知 */}
-      <ToastContainer />
     </div>
   );
 }

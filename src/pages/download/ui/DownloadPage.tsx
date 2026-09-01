@@ -5,14 +5,11 @@
 'use client';
 
 import React from 'react';
-import { Navbar } from '@/src/shared/ui';
 import { AppDownloadPanel } from '@/src/features/app-download';
 
 export function DownloadPage(): React.ReactElement {
   return (
     <div className="flex flex-col min-h-screen bg-space-darker overflow-hidden relative selection:bg-neon-cyan/30 selection:text-neon-cyan font-sans">
-      <Navbar />
-
       {/* Hero Background - Deep & Clean */}
       <div 
         className="fixed inset-0 pointer-events-none opacity-40 mix-blend-screen"
