@@ -7,7 +7,7 @@
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { FolderPlus, Plus, QrCode, Edit, Play } from 'lucide-react';
-import { Navbar, FloatingActionButton, type FloatingAction } from '@/src/shared/ui';
+import { FloatingActionButton, type FloatingAction } from '@/src/shared/ui';
 import { FolderCard, useFolderStore, loadFoldersFromStorage, saveFoldersToStorage, loadExpandedFoldersFromStorage, saveExpandedFoldersToStorage, DEFAULT_FOLDER_NAME } from '@/src/entities/folder';
 import { MazeCard, MazePreview2D, useMazeStore, saveMazesToStorage, type MazeData } from '@/src/entities/maze';
 import { useFolderCreate } from '@/src/features/folder-management/model/useFolderCreate';
@@ -18,7 +18,7 @@ import { useQRImport } from '@/src/features/maze-qr-management/model/useQRImport
 import { QRImportDialog } from '@/src/features/maze-qr-management/ui/QRImportDialog';
 import { useQRShare } from '@/src/features/maze-qr-management/model/useQRShare';
 import { QRShareDialog } from '@/src/features/maze-qr-management/ui/QRShareDialog';
-import { useRouter } from '@/src/shared/lib';
+import { useNavigate } from '@tanstack/react-router';
 
 /**
  * 迷路サイズラベルを生成
@@ -36,7 +36,7 @@ function getMazeSizeLabel(maze: MazeData): string {
 }
 
 export function HomePage(): React.ReactElement {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   // ストアの初期化
   const initialize = useMazeStore((s) => s.initialize);
@@ -132,7 +132,7 @@ export function HomePage(): React.ReactElement {
   // 編集ボタンのハンドラー
   const handleEditClick = () => {
     if (validatedSelectedMaze) {
-      router.push(`/editor?id=${validatedSelectedMaze.id}`);
+      navigate({ to: '/editor', search: { id: validatedSelectedMaze.id } });
     }
   };
 
@@ -148,7 +148,7 @@ export function HomePage(): React.ReactElement {
       icon: <Plus className="w-5 h-5" />,
       label: '新規迷路',
       variant: 'info' as const,
-      onClick: () => router.push('/editor'),
+      onClick: () => navigate({ to: '/editor', search: {} }),
     },
     {
       icon: <QrCode className="w-5 h-5" />,
@@ -156,13 +156,12 @@ export function HomePage(): React.ReactElement {
       variant: 'default' as const,
       onClick: openQRImport,
     },
-  ], [openFolderCreate, openQRImport, router]);
+  ], [openFolderCreate, openQRImport, navigate]);
 
   // ローディング中
   if (!isLoaded) {
     return (
       <div className="flex flex-col min-h-screen bg-space-darker">
-        <Navbar />
         <main className="flex-1 flex items-center justify-center pt-16">
           <div className="text-neon-cyan">Loading...</div>
         </main>
@@ -172,8 +171,6 @@ export function HomePage(): React.ReactElement {
 
   return (
     <div className="flex flex-col min-h-screen bg-space-darker">
-      <Navbar />
-
       <main className="flex-1 flex pt-16">
         {/* 左側：フォルダ＋迷路リスト（スクロール可能） */}
         <aside className="w-[25%] h-[calc(100vh-4rem)] border-r border-neon-blue/20 bg-space-dark overflow-y-auto">
@@ -272,7 +269,7 @@ export function HomePage(): React.ReactElement {
                 {/* 実行ボタン */}
                 <button
                   type="button"
-                  onClick={() => router.push(`/ar?id=${validatedSelectedMaze.id}`)}
+                  onClick={() => navigate({ to: '/ar', search: { id: validatedSelectedMaze.id } })}
                   className="flex items-center gap-2 px-6 py-3 bg-neon-green/20 border border-neon-green rounded-lg text-neon-green hover:bg-neon-green/30 transition-colors"
                 >
                   <Play className="w-5 h-5" />

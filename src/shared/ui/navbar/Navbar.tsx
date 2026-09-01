@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Home, Monitor } from 'lucide-react';
-import { usePathname } from '@/src/shared/lib';
+import { Link, useLocation } from '@tanstack/react-router';
 
 /** ページパスとタイトルのマッピング */
 const PAGE_TITLES: Record<string, string> = {
@@ -33,7 +33,8 @@ function getPageTitle(pathname: string | null): string {
 }
 
 export function Navbar(): React.ReactElement {
-  const pathname = usePathname();
+  // select を渡すと pathname が変わったときだけ再描画される
+  const pathname = useLocation({ select: (location) => location.pathname });
   const pageTitle = getPageTitle(pathname);
 
   return (
@@ -41,12 +42,12 @@ export function Navbar(): React.ReactElement {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Left: Home link & Logo */}
         <div className="flex items-center gap-4">
-          <a
-            href="/"
+          <Link
+            to="/"
             className="flex items-center gap-2 text-neon-cyan transition-colors hover:text-neon-cyan/80"
           >
             <Home className="h-5 w-5" />
-          </a>
+          </Link>
           <span className="text-lg font-bold text-neon-blue">ProgPath</span>
         </div>
 
@@ -55,13 +56,13 @@ export function Navbar(): React.ReactElement {
 
         {/* Right: Download link */}
         <div className="flex items-center">
-          <a
-            href="/download"
+          <Link
+            to="/download"
             className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-neon-blue/10 hover:text-neon-cyan"
             title="デスクトップ版をダウンロード"
           >
             <Monitor className="h-5 w-5" />
-          </a>
+          </Link>
         </div>
       </div>
     </nav>

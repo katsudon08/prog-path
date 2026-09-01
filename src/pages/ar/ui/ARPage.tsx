@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useEffect, useCallback, useState, useRef } from 'react';
-import { useRouter, useSearchParams } from '@/src/shared/lib';
+import { useNavigate } from '@tanstack/react-router';
 import { useMazeStore, type MazeData, findStartPosition } from '@/src/entities/maze';
 import { useRobotStore, type RobotState } from '@/src/entities/robot';
 import { type Command, type CommandType } from '@/src/entities/command';
@@ -17,11 +17,15 @@ import { ARPlaygroundWidget } from '@/src/widgets/ar';
 import { MazeView3DWidget } from '@/src/widgets/maze-view-3d';
 import { useToast } from '@/src/shared/ui/toast/useToast';
 
-export function ARPage(): React.ReactElement {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const mazeId = searchParams?.get('id') ?? null;
-    const importMode = searchParams?.get('import') === 'true';
+interface ARPageProps {
+    /** 実行する迷路の ID */
+    mazeId?: string;
+    /** QR インポート直後の起動かどうか */
+    importMode?: boolean;
+}
+
+export function ARPage({ mazeId, importMode }: ARPageProps): React.ReactElement {
+    const navigate = useNavigate();
 
     // Stores
     const { selectedMaze, selectMaze, initialize, getMazeById } = useMazeStore();
@@ -80,7 +84,7 @@ export function ARPage(): React.ReactElement {
         if (!mazeId && !importMode) {
             // If no maze ID and not import mode, redirect to home
             if (!selectedMaze) {
-                router.push('/');
+                navigate({ to: '/' });
             }
             return;
         }
@@ -158,7 +162,7 @@ export function ARPage(): React.ReactElement {
             }
             setInitialMazeData(structuredClone(targetMaze));
         }
-    }, [mazeId, importMode, router, selectMaze, selectedMaze, initialize, getMazeById, clearCommands, setInitialMazeData]);
+    }, [mazeId, importMode, navigate, selectMaze, selectedMaze, initialize, getMazeById, clearCommands, setInitialMazeData]);
 
     // QR Command Detection Handler
     const handleMarkerDetected = useCallback((detectedCommand: Command) => {

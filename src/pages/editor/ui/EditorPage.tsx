@@ -5,9 +5,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useSearchParams, useRouter } from '@/src/shared/lib';
+import { useNavigate } from '@tanstack/react-router';
 import { Save, Trash2 } from 'lucide-react';
-import { Navbar, ToastContainer, FloatingActionButton, type FloatingAction } from '@/src/shared/ui';
+import { FloatingActionButton, type FloatingAction } from '@/src/shared/ui';
 import { MazeEditorBoardWidget } from '@/src/widgets/editor';
 import { useMazeStore, saveMazesToStorage, validateMaze, type MazeData, type TileType } from '@/src/entities/maze';
 import { useToast } from '@/src/shared/ui/toast';
@@ -37,10 +37,13 @@ function createDefaultMaze(): MazeData {
   };
 }
 
-export function EditorPage(): React.ReactElement {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const mazeId = searchParams?.get('id');
+interface EditorPageProps {
+  /** 編集する迷路の ID。無ければ新規作成として扱う */
+  mazeId?: string;
+}
+
+export function EditorPage({ mazeId }: EditorPageProps): React.ReactElement {
+  const navigate = useNavigate();
   const { addToast } = useToast();
 
   // 初期化フラグ（Strict Modeでの重複実行防止）
@@ -125,7 +128,7 @@ export function EditorPage(): React.ReactElement {
           message: '迷路を保存しました',
         });
         // トーストを見せてから遷移
-        setTimeout(() => router.push('/'), 1000);
+        setTimeout(() => navigate({ to: '/' }), 1000);
       },
     },
     // 削除アクション
@@ -152,7 +155,7 @@ export function EditorPage(): React.ReactElement {
             message: '編集をキャンセルしました',
           });
           // トーストを見せてから遷移
-          setTimeout(() => router.push('/'), 1000);
+          setTimeout(() => navigate({ to: '/' }), 1000);
           return;
         }
 
@@ -169,16 +172,15 @@ export function EditorPage(): React.ReactElement {
           message: '迷路を削除しました',
         });
         // トーストを見せてから遷移
-        setTimeout(() => router.push('/'), 1000);
+        setTimeout(() => navigate({ to: '/' }), 1000);
       },
     },
-  ], [addToast, router, deleteMaze, addMaze, updateMaze]);
+  ], [addToast, navigate, deleteMaze, addMaze, updateMaze]);
 
   // ローディング中
   if (!isLoaded) {
     return (
       <div className="flex flex-col min-h-screen bg-space-darker">
-        <Navbar />
         <main className="flex-1 flex items-center justify-center pt-16">
           <div className="text-neon-cyan">Loading...</div>
         </main>
@@ -188,17 +190,12 @@ export function EditorPage(): React.ReactElement {
 
   return (
     <div className="flex flex-col min-h-screen bg-space-darker">
-      <Navbar />
-
       <main className="flex-1 pt-16 p-6 flex flex-col">
         <MazeEditorBoardWidget className="flex-1" />
       </main>
 
       {/* フローティングアクションボタン */}
       <FloatingActionButton actions={fabActions} />
-
-      {/* トースト通知 */}
-      <ToastContainer />
     </div>
   );
 }
