@@ -64,6 +64,35 @@ Goで書かれているため高速で、Gitフックをより簡単にします
 
 参考記事：[(CI/CD)Github Workflows を使ってCI自動テストを作成](https://zenn.dev/hyoni/articles/d53a4c57979e7d)
 
+### 実行タイミング
+
+ワークフローは`.github/workflows/ci.yml`に定義しています。
+
+| イベント | 対象 |
+| --- | --- |
+| PRの作成・更新 | すべてのブランチ |
+| push | `main`のみ |
+
+`main`へのpushも監視するのは、`--no-verify`でフックを外して入った変更を拾うためです。
+また同じブランチへ連続でpushした場合は、古い実行を打ち切ります (`concurrency`)。
+
+### 実行環境の固定
+
+CIとローカルで結果が食い違わないように、ツールのバージョンを固定しています。
+
+| 対象 | 固定する場所 | CIでの読み取り方 |
+| --- | --- | --- |
+| Node | `.node-version` (動作範囲は`package.json`の`engines`) | `actions/setup-node`の`node-version-file` |
+| pnpm | `package.json`の`packageManager` | `pnpm/action-setup`が自動で読む |
+| npmパッケージ (Vite / Reactなど) | `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` |
+
+`vite`や`react`のようなnpmパッケージは`pnpm-lock.yaml`が依存の依存まで固定しているため、
+これとは別にバージョン管理の仕組みを用意する必要はありません。
+
+`--frozen-lockfile`を付ける理由は、`pnpm-lock.yaml`の更新をコミットし忘れたときに、
+CIが黙って辻褄を合わせたまま成功してしまうのを防ぐためです。
+lockfileと`package.json`が食い違っていれば、インストールの時点で落ちます。
+
 ### チェック項目
 
 | 項目 | ツール | 実行されるコマンド |
@@ -74,7 +103,7 @@ Goで書かれているため高速で、Gitフックをより簡単にします
 | ユニットテスト | 未定 | なし |
 | インテグレーションテスト | 未定 | なし |
 | E2Eテスト | 未定 | なし |
-| ビルド | 未定 | なし |
+| ビルド | Vite | `pnpm run build` |
 
 ### なぜコミット前と重複して検査するのか
 
