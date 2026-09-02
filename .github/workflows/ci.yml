@@ -1,0 +1,50 @@
+# 検査内容の定義は package.json の scripts に集約し、ここでは「いつ・何を走らせるか」だけを決める
+# 検査項目の一覧と意図は docs/ci.md を参照
+name: CI
+
+# メインターゲットは PR。main は --no-verify で入った変更を拾うために監視する
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# 同じブランチに連続で push した場合、古い実行を打ち切って待ち時間を無駄にしない
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 検査しかしないため、与える権限は読み取りだけに絞る
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # setup-node の pnpm キャッシュが pnpm 本体を必要とするため先に入れる
+      # バージョンは package.json の packageManager を読むのでここには書かない
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      # lockfile を更新せずに再現する。lockfile の更新漏れがあればここで落ちる
+      - name: 依存関係のインストール
+        run: pnpm install --frozen-lockfile
+
+      # 軽い検査から順に並べ、落ちたときに原因を絞りやすくする
+      - name: フォーマット
+        run: pnpm run format:check .
+
+      - name: Lint
+        run: pnpm run lint .
+
+      - name: 型チェック
+        run: pnpm run typecheck
+
+      - name: ビルド
+        run: pnpm run build
