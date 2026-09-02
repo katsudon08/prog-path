@@ -6,6 +6,10 @@
   "description": "A programming education app for elementary school students. Use cards to control a robot and navigate through mazes.",
   "author": "katsudon08",
   "packageManager": "pnpm@10.34.0",
+  "engines": {
+    "node": "24.x",
+    "pnpm": ">=10.34.0"
+  },
   "scripts": {
     "prepare": "lefthook install",
     "commitlint": "commitlint --edit",
