@@ -34,10 +34,46 @@ v4はv3と設定の持ち方が変わり、`tailwind.config.js`が不要にな�
 | ビルドへの組み込み | `@tailwindcss/vite` (公式のViteプラグイン)。v4の推奨構成 |
 | 設定ファイル | 無し。トークンは`src/app/styles/globals.css`の`@theme inline`に集約 |
 | 読み込み箇所 | `src/app/router.tsx`の`import "./styles/globals.css"`の1箇所のみ |
+| クラス名の走査範囲 | `src/`と`index.html`のみ (後述) |
 | ベンダープレフィックス | Tailwindが内蔵するLightning CSSが自動で付与する。`autoprefixer`は不要 |
 
 PostCSS経由 (`@tailwindcss/postcss` + `postcss.config.mjs`) ではありません。
 Viteプラグインのほうがv4の推奨構成であり、設定ファイルを1つ減らせるためです。
+
+### クラス名の走査範囲を絞っている理由
+
+**v4はクラス名の走査範囲を既定でリポジトリ全体に取ります。**
+v3では`tailwind.config.js`の`content`に走査対象を列挙していましたが、
+v4でその設定ファイルごと無くなり、自動ソース検出に置き換わりました。
+
+そしてクラス名の抽出は構文解析ではなく、
+**ユーティリティ名として成立しうる文字列を拾う**方式です。
+そのためコード中のクラス名と、ドキュメントや設定ファイルに書かれた単語が区別されません。
+
+実際に次の2件が混入していました。
+
+| 出所 | 生成されていたCSS |
+| --- | --- |
+| ドキュメントに書いた`@theme inline`という説明文 | `.inline { display: inline }` |
+| `.github/workflows/ci.yml`の`permissions`の`contents: read` | `.contents { display: contents }` |
+
+どちらも誰も使っていないルールです。
+`.md`だけを除外しても`ci.yml`の側が残るため、
+**除外ではなく走査するものを宣言する**形にしています。
+
+```css
+/* 自動走査の基点を src/ に絞る */
+@import "tailwindcss" source("../../");
+
+/* index.html は src/ の外にあるので明示で足す */
+@source "../../../index.html";
+```
+
+`@source`系のパスは**CSSファイルからの相対**で解決されます。
+リポジトリ直下を起点にする書き方は用意されていないため、`../../../`が構造的に必要です。
+
+**注意点として、`src/`と`index.html`の外にクラス名を書いてもスタイルが生成されません。**
+コンポーネントを置く場所を増やすときは`@source`の追加が必要です。
 
 ### フォント
 
