@@ -1,5 +1,11 @@
-@import "tailwindcss";
+/* Tailwind は既定でリポジトリ全体を走査してクラス名の候補を集める。
+   docs や .github の散文まで拾ってしまうため、基点を src/ に絞る */
+@import "tailwindcss" source("../../");
 @import "tw-animate-css";
+
+/* body に付いている font-sans / antialiased を拾うため、
+   src/ の外にある index.html だけ明示で足す */
+@source "../../../index.html";
 
 @custom-variant dark (&:is(.dark *));
 
