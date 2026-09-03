@@ -45,10 +45,14 @@ export default defineConfig([
   },
   globalIgnores([
     // 検査対象の範囲は docs/ci.md を参照。移行完了時にこの2行を消す
+    // .prettierignore 側は CSS を対象に残すため拡張子で切っているが、
+    // ESLint は config が files で宣言した拡張子しか見ず CSS を
+    // 解釈できないため、ここは src/** のままでよい
     "src/**",
     "main.js",
-    // 生成物
+    // 生成物。dist は electron-builder の出力先
     "out/**",
     "build/**",
+    "dist/**",
   ]),
 ]);
