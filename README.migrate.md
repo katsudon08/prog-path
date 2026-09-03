@@ -23,6 +23,37 @@
 
 ただ、移行を行うにあたりこのサービス全体を作り変える作業も同時に行っていくため、順番としては`サービスの作り直し -> 技術スタックの移行`の順に行っていく。
 
+## スタイリング
+
+Tailwind CSS v4を使用しています。
+v4はv3と設定の持ち方が変わり、`tailwind.config.js`が不要になりました。
+テーマの定義はCSS側の`@theme`ディレクティブで行うため、本リポジトリに`tailwind.config.*`は存在しません。
+
+| 項目 | 内容 |
+| --- | --- |
+| ビルドへの組み込み | `@tailwindcss/vite` (公式のViteプラグイン)。v4の推奨構成 |
+| 設定ファイル | 無し。トークンは`src/app/styles/globals.css`の`@theme inline`に集約 |
+| 読み込み箇所 | `src/app/router.tsx`の`import "./styles/globals.css"`の1箇所のみ |
+| ベンダープレフィックス | Tailwindが内蔵するLightning CSSが自動で付与する。`autoprefixer`は不要 |
+
+PostCSS経由 (`@tailwindcss/postcss` + `postcss.config.mjs`) ではありません。
+Viteプラグインのほうがv4の推奨構成であり、設定ファイルを1つ減らせるためです。
+
+### フォント
+
+**現在はWebフォントを使わず、OSのシステムフォントで表示しています。**
+
+Next.js版では`next/font/google`でOrbitronとMichromaを読み込んでいましたが、
+Viteへの移行で`next/font`が使えなくなり、フォントの実体が読み込まれない状態になっていました。
+そこで一度すべて撤去し、Tailwind v4既定の`--font-sans`にフォールバックさせています。
+
+書体の選定は画面ごとの作り直しでデザインを決める段に、改めて別Issueとして扱います。
+デスクトップ移行時にオフラインで表示する必要があるため、そのときはCDNではなくローカル同梱にします。
+
+なお`public/fonts/helvetiker_regular.typeface.json`はThree.jsの`Text3D`専用で、
+AR画面の3Dテキスト (スタートの「S」・ゴールの「G」・階層番号) を描くために必要です。
+Webフォントとは無関係なので消さないでください。
+
 ## CI
 
 コミット前、プッシュ前、CI時に検証する内容とツールについて記しています。
