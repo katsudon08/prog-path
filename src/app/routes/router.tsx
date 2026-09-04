@@ -1,10 +1,10 @@
 import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import { DownloadPage } from "@/src/pages/download";
 import { HomePage } from "@/src/pages/home";
-import "./styles/globals.css";
-import { ARRoute } from "./ui/ARRoute";
-import { EditorRoute } from "./ui/EditorRoute";
-import { Shell } from "./ui/Shell";
+import "../styles/globals.css";
+import { ARRoute } from "./ARRoute";
+import { EditorRoute } from "./EditorRoute";
+import { Shell } from "./Shell";
 
 const rootRoute = createRootRoute();
 
