@@ -1,5 +1,5 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { EditorPage } from "@/src/pages/editor";
+import { EditorPage } from "@/legacy/pages/editor";
 
 // ルート定義を import すると router.tsx と循環するため、ID の文字列で引く。
 // 文字列は登録済みルートのリテラル型に縛られるので、綴りを誤れば型エラーになる

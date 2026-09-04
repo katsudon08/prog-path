@@ -1,5 +1,5 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { ARPage } from "@/src/pages/ar";
+import { ARPage } from "@/legacy/pages/ar";
 
 const route = getRouteApi("/shell/ar");
 

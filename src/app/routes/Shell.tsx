@@ -1,5 +1,5 @@
 import { Outlet } from "@tanstack/react-router";
-import { Navbar, ToastContainer } from "@/src/shared/ui";
+import { Navbar, ToastContainer } from "@/legacy/shared/ui";
 
 /**
  * 全画面共通の外枠

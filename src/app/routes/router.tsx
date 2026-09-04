@@ -1,6 +1,6 @@
 import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
-import { DownloadPage } from "@/src/pages/download";
-import { HomePage } from "@/src/pages/home";
+import { DownloadPage } from "@/legacy/pages/download";
+import { HomePage } from "@/legacy/pages/home";
 import "../styles/globals.css";
 import { ARRoute } from "./ARRoute";
 import { EditorRoute } from "./EditorRoute";
