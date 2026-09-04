@@ -18,6 +18,10 @@ commit-msg:
 
 pre-push:
   commands:
-    typecheck:
+    1_typecheck:
       # tsc はファイルを引数で渡すと tsconfig.json を無視するため、対象を渡さない
       run: pnpm run --silent typecheck
+    2_lint_fsd:
+      # FSD の構造は変更ファイル単体では判定できないため、フォルダ全体を渡す
+      # 作業途中の未完成な構造で止めないよう pre-commit ではなくここに置く
+      run: pnpm run --silent lint:fsd

@@ -46,5 +46,8 @@ jobs:
       - name: 型チェック
         run: pnpm run typecheck
 
+      - name: FSD 構造
+        run: pnpm run lint:fsd
+
       - name: ビルド
         run: pnpm run build
