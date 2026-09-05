@@ -100,11 +100,11 @@ FSD構造の検査 (Steiger) も同じ理由でプッシュ前に置いていま
 
 CIとローカルで結果が食い違わないように、ツールのバージョンを固定しています。
 
-| 対象 | 固定する場所 | CIでの読み取り方 |
-| --- | --- | --- |
-| Node | `.node-version` (動作範囲は`package.json`の`engines`) | `actions/setup-node`の`node-version-file` |
-| pnpm | `package.json`の`packageManager` | `pnpm/action-setup`が自動で読む |
-| npmパッケージ (Vite / Reactなど) | `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` |
+| 対象 | 固定する場所 | CIでの読み取り方 | ローカルでの読み取り方 |
+| --- | --- | --- | --- |
+| Node | `.node-version` (動作範囲は`package.json`の`engines`) | `actions/setup-node`の`node-version-file` | fnm (`--use-on-cd`でcd時に切り替え) |
+| pnpm | `package.json`の`packageManager` | `pnpm/action-setup`が自動で読む | corepack (`corepack enable`で有効化) |
+| npmパッケージ (Vite / Reactなど) | `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` | `pnpm install` |
 
 `vite`や`react`のようなnpmパッケージは`pnpm-lock.yaml`が依存の依存まで固定しているため、
 これとは別にバージョン管理の仕組みを用意する必要はありません。
@@ -112,6 +112,36 @@ CIとローカルで結果が食い違わないように、ツールのバージ
 `--frozen-lockfile`を付ける理由は、`pnpm-lock.yaml`の更新をコミットし忘れたときに、
 CIが黙って辻褄を合わせたまま成功してしまうのを防ぐためです。
 lockfileと`package.json`が食い違っていれば、インストールの時点で落ちます。
+
+Nodeが揃っていないまま作業が進むのを防ぐため、`pnpm-workspace.yaml`に`engineStrict: true`を置いています。
+`engines`が許さないNodeで`pnpm install`を実行すると、依存を入れる前に次のエラーで止まります。
+
+```
+ ERR_PNPM_UNSUPPORTED_ENGINE  Unsupported environment (bad pnpm and/or Node.js version)
+
+Your Node version is incompatible with "/path/to/prog-path".
+
+Expected version: 24.x
+Got: v22.0.0
+
+This is happening because the package's manifest has an engines.node field specified.
+To fix this issue, install the required Node version.
+```
+
+1行目が`bad pnpm and/or Node.js version`となっているのは、`engineStrict`が`engines`の`node`と`pnpm`の両方を検査するためで、
+どちらが原因かは2行目以降 (この例では`Your Node version is incompatible`) で判別します。
+
+ただし**止まるのはメジャーバージョンが違うときだけ**です。
+`engines`の`node`は`24.x`という「動作範囲」なので、24.0.0でも24.14.1でも通ります。
+`.node-version`に書いた1つの値まで揃えるのは、それを読むfnmの役目です。
+役割を分けているのは、`engines`を1つの値まで狭めるとNodeを上げるたびに`package.json`も直すことになり、
+揃える値の置き場が2箇所に増えるためです。
+
+pnpmはcorepackが`packageManager`を読み、書かれたバージョンを用意します。
+ただしcorepackは**Node 25から同梱されません**。
+Nodeを25以上に上げるときは、pnpmを手元に用意する方法を合わせて決め直す必要があります。
+
+ローカル側の用意の手順は[セットアップ手順のドキュメント](setup.md)を参照してください。
 
 ### チェック項目
 
