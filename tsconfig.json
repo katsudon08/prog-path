@@ -1,9 +1,8 @@
 {
   "compilerOptions": {
-    // Vite の build.target (既定: chrome107 / edge107 /
-    // firefox104 / safari16) で使える上限に合わせている。
-    // ES2023 以降の機能は Safari 16.4+ が必要になる
-    "target": "ES2022",
+    // 構文レベルの制御は Vite (build.target) に一本化する。
+    // noEmit なので tsc は型チェック専任
+    "target": "esnext",
     "lib": ["dom", "dom.iterable", "esnext"],
     "skipLibCheck": true,
     "strict": true,
