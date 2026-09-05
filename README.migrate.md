@@ -43,7 +43,7 @@ v4はv3と設定の持ち方が変わり、`tailwind.config.js`が不要にな�
 | 設定ファイル | 無し。トークンは`src/app/styles/globals.css`の`@theme inline`に集約 |
 | 読み込み箇所 | `src/app/routes/router.tsx`の`import "../styles/globals.css"`の1箇所のみ |
 | クラス名の走査範囲 | `src/`と`index.html`のみ (後述) |
-| ベンダープレフィックス | Tailwindが内蔵するLightning CSSが自動で付与する。`autoprefixer`は不要 |
+| ベンダープレフィックス | Lightning CSSが自動で付与する。Tailwindの内部とViteのCSS圧縮 (`build.cssMinify`の既定) の両方を通る。`autoprefixer`は不要 |
 
 PostCSS経由 (`@tailwindcss/postcss` + `postcss.config.mjs`) ではありません。
 Viteプラグインのほうがv4の推奨構成であり、設定ファイルを1つ減らせるためです。
