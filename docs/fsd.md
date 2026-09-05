@@ -137,7 +137,7 @@ src/entities/maze/
 ## エイリアス
 
 エイリアスは `@/*` → `src/*` の**1つだけ**です。
-`tsconfig.json` の `paths` に定義し、Vite は `vite-tsconfig-paths` で同じ定義を読みます。
+`tsconfig.json` の `paths` に定義し、Vite は `resolve.tsconfigPaths` で同じ定義を読みます。
 
 | 書き方 | 指す先 | 状態 |
 | --- | --- | --- |
