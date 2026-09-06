@@ -16,6 +16,8 @@ CIで何が走るのかを把握したいエンジニアです。
 
 除外を書く場所は`.prettierignore`の`/src/legacy/`と`eslint.config.mjs`の`src/legacy/**`の2箇所です。
 Steiger には除外を書いていません。`legacy`はFSDの層名ではないため、層として認識されず中身が走査されないからです。
+Vitest にも除外は書いていません。`vite.config.ts`の`test.include`が`entities` / `features` / `shared`だけを挙げる
+ホワイトリスト方式のため、`legacy`は最初から対象に入らないからです。
 移行が終わって`src/legacy/`が消えたら、この2箇所も一緒に消します。
 
 ### PrettierとESLintで除外リストが揃っていない理由
@@ -45,7 +47,6 @@ Goで書かれているため高速で、Gitフックをより簡単にします
 | --- | --- | --- |
 | フォーマット | Prettier | `pnpm run format <対象>` |
 | 文法・コーディング規約 (コメントも含む) | ESLint | `pnpm run lint:fix <対象>` |
-| ユニットテスト | 未定 | なし |
 | コミットメッセージ規約 | commitlint | `pnpm run commitlint` |
 
 参考記事：[commitlint の紹介](https://qiita.com/ybiquitous/items/74225bc4bf0a9ddcd7dd)
@@ -62,6 +63,7 @@ Goで書かれているため高速で、Gitフックをより簡単にします
 | --- | --- | --- |
 | 型チェック | TypeScript | `pnpm run typecheck` |
 | FSD 構造 | Steiger | `pnpm run lint:fsd` |
+| ユニットテスト | Vitest | `pnpm run test` |
 | インテグレーションテスト | 未定 | なし |
 
 型チェックをコミット前ではなくプッシュ前に置く理由は次の2点です。
@@ -71,6 +73,16 @@ Goで書かれているため高速で、Gitフックをより簡単にします
 
 FSD構造の検査 (Steiger) も同じ理由でプッシュ前に置いています。
 `src/`全体を走査するうえ、**作業途中で`index.ts`をまだ書いていない、といった未完成な構造も正常な状態**だからです。
+
+ユニットテスト (Vitest) も同じ理由です。
+**まず失敗するテストを書いてから実装する**進め方をすると、コミット前に走らせる設定では赤いテストをコミットできず、
+作業を分割してコミットする自由が失われます。
+
+なお実行するのは単発実行 (`vitest run`) です。
+監視モード (`pnpm run test:watch`) は開発中に自分で走らせるものなので、フックやCIからは呼びません。
+プロセスが終わらず待ち続けてしまうためです。
+
+E2Eテストだけは、実行に時間がかかりプッシュのたびに待たされるためCIのみで実行します。
 
 ## CI
 
@@ -149,7 +161,7 @@ Nodeを25以上に上げるときは、pnpmを手元に用意する方法を合�
 | 文法・コーディング規約 (コメントも含む) | ESLint | `pnpm run lint .` |
 | 型チェック | TypeScript | `pnpm run typecheck` |
 | FSD 構造 | Steiger | `pnpm run lint:fsd` |
-| ユニットテスト | 未定 | なし |
+| ユニットテスト | Vitest | `pnpm run test` |
 | インテグレーションテスト | 未定 | なし |
 | E2Eテスト | 未定 | なし |
 | ビルド | Vite | `pnpm run build` |
