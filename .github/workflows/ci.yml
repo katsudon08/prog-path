@@ -49,5 +49,8 @@ jobs:
       - name: FSD 構造
         run: pnpm run lint:fsd
 
+      - name: ユニットテスト
+        run: pnpm run test
+
       - name: ビルド
         run: pnpm run build

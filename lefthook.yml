@@ -25,3 +25,7 @@ pre-push:
       # FSD の構造は変更ファイル単体では判定できないため、フォルダ全体を渡す
       # 作業途中の未完成な構造で止めないよう pre-commit ではなくここに置く
       run: pnpm run --silent lint:fsd
+    3_test:
+      # 対象は vite.config.ts の include が決めるため、ここでは渡さない
+      # 赤いテストを先に書く進め方を止めないよう pre-commit ではなくここに置く
+      run: pnpm run --silent test
