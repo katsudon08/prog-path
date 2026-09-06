@@ -12,4 +12,12 @@ export default defineConfig([
       "fsd/import-locality": "error",
     },
   },
+  {
+    // ホーム画面の UI (#288〜#291) が使い始めるまで、このスライスはどこからも参照されない。
+    // 参照が付いた時点でこの設定を外す
+    files: ["./src/entities/maze/**"],
+    rules: {
+      "fsd/insignificant-slice": "off",
+    },
+  },
 ]);
