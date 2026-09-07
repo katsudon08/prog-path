@@ -8,3 +8,4 @@ export {
 export { isReservedFolder } from "./lib/is-reserved-folder";
 export { sortFolders } from "./lib/sort-folders";
 export { getMazeGridSize, getMazeLayerCount } from "./lib/get-maze-size";
+export { loadFolders, loadMazes, saveFolders, saveMazes } from "./lib/storage";
